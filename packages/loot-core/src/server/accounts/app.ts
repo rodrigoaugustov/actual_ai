@@ -129,6 +129,8 @@ async function getAccounts(): Promise<AccountEntity[]> {
         account_sync_source: dbAccount.account_sync_source ?? null,
         last_sync: dbAccount.last_sync ?? null,
         bank_sync_status: dbAccount.bank_sync_status ?? null,
+        closing_day: dbAccount.closing_day ?? null,
+        due_day: dbAccount.due_day ?? null,
       }) satisfies AccountEntity,
   );
 }

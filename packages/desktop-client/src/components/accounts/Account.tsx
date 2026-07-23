@@ -47,6 +47,7 @@ import {
 } from '#accounts';
 import { markAccountRead } from '#accounts/accountsSlice';
 import * as reconciliation from '#accounts/reconciliation';
+import { StatementsPanel } from '#components/credit-cards/StatementsPanel';
 import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
 import type { SavedFilter } from '#components/filters/SavedFilterMenuButton';
 import { TransactionList } from '#components/transactions/TransactionList';
@@ -810,7 +811,8 @@ class AccountInternal extends PureComponent<
       | 'remove-sorting'
       | 'toggle-cleared'
       | 'toggle-reconciled'
-      | 'toggle-net-worth-chart',
+      | 'toggle-net-worth-chart'
+      | 'credit-card-settings',
   ) => {
     const accountId = this.props.accountId!;
     const account = this.props.accounts.find(
@@ -918,6 +920,16 @@ class AccountInternal extends PureComponent<
         } else {
           this.props.setShowNetWorthChart(true);
         }
+        break;
+      case 'credit-card-settings':
+        this.props.dispatch(
+          pushModal({
+            modal: {
+              name: 'credit-card-settings',
+              options: { account },
+            },
+          }),
+        );
         break;
       default:
     }
@@ -1821,6 +1833,13 @@ class AccountInternal extends PureComponent<
                 onMakeAsNonSplitTransactions={this.onMakeAsNonSplitTransactions}
                 onMergeTransactions={this.onMergeTransactions}
               />
+
+              {account && account.closing_day != null && (
+                <StatementsPanel
+                  account={account}
+                  onApplyFilter={this.onApplyFilter}
+                />
+              )}
 
               <View style={{ flex: 1 }}>
                 <TransactionList

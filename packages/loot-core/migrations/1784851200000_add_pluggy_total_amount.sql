@@ -1,0 +1,5 @@
+BEGIN TRANSACTION;
+
+ALTER TABLE statements ADD COLUMN pluggy_total_amount INTEGER;
+
+COMMIT;

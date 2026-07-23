@@ -27,6 +27,13 @@ export type TransactionEntity = {
   forceUpcoming?: boolean;
   schedule?: ScheduleEntity['id'];
   subtransactions?: TransactionEntity[];
+  // Credit card installment purchase ("parcelamento") fields; all set
+  // together when this transaction is one installment of a group
+  installment_group?: string | null;
+  installment_num?: number | null;
+  installment_total?: number | null;
+  /** Pluggy Open Finance real bill id, when synced from a linked bill */
+  pluggy_bill_id?: string | null;
   _unmatched?: boolean;
   _deleted?: boolean;
   error?: {

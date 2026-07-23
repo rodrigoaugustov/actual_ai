@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as asyncStorage from '#platform/server/asyncStorage';
 import { logger } from '#platform/server/log';
 import { aqlQuery } from '#server/aql';
+import { syncPluggyBills } from '#server/credit-cards/pluggy';
 import * as db from '#server/db';
 import { TRANSACTION_SORT_INCREMENT } from '#server/db/sort';
 import { TransactionError } from '#server/errors';
@@ -316,6 +317,34 @@ async function downloadPluggyAiTransactions(
   return retVal;
 }
 
+export async function downloadPluggyAiBills(
+  acctId: AccountEntity['id'],
+  fileId?: string,
+) {
+  const userToken = await asyncStorage.getItem('user-token');
+  if (!userToken) return [];
+
+  logger.log('Pulling credit card bills from Pluggy.ai');
+
+  const res = await post(
+    getServer().PLUGGYAI_SERVER + '/bills',
+    { accountId: acctId },
+    {
+      'X-ACTUAL-TOKEN': userToken,
+      ...(fileId ? { 'X-Actual-File-Id': fileId } : {}),
+    },
+    60000,
+  );
+
+  if (res.error_code) {
+    throw BankSyncError(res.error_type, res.error_code);
+  } else if ('error' in res) {
+    throw BankSyncError('Connection', res.error);
+  }
+
+  return res.bills ?? [];
+}
+
 async function downloadAkahuTransactions(
   acctId: AccountEntity['id'],
   since: string,
@@ -564,6 +593,9 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
         imported_payee: trans.imported_payee,
         cleared: trans.cleared,
         raw_synced_data: JSON.stringify(trans),
+        // Only present for Pluggy Open Finance connectors, and only
+        // once the bill closes; harmless no-op for every other provider
+        pluggy_bill_id: trans.billId ?? null,
       },
     });
   }
@@ -651,6 +683,11 @@ export async function reconcileTransactions(
         cleared: existing.cleared || trans.cleared || false,
         raw_synced_data:
           existing.raw_synced_data ?? trans.raw_synced_data ?? null,
+        // Backfills a bill link that only became available on a later
+        // sync (e.g. a bill closed since the transaction was first
+        // imported); once linked, it's never blanked out again
+        pluggy_bill_id:
+          existing.pluggy_bill_id ?? trans.pluggy_bill_id ?? null,
       };
 
       if (updateDates && trans.date) {
@@ -1210,7 +1247,7 @@ export async function syncAccount(
     );
   }
 
-  return processBankSyncDownload(
+  const result = await processBankSyncDownload(
     download,
     id,
     acctRow,
@@ -1218,6 +1255,21 @@ export async function syncAccount(
     customStartingBalance,
     customStartingDate,
   );
+
+  if (acctRow.account_sync_source === 'pluggyai') {
+    // Best-effort: enriching statements with real bill data must never
+    // fail an otherwise-successful transaction sync
+    try {
+      const bills = await downloadPluggyAiBills(acctId, fileId);
+      if (bills.length > 0) {
+        await syncPluggyBills(id, bills);
+      }
+    } catch (error) {
+      logger.warn('Failed to sync Pluggy bills', error);
+    }
+  }
+
+  return result;
 }
 
 export async function simpleFinBatchSync(

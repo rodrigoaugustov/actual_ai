@@ -1,4 +1,10 @@
 import { aqlQuery } from '#server/aql';
+import {
+  getEffectiveBudgetMonth,
+  getSumAmountQuery,
+  getSumAmountsByMonthQuery,
+  handleStatementChange,
+} from '#server/credit-cards/budget-queries';
 import * as db from '#server/db';
 import * as sheet from '#server/sheet';
 import { resolveName } from '#server/spreadsheet/util';
@@ -43,22 +49,15 @@ export function getBudgetRange(start: string, end: string) {
 // `sum-amount` cells on a cold build so we avoid running one
 // `SELECT SUM(amount)` query per category per month (which scales as
 // categories × months and dominates load time for budgets with many years
-// of data). The filters must match the per-cell query in `createCategory`
-// exactly so balances stay identical.
+// of data). The queries are built in `#server/credit-cards/budget-queries`
+// so the grouped query and the per-cell query in `createCategory` stay in
+// lockstep and balances stay identical.
 function getSumAmountsByMonth(
   rangeStart: number,
   rangeEnd: number,
 ): Map<string, number> {
   const rows = db.runQuery<{ month: number; category: string; amount: number }>(
-    `SELECT t.category AS category,
-            t.date / 100 AS month,
-            SUM(t.amount) AS amount
-       FROM v_transactions_internal_alive t
-       LEFT JOIN accounts a ON a.id = t.account
-      WHERE t.date >= ${rangeStart} AND t.date <= ${rangeEnd}
-        AND t.category IS NOT NULL
-        AND a.offbudget = 0
-      GROUP BY t.category, t.date / 100`,
+    getSumAmountsByMonthQuery(rangeStart, rangeEnd),
     [],
     true,
   );
@@ -76,10 +75,7 @@ export function createCategory(cat, sheetName, prevSheetName, start, end) {
     run: () => {
       // Making this sync is faster!
       const rows = db.runQuery<{ amount: number }>(
-        `SELECT SUM(amount) as amount FROM v_transactions_internal_alive t
-           LEFT JOIN accounts a ON a.id = t.account
-         WHERE t.date >= ${start} AND t.date <= ${end}
-           AND category = '${cat.id}' AND a.offbudget = 0`,
+        getSumAmountQuery(cat.id, start, end),
         [],
         true,
       );
@@ -126,11 +122,18 @@ function handleTransactionChange(transaction, changedFields) {
       changedFields.has('amount') ||
       changedFields.has('category') ||
       changedFields.has('tombstone') ||
-      changedFields.has('isParent')) &&
+      changedFields.has('isParent') ||
+      // A Pluggy bill link arriving or changing after the fact (e.g. a
+      // pending installment's bill just closed) can change the
+      // effective month under the payment regime on its own, with no
+      // other field changing
+      changedFields.has('pluggy_bill_id')) &&
     transaction.date &&
     transaction.category
   ) {
-    const month = monthUtils.monthFromDate(db.fromDateRepr(transaction.date));
+    // Under the payment regime a card transaction counts toward its
+    // covering statement's month rather than its own date month
+    const month = getEffectiveBudgetMonth(transaction);
     const sheetName = monthUtils.sheetForMonth(month);
 
     sheet
@@ -234,6 +237,8 @@ export function triggerBudgetChanges(oldValues, newValues) {
           }
         } else if (table === 'accounts') {
           handleAccountChange(createdMonths, oldValue, newValue);
+        } else if (table === 'statements') {
+          handleStatementChange(sheet.get(), createdMonths, oldValue, newValue);
         }
       });
     });
@@ -400,13 +405,11 @@ export async function createAllBudgets() {
   return { start, end };
 }
 
-export async function setType(type) {
+// Deletes every budget cell and rebuilds them from scratch. Used when
+// a global setting that changes how the cells are computed (budget
+// type, budget regime) is modified.
+export async function refreshAllBudgets() {
   const meta = sheet.get().meta();
-  if (type === meta.budgetType) {
-    return;
-  }
-
-  meta.budgetType = type;
   meta.createdMonths = new Set();
 
   // Go through and force all the cells to be recomputed
@@ -426,4 +429,14 @@ export async function setType(type) {
   sheet.get().endCacheBarrier();
 
   return bounds;
+}
+
+export async function setType(type) {
+  const meta = sheet.get().meta();
+  if (type === meta.budgetType) {
+    return;
+  }
+
+  meta.budgetType = type;
+  return refreshAllBudgets();
 }

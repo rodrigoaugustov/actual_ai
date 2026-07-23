@@ -12,6 +12,7 @@ import type {
   NoteEntity,
   RuleEntity,
   ScheduleEntity,
+  StatementWithDerived,
   SyncServerEnableBankingAccount,
   TransactionEntity,
   UserAccessEntity,
@@ -57,6 +58,25 @@ export type Modal =
     }
   | {
       name: 'add-local-account';
+    }
+  | {
+      name: 'credit-card-settings';
+      options: {
+        account: AccountEntity;
+      };
+    }
+  | {
+      name: 'credit-card-installment-purchase';
+      options: {
+        account: AccountEntity;
+      };
+    }
+  | {
+      name: 'credit-card-confirm-payment';
+      options: {
+        statement: StatementWithDerived;
+        account: AccountEntity;
+      };
     }
   | {
       name: 'close-account';

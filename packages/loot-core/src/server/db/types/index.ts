@@ -20,6 +20,8 @@ export type DbAccount = {
   official_name?: string | null;
   type?: string | null;
   subtype?: string | null;
+  closing_day?: number | null;
+  due_day?: number | null;
   bank?: string | null;
   account_sync_source?: 'simpleFin' | 'goCardless' | null;
   last_reconciled?: string | null;
@@ -35,6 +37,25 @@ export type DbAccount = {
     | 'timed-out'
     | 'account-missing'
     | null;
+};
+
+export type DbStatement = {
+  id: string;
+  acct: DbAccount['id'];
+  start_date: number;
+  end_date: number;
+  due_date: number;
+  budget_month: number;
+  paid_transaction: string | null;
+  tombstone: 1 | 0;
+  // Set when this statement was created/updated from a real Pluggy
+  // Open Finance bill rather than derived from closing_day/due_day
+  pluggy_bill_id?: string | null;
+  // The bank's own reported total for this bill (negative, matching
+  // the sign of a purchase); authoritative over summing transactions
+  // since it also reflects finance charges/IOF with no transaction of
+  // their own
+  pluggy_total_amount?: number | null;
 };
 
 export type DbBank = {
@@ -189,6 +210,13 @@ export type DbTransaction = {
   tombstone: 1 | 0;
   cleared: 1 | 0;
   reconciled: 1 | 0;
+  // Credit card installment purchase ("parcelamento") fields; all set
+  // together when the transaction is one installment of a group
+  installment_group?: string | null;
+  installment_num?: number | null;
+  installment_total?: number | null;
+  // Pluggy Open Finance real bill id (see #server/credit-cards/pluggy)
+  pluggy_bill_id?: string | null;
   // Unused in the codebase
   pending?: 1 | 0 | null;
   location?: string | null;

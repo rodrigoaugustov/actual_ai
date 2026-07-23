@@ -10,6 +10,7 @@ import { logger } from '#platform/server/log';
 import { createApp } from '#server/app';
 import * as budget from '#server/budget/base';
 import * as cloudStorage from '#server/cloud-storage';
+import { resetBudgetRegimeCache } from '#server/credit-cards/regime';
 import * as db from '#server/db';
 import * as mappings from '#server/db/mappings';
 import { resetFormulaPreferencesCache } from '#server/formulas/bootstrap';
@@ -634,6 +635,7 @@ async function _loadBudget(id: Budget['id']): Promise<{
       ['budgetType'],
     )) ?? {};
   sheet.get().meta().budgetType = budgetType as prefs.BudgetType;
+  resetBudgetRegimeCache();
   await budget.createAllBudgets();
 
   // Load all the in-memory state

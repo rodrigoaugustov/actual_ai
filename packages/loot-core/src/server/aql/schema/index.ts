@@ -54,6 +54,10 @@ export const schema = {
     tombstone: f('boolean'),
     schedule: f('id', { ref: 'schedules' }),
     raw_synced_data: f('string'),
+    installment_group: f('string'),
+    installment_num: f('integer'),
+    installment_total: f('integer'),
+    pluggy_bill_id: f('string'),
     // subtransactions is a special field added if the table has the
     // `splits: grouped` option
   },
@@ -78,6 +82,20 @@ export const schema = {
     last_reconciled: f('string'),
     last_sync: f('string'),
     bank_sync_status: f('string'),
+    closing_day: f('integer'),
+    due_day: f('integer'),
+  },
+  statements: {
+    id: f('id'),
+    acct: f('id', { ref: 'accounts', required: true }),
+    start_date: f('date', { required: true }),
+    end_date: f('date', { required: true }),
+    due_date: f('date', { required: true }),
+    budget_month: f('integer', { required: true }),
+    paid_transaction: f('id'),
+    pluggy_bill_id: f('string'),
+    pluggy_total_amount: f('integer'),
+    tombstone: f('boolean'),
   },
   categories: {
     id: f('id'),

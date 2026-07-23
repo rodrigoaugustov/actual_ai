@@ -12,9 +12,11 @@ import * as asyncStorage from '#platform/server/asyncStorage';
 import * as connection from '#platform/server/connection';
 import { logger } from '#platform/server/log';
 import {
+  refreshAllBudgets,
   setType as setBudgetType,
   triggerBudgetChanges,
 } from '#server/budget/base';
+import { resetBudgetRegimeCache } from '#server/credit-cards/regime';
 import * as db from '#server/db';
 import { PostError, SyncError } from '#server/errors';
 import { app } from '#server/main-app';
@@ -367,6 +369,10 @@ export const applyMessages = sequential(async (messages: Message[]) => {
       // Special treatment for some synced prefs
       if (dataset === 'preferences' && row === 'budgetType') {
         void setBudgetType(value);
+      }
+      if (dataset === 'preferences' && row === 'budgetRegime') {
+        resetBudgetRegimeCache();
+        void refreshAllBudgets();
       }
     }
 

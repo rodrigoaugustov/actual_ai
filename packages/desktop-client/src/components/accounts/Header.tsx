@@ -53,6 +53,7 @@ import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import type { TableRef } from './Account';
 import { Balances } from './Balance';
 import { BalanceHistoryGraph } from './BalanceHistoryGraph';
+import { MonthFilterButton } from './MonthFilterButton';
 import { ReconcileMenu, ReconcilingMessage } from './Reconcile';
 
 type AccountHeaderProps = {
@@ -376,6 +377,12 @@ export function AccountHeader({
             {/* @ts-expect-error fix me */}
             <FilterButton onApply={onApplyFilter} />
           </View>
+          {account && (
+            <View style={{ flexShrink: 0 }}>
+              {/* @ts-expect-error fix me */}
+              <MonthFilterButton onApply={onApplyFilter} />
+            </View>
+          )}
           <View style={{ flex: 1 }} />
 
           <Search
@@ -743,7 +750,8 @@ type AccountMenuProps = {
       | 'remove-sorting'
       | 'toggle-cleared'
       | 'toggle-reconciled'
-      | 'toggle-net-worth-chart',
+      | 'toggle-net-worth-chart'
+      | 'credit-card-settings',
   ) => void;
 };
 
@@ -805,6 +813,14 @@ function AccountMenu({
             : t('Show reconciled transactions'),
         },
         { name: 'export', text: t('Export') },
+        ...(account && !account.closed
+          ? [
+              {
+                name: 'credit-card-settings',
+                text: t('Credit card settings'),
+              } as const,
+            ]
+          : []),
         ...(account && !account.closed
           ? canSync
             ? [

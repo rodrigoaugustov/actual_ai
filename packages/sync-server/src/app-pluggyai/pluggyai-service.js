@@ -103,6 +103,25 @@ export const pluggyaiService = {
     }
   },
 
+  getBillsByAccountId: async (accountId, fileId) => {
+    try {
+      const client = getPluggyClient(fileId);
+      // 500 is the API's documented maximum page size; a card's bill
+      // history realistically never needs more than one page
+      const { results } = await client.fetchCreditCardBills(accountId, {
+        pageSize: 500,
+      });
+      return {
+        results,
+        hasError: false,
+        errors: {},
+      };
+    } catch (error) {
+      console.error(`Error fetching bills: ${error.message}`);
+      throw error;
+    }
+  },
+
   getTransactionsByAccountId: async (accountId, startDate, fileId) => {
     try {
       const client = getPluggyClient(fileId);

@@ -1,6 +1,7 @@
 // @ts-strict-ignore
 
 import * as connection from '#platform/server/connection';
+import { onTransactionsChanged as extendStatementCoverage } from '#server/credit-cards/statements';
 import * as db from '#server/db';
 import { incrFetch, whereIn } from '#server/db/util';
 import { batchMessages } from '#server/sync';
@@ -149,6 +150,15 @@ export async function batchUpdateTransactions({
       await Promise.all(allDeleted.map(t => transfer.onDelete(t)));
     });
   }
+
+  // Extend credit card statement coverage when card transactions land
+  // beyond the generated horizon (no-op for non-card accounts)
+  await extendStatementCoverage(
+    allAdded.concat(allUpdated).map(t => ({
+      acct: t.account,
+      date: t.date ? db.toDateRepr(t.date) : undefined,
+    })),
+  );
 
   if (learnCategories) {
     // Analyze any updated categories and update rules to learn from

@@ -126,6 +126,80 @@ app.post(
 );
 
 app.post(
+  '/bills',
+  handleError(async (req, res) => {
+    const { accountId } = req.body || {};
+    const fileId = req.get('X-Actual-File-Id');
+    if (!!fileId) {
+      if (!isValidFileId(fileId)) {
+        res.status(400).send({
+          status: 'error',
+          reason: 'invalid-file-id',
+          details: 'invalid fileId',
+        });
+        return;
+      }
+
+      if (!canAccessFile(fileId, res.locals.user_id)) {
+        res.status(403).send({
+          status: 'error',
+          reason: 'file-access-denied',
+          details: "You don't have permissions over this file",
+        });
+        return;
+      }
+    }
+
+    try {
+      const source = pluggyaiService.getCredentialSource(fileId);
+      if (!source) {
+        res.status(400).send({
+          status: 'error',
+          reason: 'not-configured',
+          details: 'Pluggy credentials are not configured',
+        });
+        return;
+      }
+
+      const bills = await pluggyaiService.getBillsByAccountId(
+        accountId,
+        fileId,
+      );
+
+      // Built manually (not via flattenObject, which silently drops
+      // Date-typed fields since native Date objects have no enumerable
+      // own properties to recurse into). billClosingDate isn't in the
+      // SDK's TypeScript surface; read it loosely in case the raw API
+      // response includes it under either name — the SDK doesn't strip
+      // unknown fields, it just doesn't type them.
+      const results = bills.results.map(bill => ({
+        id: bill.id,
+        dueDate: toISODate(bill.dueDate),
+        billClosingDate: toISODate(bill.billClosingDate ?? bill.closingDate),
+        totalAmount: bill.totalAmount,
+        totalAmountCurrencyCode: bill.totalAmountCurrencyCode,
+        minimumPaymentAmount: bill.minimumPaymentAmount,
+      }));
+
+      res.send({
+        status: 'ok',
+        data: {
+          bills: results,
+        },
+      });
+    } catch (error) {
+      res.send({
+        status: 'ok',
+        data: {
+          error: error.message,
+        },
+      });
+    }
+    return;
+  }),
+);
+
+app.post(
   '/transactions',
   handleError(async (req, res) => {
     const { accountId, startDate } = req.body || {};
@@ -277,6 +351,15 @@ app.post(
 
 function getDate(date) {
   return date.toISOString().split('T')[0];
+}
+
+// Bill date fields may arrive as Date instances (per the SDK's typed
+// fields) or, for fields the SDK doesn't type, as raw strings straight
+// from the API response
+function toISODate(value) {
+  if (value == null) return null;
+  if (value instanceof Date) return getDate(value);
+  return String(value).split('T')[0];
 }
 
 function flattenObject(obj, prefix = '') {

@@ -9,6 +9,11 @@ export type AccountEntity = {
   last_reconciled: string | null;
   tombstone: 0 | 1;
 
+  // Credit card fields (Brazilian-style statement management). Both
+  // set = card mode enabled; both null = plain account (default).
+  closing_day?: number | null;
+  due_day?: number | null;
+
   // Sync fields
   account_id: string | null;
   bank: string | null;

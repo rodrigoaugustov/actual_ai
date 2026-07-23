@@ -12,6 +12,9 @@ import { closeModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 
 import { EditSyncAccount } from './banksync/EditSyncAccount';
+import { ConfirmStatementPaymentModal } from './credit-cards/ConfirmStatementPaymentModal';
+import { CreateInstallmentPurchaseModal } from './credit-cards/CreateInstallmentPurchaseModal';
+import { CreditCardSettingsModal } from './credit-cards/CreditCardSettingsModal';
 import { AccountAutocompleteModal } from './modals/AccountAutocompleteModal';
 import { AccountMenuModal } from './modals/AccountMenuModal';
 import { AccountReconcileModal } from './modals/AccountReconcileModal';
@@ -135,6 +138,19 @@ export function Modals() {
 
         case 'add-local-account':
           return <CreateLocalAccountModal key={key} />;
+
+        case 'credit-card-settings':
+          return <CreditCardSettingsModal key={key} {...modal.options} />;
+
+        case 'credit-card-installment-purchase':
+          return (
+            <CreateInstallmentPurchaseModal key={key} {...modal.options} />
+          );
+
+        case 'credit-card-confirm-payment':
+          return (
+            <ConfirmStatementPaymentModal key={key} {...modal.options} />
+          );
 
         case 'close-account':
           return <CloseAccountModal key={key} {...modal.options} />;

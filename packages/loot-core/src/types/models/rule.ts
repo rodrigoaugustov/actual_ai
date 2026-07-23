@@ -51,7 +51,11 @@ type BaseConditionEntity<
   conditionsOp?: 'and' | 'or';
   type?: 'id' | 'boolean' | 'date' | 'number' | 'string';
   customName?: string;
-  queryFilter?: Record<string, { $oneof: string[] }>;
+  // Raw AQL filter, spread directly into the register's query (see
+  // `Account.tsx`'s `applyFilters`) rather than built from field/op/value
+  // — used for filters the field/op picker can't express, e.g. a
+  // custom-named "selected transactions" or date-range filter.
+  queryFilter?: Record<string, unknown>;
 };
 
 export type RuleConditionEntity =

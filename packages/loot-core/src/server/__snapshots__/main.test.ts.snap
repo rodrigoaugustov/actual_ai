@@ -13,12 +13,16 @@ exports[`Accounts > Transfers are properly updated 1`] = `
     "financial_id": null,
     "id": "test-transfer",
     "imported_description": null,
+    "installment_group": null,
+    "installment_num": null,
+    "installment_total": null,
     "isChild": 0,
     "isParent": 0,
     "location": null,
     "notes": null,
     "parent_id": null,
     "pending": 0,
+    "pluggy_bill_id": null,
     "raw_synced_data": null,
     "reconciled": 0,
     "schedule": null,
@@ -39,12 +43,16 @@ exports[`Accounts > Transfers are properly updated 1`] = `
     "financial_id": null,
     "id": "id2",
     "imported_description": null,
+    "installment_group": null,
+    "installment_num": null,
+    "installment_total": null,
     "isChild": 0,
     "isParent": 0,
     "location": null,
     "notes": null,
     "parent_id": null,
     "pending": 0,
+    "pluggy_bill_id": null,
     "raw_synced_data": null,
     "reconciled": 0,
     "schedule": null,
@@ -75,8 +83,8 @@ exports[`Accounts > Transfers are properly updated 2`] = `
       "financial_id": null,
       "id": "test-transfer",
       "imported_description": null,
-      "isChild": 0,
-@@ -24,11 +24,11 @@
+      "installment_group": null,
+@@ -28,11 +28,11 @@
       "tombstone": 0,
       "transferred_id": "id2",
       "type": null,
@@ -95,7 +103,7 @@ exports[`Accounts > Transfers are properly updated 3`] = `
 "- First value
 + Second value
 
-@@ -19,12 +19,12 @@
+@@ -23,12 +23,12 @@
       "raw_synced_data": null,
       "reconciled": 0,
       "schedule": null,
@@ -110,7 +118,7 @@ exports[`Accounts > Transfers are properly updated 3`] = `
     Object {
       "acct": "three",
       "amount": -5000,
-@@ -45,10 +45,10 @@
+@@ -53,10 +53,10 @@
       "raw_synced_data": null,
       "reconciled": 0,
       "schedule": null,
