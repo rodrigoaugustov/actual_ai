@@ -576,6 +576,24 @@ All storage is **SQLite** (file-based via `better-sqlite3`). No external databas
 - `yarn start:server-dev` starts both the sync server (port 5006) and the web frontend together.
 - The Vite HMR dev server serves many unbundled modules. In constrained environments, the browser may hit `ERR_INSUFFICIENT_RESOURCES`. If that happens, use `yarn build:browser` followed by serving the built output from `packages/desktop-client/build/` with proper COOP/COEP headers (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`).
 
+### Running the fork locally with Docker
+
+Use the production-like Docker setup when you need to run the server and web
+client built from this checkout:
+
+```bash
+docker compose -f packages/sync-server/docker-compose.yml up --detach --build
+```
+
+- The application is available at `http://localhost:5006`.
+- The local image is named `actual-ai-server:local`; do not substitute an
+  `actualbudget/*` image, because it would omit this fork's changes.
+- Persistent data is bind-mounted to
+  `packages/sync-server/actual-data/` as `/data`. Restarting or recreating the
+  container preserves data; deleting that local folder permanently removes it.
+- Check status with `docker compose -f packages/sync-server/docker-compose.yml ps`
+  and stop the stack with `docker compose -f packages/sync-server/docker-compose.yml down`.
+
 ### Lint, test, typecheck
 
 Standard commands documented in `package.json` scripts and the Quick Start section above:

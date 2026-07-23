@@ -8,15 +8,7 @@ WORKDIR /app
 # Copy only the files needed for installing dependencies
 COPY .yarn ./.yarn
 COPY yarn.lock package.json .yarnrc.yml tsconfig.json lage.config.js ./
-COPY packages/api/package.json packages/api/package.json
-COPY packages/component-library/package.json packages/component-library/package.json
-COPY packages/crdt/package.json packages/crdt/package.json
-COPY packages/desktop-client/package.json packages/desktop-client/package.json
-COPY packages/desktop-electron/package.json packages/desktop-electron/package.json
-COPY packages/eslint-plugin-actual/package.json packages/eslint-plugin-actual/package.json
-COPY packages/loot-core/package.json packages/loot-core/package.json
-COPY packages/sync-server/package.json packages/sync-server/package.json
-COPY packages/plugins-service/package.json packages/plugins-service/package.json
+COPY packages ./packages
 
 COPY ./bin/package-browser ./bin/package-browser
 
@@ -25,8 +17,6 @@ RUN yarn install
 FROM deps AS builder
 
 WORKDIR /app
-
-COPY packages/ ./packages/
 
 # Increase memory limit for the build process to 8GB
 ENV NODE_OPTIONS=--max_old_space_size=8192
@@ -38,7 +28,11 @@ RUN git -c init.defaultBranch=master init -q \
     && git -c user.email=build@docker -c user.name=docker-build add -A \
     && git -c user.email=build@docker -c user.name=docker-build commit -qm build
 
-RUN yarn build:server
+# Docker builds must be self-contained: do not fetch the upstream translations
+# repository. The browser build falls back to the translations available in this
+# checkout (English when no local catalogue has been added yet).
+RUN yarn build:browser --skip-translations \
+    && yarn workspace @actual-app/sync-server build
 
 # Focus the workspaces in production mode (including @actual-app/web you just built)
 RUN yarn workspaces focus @actual-app/sync-server --production
@@ -70,6 +64,10 @@ ENV NODE_ENV=production
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/packages/sync-server/package.json ./
 COPY --from=builder /app/packages/sync-server/build ./build
+
+# Keep the healthcheck path used by docker-compose compatible with the bundled
+# server layout.
+RUN ln -s build/scripts scripts
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 EXPOSE 5006
