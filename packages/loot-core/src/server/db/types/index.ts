@@ -58,6 +58,54 @@ export type DbStatement = {
   pluggy_total_amount?: number | null;
 };
 
+export type DbAiRun = {
+  id: string;
+  agent: string;
+  tier: string;
+  provider: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  cost_usd: number;
+  duration_ms: number;
+  status: string;
+  error: string | null;
+  created_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiRuleMeta = {
+  id: string;
+  rule_id: string | null;
+  payee_name: string;
+  op: string;
+  value: string;
+  category_id: string;
+  rationale: string;
+  sample_transaction_ids: string;
+  status: 'proposed' | 'approved' | 'rejected';
+  hits: number;
+  confirmed: number;
+  corrected: number;
+  run_id: string | null;
+  created_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiSuggestion = {
+  id: string;
+  transaction_id: string;
+  category_id: string | null;
+  confidence: number;
+  rationale: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'auto_applied';
+  run_id: string | null;
+  created_at: number;
+  tombstone: 1 | 0;
+};
+
 export type DbBank = {
   id: string;
   bank_id: string;

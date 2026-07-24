@@ -50,6 +50,7 @@ import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
+import { send } from '@actual-app/core/platform/client/connection';
 import { memoizeOne } from '@actual-app/core/shared/memoize';
 import * as monthUtils from '@actual-app/core/shared/months';
 import { q } from '@actual-app/core/shared/query';
@@ -73,6 +74,7 @@ import {
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type {
   AccountEntity,
+  AiSuggestionIndexEntry,
   CategoryEntity,
   CategoryGroupEntity,
   PayeeEntity,
@@ -80,6 +82,7 @@ import type {
   ScheduleEntity,
   TransactionEntity,
 } from '@actual-app/core/types/models';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format as formatDate, parseISO } from 'date-fns';
 
 import { getAccountsById } from '#accounts/accountsSlice';
@@ -918,6 +921,7 @@ function PayeeIcons({
 type TransactionProps = {
   allTransactions?: TransactionEntity[];
   transaction: TransactionEntity;
+  aiSuggestion?: AiSuggestionIndexEntry;
   subtransactions: TransactionEntity[] | null;
   transferAccountsByTransaction: {
     [id: TransactionEntity['id']]: AccountEntity | null;
@@ -987,6 +991,7 @@ type TransactionProps = {
 const Transaction = memo(function Transaction({
   allTransactions,
   transaction: originalTransaction,
+  aiSuggestion,
   subtransactions,
   transferAccountsByTransaction,
   editing,
@@ -1046,6 +1051,7 @@ const Transaction = memo(function Transaction({
 
   const dispatch = useDispatch();
   const dispatchSelected = useSelectedDispatch();
+  const queryClient = useQueryClient();
   const triggerRef = useRef(null);
 
   const [prevShowZero, setPrevShowZero] = useState(showZeroInDeposit);
@@ -1788,13 +1794,34 @@ const Transaction = memo(function Transaction({
             width="flex"
             textAlign="flex"
             value={categoryId}
-            formatter={value =>
-              value
-                ? (getCategoriesById(categoryGroups)[value]?.name ?? '')
-                : transaction.id
-                  ? t('Categorize')
-                  : ''
-            }
+            formatter={value => {
+              if (value) {
+                const categoryName =
+                  getCategoriesById(categoryGroups)[value]?.name ?? '';
+                // Temporary observability aid — see aiSuggestionsByTransactionId
+                // in TransactionsTable: marks categories AI touched, versus
+                // rules/manual entry (which aren't tracked anywhere today).
+                return aiSuggestion?.status === 'auto_applied' ||
+                  aiSuggestion?.status === 'accepted'
+                  ? `✨ ${categoryName}`
+                  : categoryName;
+              }
+              if (!transaction.id) return '';
+              if (
+                aiSuggestion?.status === 'pending' &&
+                aiSuggestion.categoryId
+              ) {
+                const suggestedName =
+                  getCategoriesById(categoryGroups)[aiSuggestion.categoryId]
+                    ?.name;
+                if (suggestedName) {
+                  return t('AI suggests: {{category}}', {
+                    category: suggestedName,
+                  });
+                }
+              }
+              return t('Categorize');
+            }}
             exposed={focusedField === 'category'}
             onExpose={name => !isPreview && onEdit(id, name)}
             valueStyle={
@@ -1803,7 +1830,10 @@ const Transaction = memo(function Transaction({
                     // uncategorized transaction
                     fontStyle: 'italic',
                     fontWeight: 300,
-                    color: theme.formInputTextHighlight,
+                    color:
+                      aiSuggestion?.status === 'pending'
+                        ? theme.noticeTextLight
+                        : theme.formInputTextHighlight,
                   }
                 : valueStyle
             }
@@ -1812,6 +1842,30 @@ const Transaction = memo(function Transaction({
                 onSplit(transaction.id);
               } else {
                 onUpdate('category', value);
+                // Picking a category on a transaction with a pending AI
+                // suggestion resolves it too — accept if it matches what
+                // was suggested, correct otherwise — so the suggestion
+                // doesn't linger in the review inbox after the user has
+                // effectively already acted on it here.
+                if (aiSuggestion?.status === 'pending' && value) {
+                  send('ai/resolve-suggestion', {
+                    id: aiSuggestion.id,
+                    action:
+                      value === aiSuggestion.categoryId ? 'accept' : 'correct',
+                    correctedCategoryId: value,
+                  })
+                    .then(() =>
+                      Promise.all([
+                        queryClient.invalidateQueries({
+                          queryKey: ['ai-suggestions-index'],
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: ['ai-suggestions'],
+                        }),
+                      ]),
+                    )
+                    .catch(() => undefined);
+                }
               }
             }}
           >
@@ -1830,7 +1884,12 @@ const Transaction = memo(function Transaction({
               >
                 <CategoryAutocomplete
                   categoryGroups={categoryGroups}
-                  value={categoryId ?? null}
+                  value={
+                    categoryId ??
+                    (aiSuggestion?.status === 'pending'
+                      ? aiSuggestion.categoryId
+                      : null)
+                  }
                   focused
                   clearOnBlur={false}
                   showSplitOption={
@@ -2347,6 +2406,10 @@ type TransactionTableInnerProps = {
   transferAccountsByTransaction: {
     [id: TransactionEntity['id']]: AccountEntity | null;
   };
+  aiSuggestionsByTransactionId: Map<
+    TransactionEntity['id'],
+    AiSuggestionIndexEntry
+  >;
   newTransactions: TransactionEntity[];
 
   transactions: TransactionEntity[];
@@ -2504,6 +2567,7 @@ function TransactionTableInner({
       isExpanded,
       showSelection,
       allowSplitTransaction,
+      aiSuggestionsByTransactionId,
     } = props;
 
     const trans = item;
@@ -2565,6 +2629,7 @@ function TransactionTableInner({
         allTransactions={props.transactions}
         editing={editing}
         transaction={trans}
+        aiSuggestion={aiSuggestionsByTransactionId.get(trans.id)}
         transferAccountsByTransaction={props.transferAccountsByTransaction}
         subtransactions={childTransactions}
         showAccount={showAccount}
@@ -2806,6 +2871,22 @@ export const TransactionTable = forwardRef(
     ref: ForwardedRef<TableHandleRef<TransactionEntity>>,
   ) => {
     const { t } = useTranslation();
+
+    // Temporary observability aid: badges the category cell so it's
+    // visible at a glance which transactions AI touched (auto-applied or
+    // still pending review) versus everything else. Refetched whenever a
+    // background classification pass reports results (see sync-events.ts).
+    const { data: aiSuggestionsIndex } = useQuery({
+      queryKey: ['ai-suggestions-index'],
+      queryFn: () => send('ai/get-suggestions-index'),
+    });
+    const aiSuggestionsByTransactionId = useMemo(() => {
+      const map = new Map<string, AiSuggestionIndexEntry>();
+      for (const entry of aiSuggestionsIndex ?? []) {
+        map.set(entry.transactionId, entry);
+      }
+      return map;
+    }, [aiSuggestionsIndex]);
 
     const dispatch = useDispatch();
     const [showHiddenCategories] = useLocalPref('budget.showHiddenCategories');
@@ -3552,6 +3633,7 @@ export const TransactionTable = forwardRef(
             transactionMap={transactionMap}
             transactionsByParent={transactionsByParent}
             transferAccountsByTransaction={transferAccountsByTransaction}
+            aiSuggestionsByTransactionId={aiSuggestionsByTransactionId}
             selectedItems={selectedItems}
             isExpanded={splitsExpanded.isExpanded}
             onSave={onSave}

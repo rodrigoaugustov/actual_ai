@@ -14,7 +14,6 @@ import type {
 } from '@actual-app/core/types/models';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { FinancialText } from '#components/FinancialText';
 import {
   Modal,
   ModalButtons,
@@ -22,6 +21,7 @@ import {
   ModalHeader,
   ModalTitle,
 } from '#components/common/Modal';
+import { FinancialText } from '#components/FinancialText';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
 import { aqlQuery } from '#queries/aqlQuery';
@@ -87,12 +87,16 @@ export function ConfirmStatementPaymentModal({
     let cancelled = false;
     send('credit-card/suggest-statement-payment', {
       statementId: statement.id,
-    }).then(suggestion => {
-      if (cancelled) return;
-      setCardTransactionId(suggestion.cardTransactionId);
-      setCounterpartTransactionId(suggestion.counterpartTransactionId);
-      setLoadedSuggestion(true);
-    });
+    })
+      .then(suggestion => {
+        if (cancelled) return;
+        setCardTransactionId(suggestion.cardTransactionId);
+        setCounterpartTransactionId(suggestion.counterpartTransactionId);
+        setLoadedSuggestion(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadedSuggestion(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -228,8 +232,8 @@ export function ConfirmStatementPaymentModal({
             <Text style={{ color: theme.pageTextSubdued }}>
               <Trans>
                 These transactions look like this statement's payment. Change
-                either one if they're not right, then confirm to link them as
-                a transfer and mark the statement paid.
+                either one if they're not right, then confirm to link them as a
+                transfer and mark the statement paid.
               </Trans>
             </Text>
 
@@ -237,11 +241,8 @@ export function ConfirmStatementPaymentModal({
               <Text style={{ fontWeight: 600, fontSize: '0.85em' }}>
                 <Trans>Payment on the card</Trans>
               </Text>
-              {renderSlot(
-                'card',
-                cardSummary,
-                setCardTransactionId,
-                () => setCardTransactionId(null),
+              {renderSlot('card', cardSummary, setCardTransactionId, () =>
+                setCardTransactionId(null),
               )}
             </View>
 

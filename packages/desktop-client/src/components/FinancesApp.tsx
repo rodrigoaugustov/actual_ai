@@ -23,6 +23,8 @@ import { useDispatch, useSelector } from '#redux';
 
 import { UserAccessPage } from './admin/UserAccess/UserAccessPage';
 import { UserDirectoryPage } from './admin/UserDirectory/UserDirectoryPage';
+import { AiUsagePage } from './ai/AiUsagePage';
+import { PendingCategorizationsPage } from './ai/PendingCategorizationsPage';
 import { BankSyncStatus } from './BankSyncStatus';
 import { CommandBar } from './CommandBar';
 import { ContextMenu } from './ContextMenu';
@@ -371,6 +373,11 @@ export function FinancesApp() {
                     }
                   />
                   <Route path="/tags" element={<ManageTagsPage />} />
+                  <Route
+                    path="/ai-pending-categorizations"
+                    element={<PendingCategorizationsPage />}
+                  />
+                  <Route path="/ai-usage" element={<AiUsagePage />} />
                   <Route path="/settings" element={<Settings />} />
 
                   <Route

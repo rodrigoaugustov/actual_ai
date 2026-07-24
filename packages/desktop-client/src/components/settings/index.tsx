@@ -26,6 +26,7 @@ import { useMetadataPref } from '#hooks/useMetadataPref';
 import { loadPrefs, saveSyncedPrefs } from '#prefs/prefsSlice';
 import { useDispatch, useSelector } from '#redux';
 
+import { AiSettings } from './AiSettings';
 import { AuthSettings } from './AuthSettings';
 import { Backups } from './Backups';
 import { BudgetRegimeSettings } from './BudgetRegimeSettings';
@@ -244,6 +245,7 @@ export function Settings() {
         <EncryptionSettings />
         <BudgetTypeSettings />
         <BudgetRegimeSettings />
+        <AiSettings />
         {isElectron() && <Backups />}
         <ExportBudget />
         <AdvancedToggle>

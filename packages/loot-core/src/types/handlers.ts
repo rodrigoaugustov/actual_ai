@@ -1,5 +1,6 @@
 import type { AccountHandlers } from '#server/accounts/app';
 import type { AdminHandlers } from '#server/admin/app';
+import type { AiHandlers } from '#server/ai/app';
 import type { AuthHandlers } from '#server/auth/app';
 import type { BudgetHandlers } from '#server/budget/app';
 import type { BudgetFileHandlers } from '#server/budgetfiles/app';
@@ -47,6 +48,7 @@ export type Handlers = {} & ServerHandlers &
   EncryptionHandlers &
   TagsHandlers &
   CreditCardHandlers &
+  AiHandlers &
   AuthHandlers;
 
 export type HandlerFunctions = Handlers[keyof Handlers];

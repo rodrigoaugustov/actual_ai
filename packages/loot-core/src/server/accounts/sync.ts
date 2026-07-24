@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import * as asyncStorage from '#platform/server/asyncStorage';
 import { logger } from '#platform/server/log';
+import { classifyPendingTransactions } from '#server/ai/classify';
 import { aqlQuery } from '#server/aql';
 import { syncPluggyBills } from '#server/credit-cards/pluggy';
 import * as db from '#server/db';
@@ -686,8 +687,7 @@ export async function reconcileTransactions(
         // Backfills a bill link that only became available on a later
         // sync (e.g. a bill closed since the transaction was first
         // imported); once linked, it's never blanked out again
-        pluggy_bill_id:
-          existing.pluggy_bill_id ?? trans.pluggy_bill_id ?? null,
+        pluggy_bill_id: existing.pluggy_bill_id ?? trans.pluggy_bill_id ?? null,
       };
 
       if (updateDates && trans.date) {
@@ -1268,6 +1268,16 @@ export async function syncAccount(
       logger.warn('Failed to sync Pluggy bills', error);
     }
   }
+
+  // Fire-and-forget by design (see docs/ai/ARCHITECTURE.md): classification
+  // calls an LLM and can take far longer than the bank download itself, so
+  // it must never make the sync response (and the UI's syncing spinner)
+  // wait on it. It reports progress and results over its own events
+  // ('ai-classification-started'/'-event', emitted from classify.ts)
+  // instead of through this function's return value.
+  void classifyPendingTransactions(id).catch(error => {
+    logger.warn('AI classification failed', error);
+  });
 
   return result;
 }

@@ -1,4 +1,5 @@
 export type * from './account';
+export type * from './ai';
 export type * from './akahu';
 export type * from './bank';
 export type * from './bank-sync';

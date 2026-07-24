@@ -19,10 +19,11 @@ import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
-import { listen } from '@actual-app/core/platform/client/connection';
+import { listen, send } from '@actual-app/core/platform/client/connection';
 import { isDevelopmentEnvironment } from '@actual-app/core/shared/environment';
 import * as Platform from '@actual-app/core/shared/platform';
 import { css } from '@emotion/css';
+import { useQuery } from '@tanstack/react-query';
 
 import { sync } from '#app/appSlice';
 import { SharedArrayBufferWarning } from '#components/SharedArrayBufferWarning';
@@ -61,6 +62,30 @@ function UncategorizedButton() {
       }}
     >
       <Trans count={count}>{{ count }} uncategorized transactions</Trans>
+    </Link>
+  );
+}
+
+function PendingAiSuggestionsButton() {
+  const { data: suggestions } = useQuery({
+    queryKey: ['ai-suggestions'],
+    queryFn: () => send('ai/get-suggestions'),
+  });
+  const count = suggestions?.length ?? 0;
+  if (count === 0) {
+    return null;
+  }
+
+  return (
+    <Link
+      variant="button"
+      buttonVariant="bare"
+      to="/ai-pending-categorizations"
+      style={{
+        color: theme.noticeTextLight,
+      }}
+    >
+      <Trans count={count}>{{ count }} AI categorizations pending review</Trans>
     </Link>
   );
 }
@@ -374,6 +399,7 @@ export function Titlebar({ style }: TitlebarProps) {
       <View style={{ flex: 1 }} />
       <SpaceBetween gap={10}>
         <UncategorizedButton />
+        <PendingAiSuggestionsButton />
         {isDevelopmentEnvironment() && !isTestEnv && <ThemeSelector />}
         <PrivacyButton />
         {serverURL ? <ServerSyncButton /> : null}

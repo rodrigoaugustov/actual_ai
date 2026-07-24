@@ -68,6 +68,77 @@ yarn test:debug              # Equivalent to: lage test --no-cache --continue
 
 Configuration is in `lage.config.js` at the project root.
 
+## Fast local iteration loop (dev server vs. Docker rebuild)
+
+Rebuilding the Docker image for every small change is slow and almost always
+unnecessary. Because Actual is **local-first**, the loot-core "backend"
+(including every AI handler — `ai/get-suggestions`, `classify.ts`, etc.) runs
+in a **browser web worker**, not on the sync server. The Docker container is
+only responsible for the `/ai/proxy` reverse-proxy (which injects the real API
+keys), the `/secret` endpoints, and CRDT device-to-device sync.
+
+That splits the work into three tiers with very different costs:
+
+| Change                                         | What it needs                                               |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| **UI** (`packages/desktop-client`, `.tsx`)     | Nothing — Vite HMR reflects it in <1s                       |
+| **loot-core** logic (`classify.ts`, handlers…) | The loot-core dev-worker rebuild below (seconds); no Docker |
+| **sync-server** (`app-ai.js` proxy, secrets)   | A Docker image rebuild                                      |
+
+### Recommended loop
+
+Keep the Docker backend running (it holds the real data, secrets and API-key
+proxy) and run **only the Vite frontend dev server** against it:
+
+- UI change → instant via HMR, no rebuild.
+- loot-core change → the watch build rebuilds the worker in seconds; reload the tab.
+- sync-server change → rebuild the Docker image (see the Docker section below).
+- Final production validation of a batch → `yarn build:browser` + Docker rebuild.
+
+The dev server is served at **http://localhost:3001** and connects to the
+Docker backend at **http://localhost:5006**. `:3001` is a separate browser
+origin from `:5006`, so on first load you sign in to the server (localhost:5006)
+and download the budget once there.
+
+### Windows / PowerShell caveats (this fork's primary dev environment)
+
+On Windows the stock `yarn start` does **not** work: its `watch-browser`
+wrapper is a `#!/bin/sh` script (`spawn sh ENOENT`), and the Vite
+`lootCoreBackend()` plugin does `spawn('yarn', …)` while only `corepack yarn`
+is on `PATH` (`spawn yarn ENOENT`). Run the two pieces manually instead, from
+the repo root, each in its own background process:
+
+```powershell
+# 1. Frontend dev server (HMR) on port 3001 — bypasses the sh wrapper.
+#    REACT_APP_BACKEND_WORKER_HASH=dev makes it request /kcab/kcab.worker.dev.js.
+$env:REACT_APP_BACKEND_WORKER_HASH='dev'; corepack yarn workspace @actual-app/web run start --mode=browser
+
+# 2. loot-core browser worker in dev mode (produces kcab.worker.dev.js) + watch.
+#    Required to boot AND for live rebuilds when you change loot-core.
+corepack yarn workspace @actual-app/core exec vite build --mode development --watch
+```
+
+**Why the worker step matters:** the dev frontend fetches
+`/kcab/kcab.worker.dev.js` (hash `dev`), but a production `yarn build:browser`
+emits a content-hashed worker (`kcab.worker.<hash>.js`) that the dev frontend
+never requests — boot then fails with `app-init-failure / BackendInitFailure`.
+Only the `--mode development` loot-core build produces the `dev`-hashed worker.
+(On Linux, `yarn start` wires both of these up automatically.)
+
+### Verification scoping — don't run the whole suite for a UI tweak
+
+- **Always:** `yarn lint:fix` + `yarn typecheck` (or scoped
+  `yarn workspace <ws> run typecheck`). These are the real guardrails.
+- **Logic changes:** run only the touched module's tests, e.g.
+  `yarn workspace @actual-app/core run test src/server/ai` (~15s), not the full
+  `yarn test` (~3min).
+- **Pure presentational/UI changes:** the full test suite doesn't validate
+  layout — lint + typecheck are sufficient. Run the full `yarn test` before a
+  milestone/commit, not per tweak.
+- Note: on Windows, `src/server/main.test.ts` intermittently fails with an
+  `EBUSY`/`EEXIST` file-lock flake on the `test-budget` fixture dir; it is
+  unrelated to your change. Re-run, or confirm it reproduces on a clean tree.
+
 ## Architecture & Package Structure
 
 ### Core Packages
@@ -571,6 +642,10 @@ When working with older code, follow the newer patterns described in this guide.
 All storage is **SQLite** (file-based via `better-sqlite3`). No external databases or services are needed.
 
 ### Running the app
+
+> These commands assume the Linux Cloud VM. For fast local iteration (and the
+> Windows/PowerShell equivalents, since the stock `yarn start` fails there), see
+> [Fast local iteration loop](#fast-local-iteration-loop-dev-server-vs-docker-rebuild).
 
 - `yarn start` builds the plugins-service worker, loot-core browser backend, and starts the Vite dev server on port **3001**.
 - `yarn start:server-dev` starts both the sync server (port 5006) and the web frontend together.

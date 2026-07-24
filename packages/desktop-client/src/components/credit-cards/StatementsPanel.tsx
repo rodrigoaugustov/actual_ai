@@ -34,7 +34,10 @@ type StatementsPanelProps = {
   }) => void;
 };
 
-export function StatementsPanel({ account, onApplyFilter }: StatementsPanelProps) {
+export function StatementsPanel({
+  account,
+  onApplyFilter,
+}: StatementsPanelProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
@@ -61,8 +64,7 @@ export function StatementsPanel({ account, onApplyFilter }: StatementsPanelProps
     () =>
       [...statements]
         .filter(
-          statement =>
-            statement.start_date <= today || statement.balance !== 0,
+          statement => statement.start_date <= today || statement.balance !== 0,
         )
         .sort((a, b) => (a.start_date < b.start_date ? -1 : 1)),
     [statements, today],

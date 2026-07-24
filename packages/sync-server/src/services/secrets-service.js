@@ -19,6 +19,11 @@ export const SecretName = {
   akahu_appToken: 'akahu_appToken',
   enablebanking_applicationId: 'enablebanking_applicationId',
   enablebanking_secretKey: 'enablebanking_secretKey',
+  ai_openai_key: 'ai_openai_key',
+  ai_anthropic_key: 'ai_anthropic_key',
+  ai_google_key: 'ai_google_key',
+  ai_openrouter_key: 'ai_openrouter_key',
+  ai_ollama_baseUrl: 'ai_ollama_baseUrl',
 };
 
 function getSecretKey(name, fileId) {

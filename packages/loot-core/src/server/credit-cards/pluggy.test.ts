@@ -1,8 +1,8 @@
 import * as db from '#server/db';
 import type { DbStatement } from '#server/db';
 
-import { ensureStatements } from './statements';
 import { syncPluggyBills } from './pluggy';
+import { ensureStatements } from './statements';
 
 beforeEach(global.emptyDatabase());
 

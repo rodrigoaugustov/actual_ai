@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 import { bootstrap } from './account-db';
 import * as accountApp from './app-account';
 import * as adminApp from './app-admin';
+import * as aiApp from './app-ai/app-ai.js';
 import * as akahuApp from './app-akahu/app-akahu.js';
 import * as corsApp from './app-cors-proxy';
 import * as enableBankingApp from './app-enablebanking/app-enablebanking';
@@ -39,6 +40,14 @@ if (process.env.NODE_ENV !== 'development') {
     }),
   );
 }
+
+// Mounted before the global body parsers below: this proxy re-sends the
+// exact request body upstream to whichever AI provider is configured, so it
+// needs the raw, unparsed bytes (see app-ai.js's own express.raw()) — if
+// express.json() ran first, it would consume the stream and hand the proxy
+// an already-parsed object, which then serializes to "[object Object]" when
+// forwarded, breaking every provider request with an invalid-JSON error.
+app.use('/ai', aiApp.handlers);
 
 app.use(express.json({ limit: `${config.get('upload.fileSizeLimitMB')}mb` }));
 

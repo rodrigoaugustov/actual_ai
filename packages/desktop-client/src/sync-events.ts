@@ -18,6 +18,67 @@ import type { AppStore } from './redux/store';
 import { signOut } from './users/usersSlice';
 
 export function listenForSyncEvent(store: AppStore, queryClient: QueryClient) {
+  // Fires as soon as classify.ts knows how many transactions it's about to
+  // work through — before it's made a single LLM call — so the user gets
+  // feedback while the sync status pill is still yellow, instead of only
+  // finding out afterwards via 'ai-classification-event'.
+  const unlistenAiClassificationStarted = listen(
+    'ai-classification-started',
+    ({ count }) => {
+      const prefs = store.getState().prefs.local;
+      if (!prefs || !prefs.id || count === 0) return;
+
+      store.dispatch(
+        addNotification({
+          notification: {
+            type: 'message',
+            message: t(
+              'Sending {{count}} transaction(s) to AI for categorization…',
+              { count },
+            ),
+          },
+        }),
+      );
+    },
+  );
+
+  // Fires once a background AI classification pass (kicked off after a bank
+  // sync — see accounts/sync.ts) finishes with real results. It's separate
+  // from 'sync-event' because it doesn't block the sync response, so it
+  // can land well after the "syncing" spinner has already cleared.
+  const unlistenAiClassification = listen(
+    'ai-classification-event',
+    ({ autoApplied, pendingReview }) => {
+      const prefs = store.getState().prefs.local;
+      if (!prefs || !prefs.id) return;
+
+      const parts: string[] = [];
+      if (autoApplied > 0) {
+        parts.push(
+          t('{{count}} transactions categorized by AI', {
+            count: autoApplied,
+          }),
+        );
+      }
+      if (pendingReview > 0) {
+        parts.push(
+          t('{{count}} suggestions awaiting review', {
+            count: pendingReview,
+          }),
+        );
+      }
+
+      store.dispatch(
+        addNotification({
+          notification: { type: 'message', message: parts.join(' · ') },
+        }),
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ['ai-suggestions-index'],
+      });
+    },
+  );
+
   // TODO: Should this run on mobile too?
   const unlistenUnauthorized = listen('sync-event', async ({ type }) => {
     if (type === 'unauthorized') {
@@ -385,6 +446,8 @@ export function listenForSyncEvent(store: AppStore, queryClient: QueryClient) {
   });
 
   return () => {
+    unlistenAiClassificationStarted();
+    unlistenAiClassification();
     unlistenUnauthorized();
     unlistenSuccess();
   };

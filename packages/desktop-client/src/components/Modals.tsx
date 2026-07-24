@@ -148,9 +148,7 @@ export function Modals() {
           );
 
         case 'credit-card-confirm-payment':
-          return (
-            <ConfirmStatementPaymentModal key={key} {...modal.options} />
-          );
+          return <ConfirmStatementPaymentModal key={key} {...modal.options} />;
 
         case 'close-account':
           return <CloseAccountModal key={key} {...modal.options} />;

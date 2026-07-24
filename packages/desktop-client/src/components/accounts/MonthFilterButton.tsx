@@ -49,7 +49,11 @@ export function MonthFilterButton({ onApply }: MonthFilterButtonProps) {
       <Popover style={{ padding: 10 }}>
         <Dialog>
           <View style={{ width: 200 }}>
-            <MonthInput id="account-month-filter" value={month} onChange={onChange} />
+            <MonthInput
+              id="account-month-filter"
+              value={month}
+              onChange={onChange}
+            />
           </View>
         </Dialog>
       </Popover>

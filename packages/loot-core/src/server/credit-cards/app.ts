@@ -108,9 +108,7 @@ export async function getStatements({
   // different statement its date range happens to overlap — exactly
   // mirroring the priority used for budget bucketing in
   // `budget-queries.ts`'s `paymentJoin`.
-  const rows = db.runQuery<
-    DbStatement & { computed_balance: number | null }
-  >(
+  const rows = db.runQuery<DbStatement & { computed_balance: number | null }>(
     `SELECT s.*,
             (SELECT SUM(t.amount) FROM v_transactions_internal_alive t
               WHERE t.account = s.acct
@@ -182,8 +180,7 @@ async function suggestStatementPaymentHandler({
   }
 
   const statements = await getStatements({ accountId: statement.acct });
-  const targetAmount =
-    statements.find(s => s.id === statementId)?.balance ?? 0;
+  const targetAmount = statements.find(s => s.id === statementId)?.balance ?? 0;
 
   return suggestStatementPayment(statement, targetAmount);
 }
@@ -201,7 +198,10 @@ async function confirmStatementPaymentHandler({
     await pairAsTransfer(cardTransactionId, counterpartTransactionId);
   }
 
-  await markStatementPaid({ id: statementId, transactionId: cardTransactionId });
+  await markStatementPaid({
+    id: statementId,
+    transactionId: cardTransactionId,
+  });
 }
 
 async function createInstallmentsHandler(params: {

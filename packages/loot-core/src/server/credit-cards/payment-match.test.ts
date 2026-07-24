@@ -187,6 +187,8 @@ describe('pairAsTransfer', () => {
       date: '2017-02-04',
     });
 
-    await expect(pairAsTransfer('card-side', 'checking-side')).rejects.toThrow();
+    await expect(
+      pairAsTransfer('card-side', 'checking-side'),
+    ).rejects.toThrow();
   });
 });

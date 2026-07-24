@@ -1,0 +1,34 @@
+{
+  "name": "@actual-app/ai",
+  "version": "0.0.1",
+  "private": true,
+  "description": "LLM-agnostic agent harness for Actual's AI features (classification, rule mining, auditing)",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "imports": {
+    "#*": "./src/*.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./test": "./src/test.ts"
+  },
+  "scripts": {
+    "test": "vitest --run",
+    "typecheck": "tsgo -b"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.16",
+    "@ai-sdk/google": "^4.0.19",
+    "@ai-sdk/openai": "^4.0.16",
+    "@ai-sdk/openai-compatible": "^3.0.13",
+    "@ai-sdk/provider": "^4.0.3",
+    "ai": "^7.0.32",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "beta",
+    "vitest": "^4.1.10"
+  }
+}

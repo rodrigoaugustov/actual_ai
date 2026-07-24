@@ -60,6 +60,19 @@ type OrphanedPayeesEvent = {
   updatedPayeeIds: string[];
 };
 
+type AiClassificationEvent = {
+  // Absent for the manual "classify now" trigger, which can span accounts.
+  accountId?: string;
+  autoApplied: number;
+  pendingReview: number;
+};
+
+type AiClassificationStartedEvent = {
+  // Absent for the manual "classify now" trigger, which can span accounts.
+  accountId?: string;
+  count: number;
+};
+
 type PrefsUpdatedEvent = undefined;
 type SchedulesOfflineEvent = undefined;
 type ServerErrorEvent = undefined;
@@ -69,6 +82,8 @@ type StartLoadEvent = undefined;
 type ApiFetchRedirectedEvent = undefined;
 
 export type ServerEvents = {
+  'ai-classification-event': AiClassificationEvent;
+  'ai-classification-started': AiClassificationStartedEvent;
   'backups-updated': BackupUpdatedEvent;
   'cells-changed': CellsChangedEvent;
   'fallback-write-error': FallbackWriteErrorEvent;

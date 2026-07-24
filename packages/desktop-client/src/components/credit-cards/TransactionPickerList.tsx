@@ -8,8 +8,8 @@ import * as monthUtils from '@actual-app/core/shared/months';
 import { q } from '@actual-app/core/shared/query';
 import { useQuery } from '@tanstack/react-query';
 
-import { FinancialText } from '#components/FinancialText';
 import { Search } from '#components/common/Search';
+import { FinancialText } from '#components/FinancialText';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
 import { transactionsSearch } from '#queries';

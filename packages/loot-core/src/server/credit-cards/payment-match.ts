@@ -75,10 +75,16 @@ export function suggestStatementPayment(
   }
 
   const counterpartWindowStart = toInt(
-    monthUtils.subDays(toDay(cardCandidate.date), COUNTERPART_DATE_TOLERANCE_DAYS),
+    monthUtils.subDays(
+      toDay(cardCandidate.date),
+      COUNTERPART_DATE_TOLERANCE_DAYS,
+    ),
   );
   const counterpartWindowEnd = toInt(
-    monthUtils.addDays(toDay(cardCandidate.date), COUNTERPART_DATE_TOLERANCE_DAYS),
+    monthUtils.addDays(
+      toDay(cardCandidate.date),
+      COUNTERPART_DATE_TOLERANCE_DAYS,
+    ),
   );
 
   const counterpart = db.firstSync<{ id: string }>(
@@ -139,8 +145,12 @@ export async function pairAsTransfer(
     'SELECT id, transfer_acct FROM payees WHERE transfer_acct IN (?, ?)',
     [cardTrans.account, counterpartTrans.account],
   );
-  const cardPayee = payees.find(p => p.transfer_acct === counterpartTrans.account);
-  const counterpartPayee = payees.find(p => p.transfer_acct === cardTrans.account);
+  const cardPayee = payees.find(
+    p => p.transfer_acct === counterpartTrans.account,
+  );
+  const counterpartPayee = payees.find(
+    p => p.transfer_acct === cardTrans.account,
+  );
 
   // `category: null` is the established wire convention for clearing a
   // transaction's category (see `transfer.ts`'s own `clearCategory`);

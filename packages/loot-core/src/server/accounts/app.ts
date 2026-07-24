@@ -763,7 +763,13 @@ async function setSecret({
     };
   }
 }
-async function checkSecret(name: string) {
+export async function checkSecret({
+  name,
+  fileId = null,
+}: {
+  name: string;
+  fileId?: string | null;
+}) {
   const userToken = await asyncStorage.getItem('user-token');
 
   if (!userToken) {
@@ -777,7 +783,10 @@ async function checkSecret(name: string) {
 
   try {
     return await get(serverConfig.BASE_SERVER + '/secret/' + name, {
-      'X-ACTUAL-TOKEN': userToken,
+      headers: {
+        'X-ACTUAL-TOKEN': userToken,
+        ...(fileId ? { 'X-Actual-File-Id': fileId } : {}),
+      },
     });
   } catch (error) {
     logger.error(error);
