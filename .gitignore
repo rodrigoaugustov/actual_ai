@@ -17,6 +17,7 @@ export-2020-01-10.csv
 node_modules
 packages/api/app/bundle.api.js
 packages/api/app/stats.json
+packages/ai-core/dist
 packages/api/dist
 packages/api/e2e/consumer/dist
 packages/api/@types
