@@ -1,0 +1,12 @@
+[Unit]
+Description=Deploy the newest published actual-ai image
+Documentation=file://__DEPLOY_DIR__/README.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=__DEPLOY_DIR__
+ExecStart=__DEPLOY_DIR__/update.sh
+# update.sh exits non-zero on a failed rollout so the failure is visible in
+# `systemctl status`; it has already rolled back and notified by then.

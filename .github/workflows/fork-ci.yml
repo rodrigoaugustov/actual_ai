@@ -1,0 +1,49 @@
+name: CI
+
+# Fork-owned CI. The upstream workflows all target `depot-ubuntu-latest`, which
+# is infrastructure belonging to the actualbudget org and never picks up a
+# runner here, so this fork runs its own guardrails on GitHub's own runners.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  verify:
+    name: Lint, typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up environment
+        uses: ./.github/actions/setup
+        with:
+          # Match sync-server.Dockerfile, which builds with --skip-translations.
+          # pt-BR.json is committed, so the UI stays translated either way.
+          download-translations: 'false'
+
+      - name: Lint
+        run: yarn lint
+
+      # `!cancelled()` so a lint failure still reports the typecheck and test
+      # results in the same run, instead of one failure at a time.
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: yarn typecheck
+
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: yarn test

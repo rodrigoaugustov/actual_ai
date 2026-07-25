@@ -1,0 +1,5 @@
+# Everything in this directory is consumed by a Linux host. The root
+# .gitattributes only pins eol=lf for *.sh, which would leave the systemd units
+# and .env.example to be checked out with CRLF on a Windows clone — a stray \r
+# then ends up in every value sourced from .env and in systemd directives.
+* text eol=lf

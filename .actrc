@@ -1,2 +1,6 @@
--P depot-ubuntu-latest=catthehacker/ubuntu:act-latest
--P depot-ubuntu-latest-4=catthehacker/ubuntu:act-latest
+# Local workflow runs with `act`. The Depot labels this used to map are gone
+# along with the upstream workflows; `ubuntu-latest` already has a default
+# mapping, so only the ARM runner used by fork-image.yml needs one here. act
+# runs it on the host architecture, so it exercises the workflow logic, not the
+# arm64 build itself.
+-P ubuntu-24.04-arm=catthehacker/ubuntu:act-latest

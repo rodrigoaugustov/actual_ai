@@ -1,0 +1,10 @@
+[Unit]
+Description=Encrypted offsite backup of the Actual data volume
+Documentation=file://__DEPLOY_DIR__/README.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=__DEPLOY_DIR__
+ExecStart=__DEPLOY_DIR__/backup.sh daily

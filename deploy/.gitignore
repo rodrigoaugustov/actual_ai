@@ -1,0 +1,6 @@
+# Host-local state. Never commit.
+.env
+.last-good
+.blocked
+.update.lock
+.env.generated

@@ -1,7 +1,10 @@
 FROM node:22-bookworm AS deps
 
-# Install required packages
-RUN apt-get update && apt-get install -y openssl
+# Install required packages. python3/make/g++ are insurance for arm64 builds:
+# better-sqlite3, bcrypt and argon2 are marked "built" in the root package.json
+# and normally resolve to prebuilds, but without a toolchain a single missing
+# prebuild turns into a hard build failure.
+RUN apt-get update && apt-get install -y openssl python3 make g++
 
 WORKDIR /app
 
@@ -68,6 +71,10 @@ COPY --from=builder /app/packages/sync-server/build ./build
 # Keep the healthcheck path used by docker-compose compatible with the bundled
 # server layout.
 RUN ln -s build/scripts scripts
+
+# Drop privileges. The user is created above but upstream never switches to it,
+# so the container would otherwise run as root. /data must be owned by 1001.
+USER $USERNAME
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 EXPOSE 5006

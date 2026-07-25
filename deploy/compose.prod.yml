@@ -1,0 +1,52 @@
+# Production stack for this fork.
+#
+# Unlike packages/sync-server/docker-compose.yml (which builds from source for
+# local development), this pulls a prebuilt image from GHCR and publishes no
+# ports at all: cloudflared reaches the server over the internal Docker network
+# and holds the only connection to the outside world, which is outbound.
+#
+#   docker compose -f deploy/compose.prod.yml --env-file deploy/.env up -d
+
+name: actual
+
+services:
+  actual:
+    # Pinned by digest, not by the moving `master` tag: update.sh resolves the
+    # channel to an immutable reference and writes it back to deploy/.env, so a
+    # reboot or a manual `up -d` always brings back exactly what was verified.
+    image: ${ACTUAL_IMAGE:-ghcr.io/rodrigoaugustov/actual-ai:master}
+    # The image creates uid 1001 and switches to it; the host data directory
+    # must be owned by 1001 too (bootstrap.sh does this).
+    user: '1001:1001'
+    environment:
+      NODE_ENV: production
+      # The default also allows `header` auth. This deployment only ever wants
+      # the password login.
+      ACTUAL_LOGIN_METHOD: password
+      ACTUAL_ALLOWED_LOGIN_METHODS: password
+      # Keep user creation manual. Every logged-in user can point
+      # `ai_ollama_baseUrl` at an arbitrary host, which the server will then
+      # fetch — do not hand that out.
+      ACTUAL_USER_CREATION_MODE: manual
+      # cloudflared talks to this container over the compose bridge network.
+      # Without this, the 500 req/min rate limiter would bucket every request
+      # under the proxy's IP instead of the real client's.
+      ACTUAL_TRUSTED_PROXIES: ${ACTUAL_TRUSTED_PROXIES:-172.16.0.0/12}
+    volumes:
+      - ${ACTUAL_DATA_DIR:-/srv/actual/data}:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'node scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN is required — see deploy/README.md}
+    depends_on:
+      - actual
+    restart: unless-stopped

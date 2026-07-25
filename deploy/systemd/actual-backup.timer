@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily Actual backup
+
+[Timer]
+# 04:00 America/Sao_Paulo — quiet hours, and after any overnight bank sync.
+OnCalendar=*-*-* 04:00:00 America/Sao_Paulo
+# The instance is not guaranteed to be awake at 04:00; catch up if it missed.
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

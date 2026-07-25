@@ -1,0 +1,12 @@
+[Unit]
+Description=Check GHCR for a new actual-ai image
+
+[Timer]
+# Five minutes is well inside "continuous" for a single-maintainer project and
+# keeps the registry polling gentle. update.sh is a no-op when nothing changed.
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

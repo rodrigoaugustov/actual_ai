@@ -1,0 +1,102 @@
+name: Image
+
+# Builds the production image for this fork and publishes it to GHCR, where the
+# Oracle Ampere host pulls it from (see deploy/update.sh).
+#
+# arm64 only, on a native ARM runner: the target is an Ampere A1 instance, and
+# sync-server.Dockerfile does a full `yarn install` plus `yarn build:browser`
+# inside the image, which is not viable under QEMU emulation.
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: fork-image
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/actual-ai
+
+jobs:
+  build:
+    name: Build and publish arm64 image
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ${{ env.IMAGE }}
+          # `master` is the moving tag the host follows; `sha-<short>` is the
+          # immutable tag that makes rollback possible.
+          tags: |
+            type=raw,value=master,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and load locally first so a broken image can never reach the
+      # registry — the host auto-deploys whatever is tagged `master`.
+      - name: Build image for testing
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: sync-server.Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: actual-ai:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test that the image boots
+        timeout-minutes: 3
+        run: |
+          docker run --detach --name actual-test actual-ai:test
+          until docker exec actual-test node scripts/health-check.js; do sleep 2; done
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker logs actual-test || true
+
+      # Reuses the layers from the step above; this does not rebuild.
+      - name: Push image
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: sync-server.Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+      - name: Summary
+        run: |
+          {
+            echo "### Published"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

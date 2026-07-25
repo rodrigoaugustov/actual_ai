@@ -4,6 +4,11 @@
 /data2
 Actual-*
 !actual-server.js
+# `Actual-*` targets built desktop artifacts, but git matches it
+# case-insensitively on Windows checkouts, where it silently swallows the
+# systemd units below. Committing from Windows would ship a deploy tree with no
+# timers in it.
+!deploy/systemd/actual-*
 **/xcuserdata/*
 export-2020-01-10.csv
 
