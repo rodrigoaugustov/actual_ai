@@ -118,18 +118,47 @@ por inatividade.
 
 ### Deploy
 
-`git push` no `master`. A CI builda a imagem multi-arch (`amd64` + `arm64`,
-nativamente, um runner de cada), testa se cada uma sobe, e publica um único
-manifest no GHCR. O timer do host pega em até 5 minutos, tira um snapshot, sobe
-a versão nova e verifica `/health`. Se não ficar saudável em 120s, volta
-sozinho para a anterior e te avisa no celular.
+O fluxo completo, do código até o celular:
+
+1. **Altere e valide localmente** — `yarn lint:fix` + `yarn typecheck` no
+   mínimo (guardrails do [`AGENTS.md`](../AGENTS.md)); testes escopados ao que
+   mudou, se for lógica.
+2. **Commit + push no `master`.** Este fork não usa PR para o dia a dia — vai
+   direto.
+3. **CI builda e publica** (`fork-ci.yml` + `fork-image.yml`): lint/typecheck/
+   teste, depois a imagem multi-arch (`amd64` + `arm64`, nativamente, um
+   runner de cada), com boot test antes do push — uma imagem quebrada nunca
+   chega ao GHCR. Tempo observado: **CI ~1–2 min, build+publish ~6–10 min**
+   (o menor tempo é com o cache do GitHub Actions já quente).
+4. **O host pega em até 5 minutos** (timer do systemd). `update.sh` tira um
+   backup pré-deploy — **se o backup falhar, o deploy é abortado**, de
+   propósito, para nunca aplicar uma versão nova sem rede de segurança — sobe
+   a versão nova e verifica `/health`. Se não ficar saudável em 120s, volta
+   sozinho para a anterior.
+
+Do push ao ar, contando o pior caso: **~15–20 minutos**, sem você precisar
+fazer nada depois do passo 2.
 
 ```bash
 systemctl status actual-update.timer     # quando foi a última checagem
 journalctl -u actual-update -n 50        # log do último deploy
 ./update.sh                              # forçar agora, sem esperar o timer
 docker compose -f compose.prod.yml --env-file .env ps
+./verify.sh                              # confirma que a versão nova está no ar e saudável
 ```
+
+**Aviso no celular via ntfy.sh é opcional e está desligado nesta instância**
+(`NTFY_TOPIC` vazio no `.env`) — sem ele, `update.sh` só registra no
+`journalctl`, não empurra nada para o telefone. Para ligar, escolha um tópico
+difícil de adivinhar (tópicos do ntfy.sh são públicos para quem sabe o nome) e
+preencha `NTFY_TOPIC`/`NTFY_SERVER` no `.env`; nenhum outro passo é
+necessário, `lib.sh` já lê essas variáveis.
+
+**Se a mudança tocar `packages/loot-core` ou `packages/desktop-client/public/data/migrations/`:**
+migração de cliente roda no SQLite do **navegador**, não no boot do servidor,
+e o service worker é `registerType: 'prompt'` — aceite o prompt de atualização
+em todos os dispositivos antes de abrir o orçamento (ver "Quando quebrar"
+abaixo). Mudança só em `sync-server` não tem esse cuidado.
 
 ### Rollback
 
