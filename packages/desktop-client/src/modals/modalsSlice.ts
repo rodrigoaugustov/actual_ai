@@ -378,6 +378,7 @@ export type Modal =
         onReconcile?: () => void;
         onToggleRunningBalance?: () => void;
         onToggleReconciled?: () => void;
+        onEditCreditCardSettings?: () => void;
       };
     }
   | {

@@ -97,7 +97,7 @@ export function AiSettings() {
     queryFn: () => send('ai/get-config'),
   });
 
-  const { data: usage } = useQuery({
+  const { data: usage, isLoading: isUsageLoading } = useQuery({
     queryKey: ['ai-usage-summary'],
     queryFn: () =>
       send('ai/get-usage-summary', { sinceMs: Date.now() - THIRTY_DAYS_MS }),
@@ -453,37 +453,51 @@ export function AiSettings() {
         </ButtonWithLoading>
       </View>
 
-      {usage && (
+      <View
+        style={{
+          width: '100%',
+          borderTop: '1px solid ' + theme.pillBorderDark,
+          paddingTop: 10,
+        }}
+      >
         <View
           style={{
-            width: '100%',
-            borderTop: '1px solid ' + theme.pillBorderDark,
-            paddingTop: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Text style={{ fontWeight: 600 }}>
-              <Trans>AI spend, last 30 days</Trans>
-            </Text>
-            <Link variant="button" to="/ai-usage">
-              <Trans>View call-by-call usage</Trans>
-            </Link>
-          </View>
-          <FinancialText>{formatUsd(usage.totalCostUsd)}</FinancialText>
-          {Object.entries(usage.byAgent).map(([agent, cost]) => (
-            <Text key={agent} style={{ color: theme.pageTextSubdued }}>
-              {agent}:{' '}
-              <FinancialText as="span">{formatUsd(cost)}</FinancialText>
-            </Text>
-          ))}
+          <Text style={{ fontWeight: 600 }}>
+            <Trans>AI spend, last 30 days</Trans>
+          </Text>
+          {/* Always reachable, even before this summary has loaded — this is
+              the only link to /ai-usage in the whole app, and three separate
+              error messages tell the user to "check the AI usage log"
+              without one, if this were still gated on `usage`. */}
+          <Link variant="button" to="/ai-usage">
+            <Trans>View call-by-call usage</Trans>
+          </Link>
         </View>
-      )}
+        {isUsageLoading ? (
+          <Text style={{ color: theme.pageTextSubdued }}>
+            <Trans>Loading…</Trans>
+          </Text>
+        ) : usage ? (
+          <>
+            <FinancialText>{formatUsd(usage.totalCostUsd)}</FinancialText>
+            {Object.entries(usage.byAgent).map(([agent, cost]) => (
+              <Text key={agent} style={{ color: theme.pageTextSubdued }}>
+                {agent}:{' '}
+                <FinancialText as="span">{formatUsd(cost)}</FinancialText>
+              </Text>
+            ))}
+          </>
+        ) : (
+          <Text style={{ color: theme.pageTextSubdued }}>
+            <Trans>Usage summary is unavailable right now.</Trans>
+          </Text>
+        )}
+      </View>
     </Setting>
   );
 }

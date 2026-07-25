@@ -49,6 +49,7 @@ import { SelectedTransactionsButton } from '#components/transactions/SelectedTra
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useLocalPref } from '#hooks/useLocalPref';
+import { useNavigate } from '#hooks/useNavigate';
 import { useSelectedItems } from '#hooks/useSelected';
 import { useSplitsExpanded } from '#hooks/useSplitsExpanded';
 import { useSyncedPref } from '#hooks/useSyncedPref';
@@ -65,6 +66,7 @@ import { ReconcileMenu, ReconcilingMessage } from './Reconcile';
 function classifyNowNotification(
   t: (key: string, options?: Record<string, unknown>) => string,
   outcome: ClassifyOutcome,
+  navigate: (path: string) => void,
 ) {
   switch (outcome.status) {
     case 'disabled':
@@ -90,6 +92,10 @@ function classifyNowNotification(
         message: t(
           'AI classification failed. Check the AI usage log for details.',
         ),
+        button: {
+          title: t('View AI usage log'),
+          action: () => navigate('/ai-usage'),
+        },
       };
     case 'ok':
       return {
@@ -126,6 +132,7 @@ function ClassifyUncategorizedButton({
 }) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const selectedItems = useSelectedItems();
   const [isClassifying, setIsClassifying] = useState(false);
@@ -150,7 +157,7 @@ function ClassifyUncategorizedButton({
       ]);
       dispatch(
         addNotification({
-          notification: classifyNowNotification(t, outcome),
+          notification: classifyNowNotification(t, outcome, navigate),
         }),
       );
     } finally {
@@ -929,7 +936,10 @@ function AccountMenu({
             : t('Show reconciled transactions'),
         },
         { name: 'export', text: t('Export') },
-        ...(account && !account.closed
+        // Statement tracking (budget-queries.ts) only ever considers
+        // on-budget accounts, so the setting is a no-op on an off-budget one
+        // — don't offer it there.
+        ...(account && !account.closed && !account.offbudget
           ? [
               {
                 name: 'credit-card-settings',

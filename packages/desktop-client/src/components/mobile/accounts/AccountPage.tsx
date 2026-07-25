@@ -190,6 +190,17 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
     );
   }, [hideReconciled, setHideReconciled, dispatch]);
 
+  const onEditCreditCardSettings = useCallback(() => {
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'credit-card-settings',
+          options: { account },
+        },
+      }),
+    );
+  }, [account, dispatch]);
+
   const onClick = useCallback(() => {
     dispatch(
       pushModal({
@@ -204,6 +215,7 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
             onReconcile,
             onToggleRunningBalance,
             onToggleReconciled,
+            onEditCreditCardSettings,
           },
         },
       }),
@@ -212,6 +224,7 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
     account.id,
     dispatch,
     onCloseAccount,
+    onEditCreditCardSettings,
     onEditNotes,
     onReconcile,
     onReopenAccount,

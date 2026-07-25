@@ -1834,12 +1834,14 @@ class AccountInternal extends PureComponent<
                 onMergeTransactions={this.onMergeTransactions}
               />
 
-              {account && account.closing_day != null && (
-                <StatementsPanel
-                  account={account}
-                  onApplyFilter={this.onApplyFilter}
-                />
-              )}
+              {account &&
+                account.closing_day != null &&
+                account.due_day != null && (
+                  <StatementsPanel
+                    account={account}
+                    onApplyFilter={this.onApplyFilter}
+                  />
+                )}
 
               <View style={{ flex: 1 }}>
                 <TransactionList

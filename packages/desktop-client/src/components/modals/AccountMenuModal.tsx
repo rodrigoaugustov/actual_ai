@@ -45,6 +45,7 @@ export function AccountMenuModal({
   onReconcile,
   onToggleRunningBalance,
   onToggleReconciled,
+  onEditCreditCardSettings,
 }: AccountMenuModalProps) {
   const { t } = useTranslation();
   const account = useAccount(accountId);
@@ -126,6 +127,7 @@ export function AccountMenuModal({
                 onReopen={onReopenAccount}
                 onToggleRunningBalance={onToggleRunningBalance}
                 onToggleReconciled={onToggleReconciled}
+                onEditCreditCardSettings={onEditCreditCardSettings}
               />
             }
             title={
@@ -215,6 +217,7 @@ type AdditionalAccountMenuProps = {
   onReopen?: (accountId: string) => void;
   onToggleRunningBalance?: () => void;
   onToggleReconciled?: () => void;
+  onEditCreditCardSettings?: () => void;
 };
 
 function AdditionalAccountMenu({
@@ -223,6 +226,7 @@ function AdditionalAccountMenu({
   onReopen,
   onToggleRunningBalance,
   onToggleReconciled,
+  onEditCreditCardSettings,
 }: AdditionalAccountMenuProps) {
   const { t } = useTranslation();
   const triggerRef = useRef(null);
@@ -277,6 +281,18 @@ function AdditionalAccountMenu({
                     ? t('Hide reconciled transactions')
                     : t('Show reconciled transactions'),
               },
+              // Statement tracking (budget-queries.ts) only ever considers
+              // on-budget accounts, so the setting is a no-op on an
+              // off-budget one — don't offer it there. Mirrors the same
+              // restriction on the desktop account menu (Header.tsx).
+              ...(!account.closed && !account.offbudget
+                ? [
+                    {
+                      name: 'credit-card-settings',
+                      text: t('Credit card settings'),
+                    },
+                  ]
+                : []),
               account.closed
                 ? {
                     name: 'reopen',
@@ -305,6 +321,9 @@ function AdditionalAccountMenu({
                   break;
                 case 'toggle-reconciled':
                   onToggleReconciled?.();
+                  break;
+                case 'credit-card-settings':
+                  onEditCreditCardSettings?.();
                   break;
                 default:
                   throw new Error(`Unrecognized menu option: ${String(name)}`);

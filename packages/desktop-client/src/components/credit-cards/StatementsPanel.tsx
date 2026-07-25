@@ -88,10 +88,6 @@ export function StatementsPanel({
     return null;
   }
 
-  if (visible.length === 0) {
-    return null;
-  }
-
   const scrollBy = (amount: number) =>
     scrollRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
 
@@ -165,13 +161,21 @@ export function StatementsPanel({
         <Trans>New installment purchase</Trans>
       </Button>
 
-      <Button
-        variant="bare"
-        aria-label={t('Show earlier statements')}
-        onPress={() => scrollBy(-SCROLL_AMOUNT)}
-      >
-        <SvgArrowThinLeft style={{ width: 12, height: 12 }} />
-      </Button>
+      {visible.length > 0 && (
+        <Button
+          variant="bare"
+          aria-label={t('Show earlier statements')}
+          onPress={() => scrollBy(-SCROLL_AMOUNT)}
+        >
+          <SvgArrowThinLeft style={{ width: 12, height: 12 }} />
+        </Button>
+      )}
+
+      {visible.length === 0 && (
+        <Text style={{ color: theme.pageTextSubdued, fontSize: '0.85em' }}>
+          <Trans>No statements yet.</Trans>
+        </Text>
+      )}
 
       <View
         ref={scrollRef}
@@ -256,13 +260,15 @@ export function StatementsPanel({
         ))}
       </View>
 
-      <Button
-        variant="bare"
-        aria-label={t('Show later statements')}
-        onPress={() => scrollBy(SCROLL_AMOUNT)}
-      >
-        <SvgArrowThinRight style={{ width: 12, height: 12 }} />
-      </Button>
+      {visible.length > 0 && (
+        <Button
+          variant="bare"
+          aria-label={t('Show later statements')}
+          onPress={() => scrollBy(SCROLL_AMOUNT)}
+        >
+          <SvgArrowThinRight style={{ width: 12, height: 12 }} />
+        </Button>
+      )}
     </View>
   );
 }

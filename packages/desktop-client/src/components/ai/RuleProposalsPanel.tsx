@@ -13,6 +13,7 @@ import type {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useCategoriesById } from '#hooks/useCategories';
+import { useNavigate } from '#hooks/useNavigate';
 import type { Notification } from '#notifications/notificationsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
@@ -20,6 +21,7 @@ import { useDispatch } from '#redux';
 function mineRulesNotification(
   t: (key: string, options?: Record<string, unknown>) => string,
   result: MineRulesOutcome,
+  navigate: (path: string) => void,
 ): Notification {
   switch (result.status) {
     case 'disabled':
@@ -43,6 +45,10 @@ function mineRulesNotification(
       return {
         type: 'error',
         message: t('Rule mining failed. Check the AI usage log for details.'),
+        button: {
+          title: t('View AI usage log'),
+          action: () => navigate('/ai-usage'),
+        },
       };
     case 'ok':
       return {
@@ -68,6 +74,7 @@ const PROPOSALS_QUERY_KEY = ['ai-rule-proposals'];
 export function RuleProposalsPanel() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isMining, setIsMining] = useState(false);
   const { data: proposals = [] } = useQuery({
@@ -81,7 +88,9 @@ export function RuleProposalsPanel() {
       const result = await send('ai/mine-rules');
       await queryClient.invalidateQueries({ queryKey: PROPOSALS_QUERY_KEY });
       dispatch(
-        addNotification({ notification: mineRulesNotification(t, result) }),
+        addNotification({
+          notification: mineRulesNotification(t, result, navigate),
+        }),
       );
     } finally {
       setIsMining(false);
