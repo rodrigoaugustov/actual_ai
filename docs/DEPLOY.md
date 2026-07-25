@@ -244,19 +244,24 @@ cp .env.example .env && chmod 600 .env
 ```
 
 Preencha o `.env` com: `TUNNEL_TOKEN` (do `.env.generated`), `AGE_RECIPIENT`
-(chave pública age), `RCLONE_BUCKET`. Depois configure o rclone:
+(chave pública age), `RCLONE_BUCKET`.
 
-```bash
-rclone config create r2 s3 provider=Cloudflare \
-  access_key_id=<KEY> secret_access_key=<SECRET> \
-  endpoint=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-```
-
-E rode o bootstrap — instala Docker, cria `/srv/actual/data` com dono 1001,
-instala os timers do systemd e sobe a stack:
+Rode o bootstrap primeiro — instala Docker, **rclone**, cria `/srv/actual/data`
+com dono 1001, instala os timers do systemd e sobe a stack:
 
 ```bash
 sudo ./bootstrap.sh
+```
+
+**Só depois** configure o rclone — `rclone` não existe no sistema até o
+bootstrap instalar. Use `sudo`: o serviço de backup roda como root (o
+`.service` não define `User=`), e `sudo` preserva `$HOME=/root`, então é onde
+ele vai procurar a configuração:
+
+```bash
+sudo rclone config create r2 s3 provider=Cloudflare \
+  access_key_id=<KEY> secret_access_key=<SECRET> \
+  endpoint=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 ```
 
 A partir daqui o deploy contínuo está ligado: todo push no `master` vira imagem
