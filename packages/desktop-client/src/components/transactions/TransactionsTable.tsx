@@ -90,6 +90,10 @@ import { AccountAutocomplete } from '#components/autocomplete/AccountAutocomplet
 import { CategoryAutocomplete } from '#components/autocomplete/CategoryAutocomplete';
 import { PayeeAutocomplete } from '#components/autocomplete/PayeeAutocomplete';
 import { TagAutocomplete } from '#components/autocomplete/TagAutocomplete';
+import {
+  installmentDisplayNotes,
+  InstallmentIndicator,
+} from '#components/credit-cards/InstallmentIndicator';
 import { getStatusProps } from '#components/schedules/StatusBadge';
 import type { StatusTypes } from '#components/schedules/StatusBadge';
 import { DateSelect } from '#components/select/DateSelect';
@@ -1654,6 +1658,8 @@ const Transaction = memo(function Transaction({
         <NotesCell
           note={notes ?? ''}
           scheduleNote={isPreview ? schedule?.name : null}
+          installmentNum={transaction.installment_num}
+          installmentTotal={transaction.installment_total}
           focused={focusedField === 'notes'}
           valueStyle={valueStyle}
           onClickTag={onNotesTagClick}
@@ -2096,6 +2102,8 @@ const Transaction = memo(function Transaction({
 type NotesCellProps = {
   note: string;
   scheduleNote: string | null | undefined;
+  installmentNum: number | null | undefined;
+  installmentTotal: number | null | undefined;
   focused: boolean;
   valueStyle: CSSProperties | null;
   onUpdate: (value: string) => void;
@@ -2106,6 +2114,8 @@ type NotesCellProps = {
 function NotesCell({
   note,
   scheduleNote,
+  installmentNum,
+  installmentTotal,
   focused,
   valueStyle,
   onUpdate,
@@ -2126,18 +2136,47 @@ function NotesCell({
     }
   }
 
-  const displayedNote = note || scheduleNote || '';
+  const displayedNote =
+    installmentDisplayNotes(note, installmentNum, installmentTotal) ||
+    scheduleNote ||
+    '';
+  const installment =
+    installmentNum != null &&
+    installmentTotal != null &&
+    installmentNum > 0 &&
+    installmentTotal > 0
+      ? { current: installmentNum, total: installmentTotal }
+      : null;
 
   return (
     <CustomCell
       innerRef={cellRef}
       width="flex"
       name="notes"
-      value={displayedNote}
+      value={displayedNote || (installment ? ' ' : '')}
       valueStyle={valueStyle}
-      formatter={value =>
-        NotesTagFormatter({ notes: value, onNotesTagClick: onClickTag })
-      }
+      formatter={() => (
+        <View
+          style={{
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
+          {installment && (
+            <InstallmentIndicator
+              current={installment.current}
+              total={installment.total}
+            />
+          )}
+          {displayedNote &&
+            NotesTagFormatter({
+              notes: displayedNote,
+              onNotesTagClick: onClickTag,
+            })}
+        </View>
+      )}
       focused={focused}
       exposed={focused}
       onExpose={onExpose}

@@ -10,6 +10,7 @@ import {
 import { isPreviewId } from '@actual-app/core/shared/transactions';
 import type { TransactionEntity } from '@actual-app/core/types/models';
 
+import { useDeleteInstallments } from '#components/credit-cards/useDeleteInstallments';
 import type { ContextMenuItem } from '#contextmenu/types';
 import { useContextMenu } from '#hooks/useContextMenu';
 import { useSchedules } from '#hooks/useSchedules';
@@ -48,6 +49,7 @@ export function useTransactionRowContextActions({
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const selectedItems = useSelectedItems();
+  const confirmDeleteInstallments = useDeleteInstallments();
 
   const selectedIds = useMemo(() => {
     const ids =
@@ -131,6 +133,9 @@ export function useTransactionRowContextActions({
     return areNoReconciledTransactions && areAllSplitTransactions;
   }, [selectedIds, types, getTransaction]);
 
+  const selectedInstallment =
+    selectedIds.length === 1 ? getTransaction(selectedIds[0]) : undefined;
+
   function onViewSchedule() {
     const firstId = selectedIds[0];
     let scheduleId;
@@ -193,6 +198,16 @@ export function useTransactionRowContextActions({
       name: 'delete',
       text: t('Delete'),
       onClick: () => onDelete(selectedIds),
+    },
+    {
+      name: 'undo-installment-purchase',
+      text: t('Undo installment purchase'),
+      onClick: () => {
+        if (selectedInstallment) {
+          confirmDeleteInstallments(selectedInstallment);
+        }
+      },
+      hidden: !selectedInstallment?.installment_group,
     },
     {
       name: 'view-schedule',

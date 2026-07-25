@@ -72,6 +72,8 @@ import {
   parseISO,
 } from 'date-fns';
 
+import { installmentDisplayNotes } from '#components/credit-cards/InstallmentIndicator';
+import { useDeleteInstallments } from '#components/credit-cards/useDeleteInstallments';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import {
   FieldLabel,
@@ -618,6 +620,7 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
     const { t } = useTranslation();
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const confirmDeleteInstallments = useDeleteInstallments();
     const [showHiddenCategories] = useLocalPref('budget.showHiddenCategories');
     const [upcomingLength = '7'] = useSyncedPref(
       'upcomingScheduledTransactionLength',
@@ -1426,7 +1429,11 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                 !!editingField &&
                 editingField !== getFieldName(transaction.id, 'notes')
               }
-              defaultValue={transaction.notes}
+              defaultValue={installmentDisplayNotes(
+                transaction.notes,
+                transaction.installment_num,
+                transaction.installment_total,
+              )}
               onFocus={() => {
                 onRequestActiveEdit(getFieldName(transaction.id, 'notes'));
               }}
@@ -1437,6 +1444,42 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
             />
             <NoteTagAutocomplete inputRef={noteRef} />
           </View>
+
+          {!isAdding && transaction.installment_group && (
+            <View style={{ alignItems: 'center' }}>
+              <Button
+                variant="bare"
+                onPress={() =>
+                  confirmDeleteInstallments(transaction, () => {
+                    void navigate(-1);
+                  })
+                }
+                style={{
+                  height: 40,
+                  borderWidth: 0,
+                  marginLeft: styles.mobileEditingPadding,
+                  marginRight: styles.mobileEditingPadding,
+                  marginTop: 10,
+                  backgroundColor: 'transparent',
+                }}
+              >
+                <SvgTrash
+                  width={17}
+                  height={17}
+                  style={{ color: theme.errorText }}
+                />
+                <Text
+                  style={{
+                    color: theme.errorText,
+                    marginLeft: 5,
+                    userSelect: 'none',
+                  }}
+                >
+                  <Trans>Undo installment purchase</Trans>
+                </Text>
+              </Button>
+            </View>
+          )}
 
           {!isAdding && (
             <View style={{ alignItems: 'center' }}>

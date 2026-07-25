@@ -2312,5 +2312,12 @@
   "{{count}} categorization(s) awaiting your review._zero": "{{count}} categorizações aguardando sua revisão.",
   "{{count}} failed_zero": "{{count}} chamadas com falha",
   "{{count}} items returned_zero": "{{count}} itens retornados",
-  "{{count}} source records examined_zero": "{{count}} registros de origem examinados"
+  "{{count}} source records examined_zero": "{{count}} registros de origem examinados",
+  "Installment {{current}} of {{total}}": "Parcela {{current}} de {{total}}",
+  "Undo installment purchase": "Desfazer compra parcelada",
+  "Undo installments": "Desfazer parcelas",
+  "This will delete all {{count}} installments in this purchase. Continue?_one": "Isso excluirá a parcela desta compra. Deseja continuar?",
+  "This will delete all {{count}} installments in this purchase. Continue?_other": "Isso excluirá todas as {{count}} parcelas desta compra. Deseja continuar?",
+  "Installment purchase deleted.": "Compra parcelada excluída.",
+  "Could not undo the installment purchase. Check your connection and try again.": "Não foi possível desfazer a compra parcelada. Verifique sua conexão e tente novamente."
 }

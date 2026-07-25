@@ -100,7 +100,7 @@ export async function createInstallments({
     category,
     date: installmentDate,
     amount: amounts[idx],
-    notes: notes ? `${notes} (${idx + 1}/${count})` : `(${idx + 1}/${count})`,
+    notes,
     installment_group: groupId,
     installment_num: idx + 1,
     installment_total: count,

@@ -496,6 +496,27 @@ describe('Transactions', () => {
     });
   });
 
+  test('installment transactions show their own register indicator', () => {
+    const [transaction] = generateTransactions(1);
+    const installmentTransaction: TransactionEntity = {
+      ...transaction,
+      notes: 'Laptop',
+      installment_group: 'installment-group',
+      installment_num: 3,
+      installment_total: 12,
+    };
+
+    renderTransactions({
+      transactions: [installmentTransaction],
+      isAdding: false,
+    });
+
+    expect(screen.getByLabelText('Installment 3 of 12')).toHaveTextContent(
+      '3/12',
+    );
+    expect(screen.getByText('Laptop')).toBeVisible();
+  });
+
   test('transactions table shows the correct data', () => {
     const { container, getTransactions } = renderTransactions();
 

@@ -78,6 +78,7 @@
     "#components/util/countries": "./src/components/util/countries.ts",
     "#components/util/localeToCountry": "./src/components/util/localeToCountry.ts",
     "#components/ai/labels": "./src/components/ai/labels.ts",
+    "#components/credit-cards/useDeleteInstallments": "./src/components/credit-cards/useDeleteInstallments.ts",
     "#components/*": "./src/components/*.tsx",
     "#hooks/useCachedSchedules": "./src/hooks/useCachedSchedules.tsx",
     "#hooks/useDisplayPayee": "./src/hooks/useDisplayPayee.tsx",

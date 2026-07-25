@@ -35,6 +35,10 @@ import {
 } from '@react-aria/interactions';
 
 import { makeAmountFullStyle } from '#components/budget/util';
+import {
+  installmentDisplayNotes,
+  InstallmentIndicator,
+} from '#components/credit-cards/InstallmentIndicator';
 import { useAccount } from '#hooks/useAccount';
 import { useCachedSchedules } from '#hooks/useCachedSchedules';
 import { useCategories } from '#hooks/useCategories';
@@ -150,6 +154,11 @@ export function TransactionListItem({
 
   const prettyCategory = specialCategory || categoryName;
   const textStyle = getTextStyle({ isPreview });
+  const displayedNotes = installmentDisplayNotes(
+    notes,
+    transaction.installment_num,
+    transaction.installment_total,
+  );
 
   return (
     <View
@@ -269,9 +278,23 @@ export function TransactionListItem({
                       }}
                     />
                   )}
+                  {transaction.installment_num != null &&
+                    transaction.installment_total != null &&
+                    transaction.installment_num > 0 &&
+                    transaction.installment_total > 0 && (
+                      <InstallmentIndicator
+                        current={transaction.installment_num}
+                        total={transaction.installment_total}
+                      />
+                    )}
                   <TextOneLine
                     style={{
                       fontSize: 11,
+                      marginLeft:
+                        transaction.installment_num != null &&
+                        transaction.installment_total != null
+                          ? 5
+                          : undefined,
                       marginTop: 1,
                       fontWeight: '400',
                       color: prettyCategory
@@ -288,7 +311,7 @@ export function TransactionListItem({
                   </TextOneLine>
                 </View>
               )}
-              {notes && (
+              {displayedNotes && (
                 <TextOneLine
                   style={{
                     fontSize: 11,
@@ -299,7 +322,7 @@ export function TransactionListItem({
                     opacity: 0.85,
                   }}
                 >
-                  <NotesTagFormatter notes={notes} />
+                  <NotesTagFormatter notes={displayedNotes} />
                 </TextOneLine>
               )}
             </View>
