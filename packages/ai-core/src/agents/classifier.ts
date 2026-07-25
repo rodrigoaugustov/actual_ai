@@ -13,6 +13,11 @@ export type ClassifierHistoryEntry = {
   categoryName: string;
 };
 
+export type ClassifierRejectionEntry = {
+  payeeName: string;
+  categoryName: string;
+};
+
 export type ClassifierCandidate = {
   id: string;
   payeeName: string;
@@ -25,6 +30,8 @@ export type ClassifierInput = {
   categories: ClassifierCategory[];
   /** Recent user corrections, used as few-shot examples. */
   history: ClassifierHistoryEntry[];
+  /** Suggestions explicitly rejected by the user. */
+  rejections?: ClassifierRejectionEntry[];
   /** The batch to classify (~50 max — see ARCHITECTURE.md on batching for cache/cost). */
   transactions: ClassifierCandidate[];
 };
@@ -53,6 +60,13 @@ function formatCategories(categories: ClassifierCategory[]): string {
 function formatHistory(history: ClassifierHistoryEntry[]): string {
   if (history.length === 0) return '(no prior corrections yet)';
   return history.map(h => `"${h.payeeName}" -> ${h.categoryName}`).join('\n');
+}
+
+function formatRejections(rejections: ClassifierRejectionEntry[]): string {
+  if (rejections.length === 0) return '(no rejected suggestions yet)';
+  return rejections
+    .map(h => `"${h.payeeName}" -/-> ${h.categoryName}`)
+    .join('\n');
 }
 
 function formatTransactions(transactions: ClassifierCandidate[]): string {
@@ -86,6 +100,13 @@ export function buildClassifierPrompt(input: ClassifierInput): PromptBlock[] {
       role: 'system',
       cacheable: true,
       text: `Recent user corrections (few-shot examples):\n${formatHistory(input.history)}`,
+    },
+    {
+      role: 'system',
+      cacheable: true,
+      text:
+        'User-rejected suggestions (negative examples; do not repeat unless ' +
+        `new evidence clearly outweighs them):\n${formatRejections(input.rejections ?? [])}`,
     },
     {
       role: 'user',

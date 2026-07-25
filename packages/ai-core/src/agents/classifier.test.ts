@@ -7,6 +7,7 @@ describe('buildClassifierPrompt', () => {
     const blocks = buildClassifierPrompt({
       categories: [{ id: 'c1', name: 'Groceries', group: 'Food' }],
       history: [{ payeeName: 'Extra', categoryName: 'Groceries' }],
+      rejections: [{ payeeName: 'Uber', categoryName: 'Transport' }],
       transactions: [
         {
           id: 't1',
@@ -25,17 +26,24 @@ describe('buildClassifierPrompt', () => {
     expect(blocks.some(b => b.text.includes('"Extra" -> Groceries'))).toBe(
       true,
     );
+    expect(blocks.some(b => b.text.includes('"Uber" -/-> Transport'))).toBe(
+      true,
+    );
   });
 
   it('says explicitly when there is no correction history yet', () => {
     const blocks = buildClassifierPrompt({
       categories: [],
       history: [],
+      rejections: [],
       transactions: [],
     });
     expect(blocks.some(b => b.text.includes('no prior corrections yet'))).toBe(
       true,
     );
+    expect(
+      blocks.some(b => b.text.includes('no rejected suggestions yet')),
+    ).toBe(true);
   });
 });
 

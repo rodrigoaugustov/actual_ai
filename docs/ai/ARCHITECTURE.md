@@ -22,8 +22,8 @@ consultor financeiro conversacional. O roadmap de entregas está em
    injetada pelo host. Adicionar um agente ou tool não toca a harness.
 5. **Workflows onde o fluxo é conhecido; loop agêntico só onde é aberto.**
    Classificação, auditoria e mineração são pipelines determinísticas com
-   passos LLM (baratas, previsíveis, testáveis). Só o consultor e o wizard de
-   categorias usam loop de tool-use.
+   passos LLM (baratas, previsíveis, testáveis). Só o consultor financeiro
+   usa loop de tool-use.
 
 ## Decisões registradas
 
@@ -46,7 +46,7 @@ consultor financeiro conversacional. O roadmap de entregas está em
 │ loot-core — packages/loot-core/src/server/ai/              │
 │   handlers · implementações das tools (AQL/db) ·           │
 │   hook pós-bank-sync · migrações (ai_runs, ai_suggestions, │
-│   ai_rule_meta)                                            │
+│   ai_rule_meta, ai_feedback, ai_rule_hits)                  │
 └───────────────┬────────────────────────────────────────────┘
                 │ usa
 ┌───────────────▼────────────────────────────────────────────┐
@@ -82,7 +82,7 @@ Electron), **sem** dependência de DB, React ou loot-core. Módulos:
   | ---------- | ---------------------------------------------- | ---------------------------------------------- |
   | `fast`     | validação/auditoria, dedupe, extrações simples | claude-haiku / gpt-mini / flash / modelo local |
   | `standard` | classificação em lote, mineração de regras     | claude-sonnet / gpt / gemini-pro               |
-  | `frontier` | consultor, wizard, casos ambíguos escalados    | melhor modelo disponível do provider           |
+  | `frontier` | consultor e casos ambíguos escalados           | melhor modelo disponível do provider           |
 
   Agentes declaram o tier, nunca um modelo. Trocar de provider ou modelo é
   configuração, não código.
@@ -127,7 +127,7 @@ com handlers fake e impede o pacote de conhecer o schema do banco.
   entrada → prompt → saída estruturada validada por Zod → política de decisão
   em código.
 - **`runAgentLoop`**: loop de tool-use com orçamento de passos e tokens, para
-  o consultor e o wizard. Streaming de texto e de chamadas de tool para a UI.
+  o consultor. Streaming de texto e de chamadas de tool para a UI.
 
 ### `cost/` — contabilidade e limites
 
@@ -143,10 +143,11 @@ com handlers fake e impede o pacote de conhecer o schema do banco.
    estáveis, OpenAI/Gemini fazem cache automático por prefixo. Em lotes
    consecutivos (ex.: triagem de 200 transações em 4 chamadas), só o lote
    varia.
-2. **Cache local de respostas**: hash de (payee normalizado, faixa de valor,
-   conta) → classificação anterior. Transação repetida nem chega ao LLM. As
-   regras já capturam a maior parte disso, mas o cache cobre o intervalo entre
-   "payee novo apareceu" e "regra minerada e aprovada".
+2. **Cache local de decisões confirmadas**: hash de (payee normalizado, faixa
+   de valor, conta) → categoria com consenso humano. Rejeições contam como
+   evidência negativa e podem invalidar o consenso. Transação repetida nem
+   chega ao LLM. As regras já capturam a maior parte disso, mas o cache cobre o
+   intervalo entre "payee novo apareceu" e "regra minerada e aprovada".
 
 ### `redact/` — privacidade antes do envio
 
@@ -157,9 +158,10 @@ nenhum dado em nuvem.
 
 ### `evals/` — regressão de prompts e modelos
 
-Golden set construído a partir das correções reais do usuário (cada correção
-no inbox vira um caso). Runner em vitest: roda o classificador contra o set e
-reporta precisão. É o que permite trocar modelo/prompt com segurança.
+Golden set construído a partir das decisões reais do usuário (aceites,
+correções, rejeições e classificações manuais viram casos). O contrato e o
+scorer rodam em vitest e reportam precisão, cobertura e regressões; os casos
+locais são materializados de `ai_feedback`.
 
 ## Integração no loot-core: `src/server/ai/`
 
@@ -169,7 +171,7 @@ Segue o padrão do módulo `credit-cards/` (app com handlers, registrado em
 - **`app.ts`** — handlers: `ai/get-config`, `ai/update-config`,
   `ai/classify-pending`, `ai/get-suggestions`, `ai/resolve-suggestion`
   (aceitar/corrigir/rejeitar), `ai/mine-rules` (Fase 2), `ai/audit-sample`
-  (Fase 3), `ai/chat` (Fases 4–5).
+  (Fase 3), `ai/chat` (Fase 4).
 - **`tools-impl.ts`** — implementações reais das tools sobre AQL/db.
 - **Hook pós-sync** — no mesmo ponto onde hoje chamamos `syncPluggyBills` em
   `accounts/sync.ts`: ao fim do sync, dispara a triagem dos não-categorizados
@@ -182,6 +184,8 @@ Segue o padrão do módulo `credit-cards/` (app com handlers, registrado em
 | `ai_runs`        | Log de execuções: agente, modelo, tokens, custo estimado, duração, status. Fonte da telemetria de custo e da auditoria ("por que a IA fez X?").                                                         |
 | `ai_suggestions` | Sidecar por transação: categoria sugerida, confiança, rationale curto, status (`pending` / `accepted` / `rejected` / `auto_applied`), run de origem. Não polui `transactions`; o register junta por id. |
 | `ai_rule_meta`   | Sidecar por regra: rationale legível, transações-amostra usadas na mineração, run de origem, e estatísticas de precisão (hits, confirmados, corrigidos). Evita alterar a tabela `rules` do upstream.    |
+| `ai_feedback`    | Golden set persistente das decisões humanas: aceite, correção, rejeição, classificação manual e override de autoaplicação.                                                                              |
+| `ai_rule_hits`   | Hits reais das regras mineradas, com estado de amostragem e resultado da auditoria.                                                                                                                     |
 
 Todas com `tombstone`, sincronizadas pelo CRDT como qualquer tabela (mesmo
 mecanismo validado com `statements`). Lockstep habitual: `db/types`,
@@ -246,13 +250,12 @@ decai conforme a precisão observada em `ai_rule_meta` sobe.
 
 ## Agentes previstos
 
-| Agente                       | Modo     | Tier     | Fase |
-| ---------------------------- | -------- | -------- | ---- |
-| `classifier`                 | workflow | standard | 1    |
-| `rule-miner`                 | workflow | standard | 2    |
-| `auditor`                    | workflow | fast     | 3    |
-| `category-designer` (wizard) | loop     | frontier | 4    |
-| `advisor` (consultor)        | loop     | frontier | 5    |
+| Agente                | Modo     | Tier     | Fase |
+| --------------------- | -------- | -------- | ---- |
+| `classifier`          | workflow | standard | 1    |
+| `rule-miner`          | workflow | standard | 2    |
+| `auditor`             | workflow | fast     | 3    |
+| `advisor` (consultor) | loop     | frontier | 4    |
 
 ## Segurança e privacidade
 
@@ -263,3 +266,43 @@ decai conforme a precisão observada em `ai_rule_meta` sobe.
   confirmação explícita do usuário na UI; o consultor nasce read-only.
 - Tudo que um agente fez fica auditável em `ai_runs` + rationale nas
   suggestions/regras.
+
+## Memória do consultor
+
+A Fase 4 usa memória híbrida: dados financeiros continuam autoritativos no
+banco e são acessados por tools read-only; perfil, objetivos, episódios,
+documentos e decisões são fontes persistentes com proveniência, validade e
+confirmação. Recuperação semântica é um índice derivado, nunca uma fonte de
+verdade. A decisão completa está em
+[ADR-001-ADVISOR-MEMORY.md](./ADR-001-ADVISOR-MEMORY.md).
+
+## Análise financeira adaptativa
+
+Tools canônicas continuam definindo saldos, transferências, fluxo de caixa,
+orçamento e faturas, mas o consultor não depende de um handler por pergunta.
+Ele pode consultar um catálogo semântico e construir análises declarativas com
+filtros, dimensões, métricas condicionais e cálculos.
+
+O host compila essa linguagem para `SELECT` parametrizado sobre datasets
+allowlisted. O modelo nunca fornece SQL/AQL, tabelas físicas, joins ou funções
+arbitrárias. A saída inclui cobertura e evidência; agregações examinam todo o
+conjunto filtrado e paginação limita apenas as linhas devolvidas ao modelo.
+
+Buscas de transações são usadas para drill-down. Totais e tendências usam o
+executor adaptativo. Limites internos são resolvidos por refinamento,
+agregação ou paginação e não são apresentados ao usuário.
+
+A decisão e o contrato de segurança completos estão em
+[ADR-002-ADAPTIVE-FINANCIAL-ANALYSIS.md](./ADR-002-ADAPTIVE-FINANCIAL-ANALYSIS.md).
+
+## Transparência da execução do consultor
+
+O harness transforma marcos reais da orquestração em um rastro semântico
+independente do provider: compreensão, contexto, planejamento, tools, cobertura,
+retry e composição. Esses eventos são sanitizados no core, transmitidos pelo
+canal de eventos e persistidos como partes da mensagem.
+
+A UI mostra a timeline aberta enquanto a execução está ativa, recolhe ao
+concluir e permite reabertura no histórico. Argumentos e resultados brutos
+continuam internos. O contrato completo está em
+[ADR-003-SAFE-ADVISOR-TRACE.md](./ADR-003-SAFE-ADVISOR-TRACE.md).

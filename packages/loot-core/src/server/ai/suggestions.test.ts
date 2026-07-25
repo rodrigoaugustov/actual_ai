@@ -116,6 +116,14 @@ describe('resolveSuggestion', () => {
     );
     expect(transaction?.category).toBe('groceries');
     expect(await getPendingSuggestions()).toHaveLength(0);
+    expect(
+      await db.first<{ source: string; final_category_id: string }>(
+        `SELECT source, final_category_id
+           FROM ai_feedback
+          WHERE transaction_id = ?`,
+        ['txn1'],
+      ),
+    ).toEqual({ source: 'accepted', final_category_id: 'groceries' });
   });
 
   it('correct applies a different category than the one suggested', async () => {
@@ -139,6 +147,22 @@ describe('resolveSuggestion', () => {
       ['txn1'],
     );
     expect(transaction?.category).toBe('other');
+    expect(
+      await db.first<{
+        source: string;
+        suggested_category_id: string;
+        final_category_id: string;
+      }>(
+        `SELECT source, suggested_category_id, final_category_id
+           FROM ai_feedback
+          WHERE transaction_id = ?`,
+        ['txn1'],
+      ),
+    ).toEqual({
+      source: 'corrected',
+      suggested_category_id: 'groceries',
+      final_category_id: 'other',
+    });
   });
 
   it('reject leaves the transaction uncategorized', async () => {
@@ -159,5 +183,21 @@ describe('resolveSuggestion', () => {
     );
     expect(transaction?.category).toBeNull();
     expect(await getPendingSuggestions()).toHaveLength(0);
+    expect(
+      await db.first<{
+        source: string;
+        suggested_category_id: string;
+        final_category_id: string | null;
+      }>(
+        `SELECT source, suggested_category_id, final_category_id
+           FROM ai_feedback
+          WHERE transaction_id = ?`,
+        ['txn1'],
+      ),
+    ).toEqual({
+      source: 'rejected',
+      suggested_category_id: 'groceries',
+      final_category_id: null,
+    });
   });
 });

@@ -5,15 +5,15 @@ import { buildModel } from './registry';
 const fetchStub = vi.fn() as unknown as typeof fetch;
 
 describe('buildModel', () => {
-  it('builds an OpenAI model pointed at the proxy baseURL', () => {
+  it('builds an OpenAI Responses model pointed at the proxy baseURL', () => {
     const model = buildModel({
       provider: 'openai',
-      model: 'gpt-5-mini',
+      model: 'gpt-5.6-luna',
       baseURL: 'https://proxy.example.com/ai/proxy/openai',
       fetch: fetchStub,
     });
-    expect(model.modelId).toBe('gpt-5-mini');
-    expect(model.provider).toContain('openai');
+    expect(model.modelId).toBe('gpt-5.6-luna');
+    expect(model.provider).toBe('openai.responses');
   });
 
   it('builds an Anthropic model', () => {

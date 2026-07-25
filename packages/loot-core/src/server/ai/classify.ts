@@ -2,7 +2,6 @@ import {
   assertCanStartRun,
   buildCacheKey,
   classifierAgent,
-  InMemoryResponseCache,
   redactPii,
   runWorkflow,
   WorkflowError,
@@ -17,6 +16,11 @@ import { q } from '#shared/query';
 import type { ClassifyOutcome } from '#types/models/ai';
 
 import { getAiConfig } from './config';
+import {
+  getFeedbackExamples,
+  getLearnedCategories,
+  getRejectedExamples,
+} from './feedback';
 import { buildProviderConfigForTier } from './fetch-client';
 import { getSpendTodayUsd, recordRun } from './runs';
 import { createSuggestion } from './suggestions';
@@ -28,12 +32,6 @@ const BATCH_SIZE = 50;
 // pick up wherever this leaves off on the next run.
 const MAX_TRANSACTIONS_PER_RUN = 500;
 const HISTORY_LIMIT = 30;
-
-// Session-scoped: within a large batch job this still avoids re-asking the
-// model for the same payee/amount pair twice, and it costs nothing to keep
-// around between calls. Cross-restart persistence is a follow-up — see
-// ARCHITECTURE.md's note on the two-layer cache.
-const responseCache = new InMemoryResponseCache<string | null>();
 
 type PendingTransaction = {
   id: string;
@@ -102,14 +100,17 @@ async function fetchCategories() {
 }
 
 async function fetchHistory() {
+  const feedback = await getFeedbackExamples(HISTORY_LIMIT);
+  if (feedback.length >= HISTORY_LIMIT) return feedback;
+
   const { data } = await aqlQuery(
     q('transactions')
       .filter({ category: { $ne: null }, transfer_id: null })
       .select([{ payeeName: 'payee.name' }, { categoryName: 'category.name' }])
       .orderBy({ date: 'desc' })
-      .limit(HISTORY_LIMIT),
+      .limit(HISTORY_LIMIT - feedback.length),
   );
-  return (
+  const history = (
     data as Array<{ payeeName: string | null; categoryName: string | null }>
   )
     .filter(row => row.payeeName && row.categoryName)
@@ -117,6 +118,7 @@ async function fetchHistory() {
       payeeName: row.payeeName as string,
       categoryName: row.categoryName as string,
     }));
+  return feedback.concat(history);
 }
 
 function confidenceStatus(
@@ -136,8 +138,9 @@ async function classifyBatch(
   pending: PendingTransaction[],
   categories: Array<{ id: string; name: string; groupName: string | null }>,
   config: ReturnType<typeof getAiConfig>,
+  learnedCategories: Awaited<ReturnType<typeof getLearnedCategories>>,
 ): Promise<BatchResult> {
-  const cacheHits = new Map<string, string | null>();
+  const learnedHits = new Map<string, string>();
   const toClassify: PendingTransaction[] = [];
   for (const t of pending) {
     const key = buildCacheKey({
@@ -145,9 +148,9 @@ async function classifyBatch(
       payeeName: t.payeeName ?? '',
       amountCents: t.amount,
     });
-    const cached = responseCache.get(key);
-    if (cached) {
-      cacheHits.set(t.id, cached.value);
+    const learned = learnedCategories.get(key);
+    if (learned) {
+      learnedHits.set(t.id, learned.categoryId);
     } else {
       toClassify.push(t);
     }
@@ -157,6 +160,7 @@ async function classifyBatch(
   let runId: string | undefined;
   if (toClassify.length > 0) {
     const history = await fetchHistory();
+    const rejections = await getRejectedExamples(HISTORY_LIMIT);
     const providerConfig = await buildProviderConfigForTier(
       classifierAgent.tier,
     );
@@ -185,6 +189,7 @@ async function classifyBatch(
             group: c.groupName ?? undefined,
           })),
           history,
+          rejections,
           transactions: candidates,
         },
         { config: providerConfig },
@@ -205,14 +210,15 @@ async function classifyBatch(
   let autoApplied = 0;
   let pendingReview = 0;
 
-  for (const [transactionId, categoryId] of cacheHits) {
+  for (const [transactionId, categoryId] of learnedHits) {
     const transaction = byId.get(transactionId);
     if (!transaction) continue;
     const applied = await applySuggestion({
       transactionId,
       categoryId,
       confidence: 1,
-      rationale: 'Matched a prior classification for this payee/amount.',
+      rationale:
+        'Matched repeated user-confirmed classifications for this payee and amount range.',
       threshold: config.confidenceThreshold,
     });
     if (applied === 'auto_applied') autoApplied++;
@@ -221,16 +227,6 @@ async function classifyBatch(
 
   if (output) {
     for (const item of output.items) {
-      const key = buildCacheKey({
-        account: byId.get(item.id)?.account ?? '',
-        payeeName: byId.get(item.id)?.payeeName ?? '',
-        amountCents: byId.get(item.id)?.amount ?? 0,
-      });
-      responseCache.set(key, {
-        value: item.categoryId,
-        cachedAt: new Date().toISOString(),
-      });
-
       const applied = await applySuggestion({
         transactionId: item.id,
         categoryId: item.categoryId,
@@ -264,6 +260,7 @@ async function runClassificationPass(
   });
 
   const categories = await fetchCategories();
+  const learnedCategories = await getLearnedCategories();
 
   let autoApplied = 0;
   let pendingReview = 0;
@@ -282,7 +279,12 @@ async function runClassificationPass(
     }
 
     const batch = allPending.slice(i, i + BATCH_SIZE);
-    const result = await classifyBatch(batch, categories, config);
+    const result = await classifyBatch(
+      batch,
+      categories,
+      config,
+      learnedCategories,
+    );
     if (result.status === 'run-failed') {
       if (!processedAnyBatch) return { status: 'run-failed' };
       break;
@@ -344,6 +346,83 @@ export async function classifyTransactionsById(
     transactionIds.slice(0, MAX_TRANSACTIONS_PER_RUN),
   );
   return runClassificationPass(undefined, allPending, config);
+}
+
+/** Re-runs the classifier for a transaction whose rule hit was rejected by
+ * the auditor. The existing category is preserved and the alternative is
+ * always left for human review. */
+export async function classifyTransactionForReview(
+  transactionId: string,
+): Promise<boolean> {
+  const config = getAiConfig();
+  if (!config.enabled) return false;
+
+  const { data } = await aqlQuery(
+    q('transactions')
+      .filter({ id: transactionId, transfer_id: null, is_parent: false })
+      .select([...PENDING_TRANSACTION_FIELDS, 'category'])
+      .limit(1),
+  );
+  const transaction = data[0] as
+    | (PendingTransaction & { category: string | null })
+    | undefined;
+  if (!transaction) return false;
+
+  assertCanStartRun(
+    { maxCostPerDayUsd: config.maxCostPerDayUsd },
+    await getSpendTodayUsd(),
+  );
+
+  const categories = await fetchCategories();
+  const providerConfig = await buildProviderConfigForTier(classifierAgent.tier);
+  const result = await runWorkflow(
+    classifierAgent,
+    {
+      categories: categories.map(category => ({
+        id: category.id,
+        name: category.name,
+        group: category.groupName ?? undefined,
+      })),
+      history: await fetchHistory(),
+      rejections: await getRejectedExamples(HISTORY_LIMIT),
+      transactions: [
+        {
+          id: transaction.id,
+          payeeName: config.redactPii
+            ? redactPii(transaction.payeeName ?? '')
+            : (transaction.payeeName ?? ''),
+          amountCents: transaction.amount,
+          date: transaction.date,
+          notes: transaction.notes
+            ? config.redactPii
+              ? redactPii(transaction.notes)
+              : transaction.notes
+            : undefined,
+        },
+      ],
+    },
+    { config: providerConfig },
+  );
+  const runId = await recordRun(result.run);
+  const suggestion = result.output.items.find(
+    item => item.id === transaction.id,
+  );
+  if (
+    !suggestion?.categoryId ||
+    suggestion.categoryId === transaction.category
+  ) {
+    return false;
+  }
+
+  await createSuggestion({
+    transactionId: transaction.id,
+    categoryId: suggestion.categoryId,
+    confidence: suggestion.confidence,
+    rationale: `Rule audit requested review: ${suggestion.rationale}`,
+    status: 'pending',
+    runId,
+  });
+  return true;
 }
 
 async function applySuggestion(params: {

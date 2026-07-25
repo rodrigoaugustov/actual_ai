@@ -136,6 +136,56 @@ describe('Transaction rules', () => {
     expect(transaction.category).toBe('food');
   });
 
+  test('records a hit when an approved AI rule sets the category', async () => {
+    await loadRules();
+    const ruleId = await insertRule({
+      stage: null,
+      conditionsOp: 'and',
+      conditions: [
+        { op: 'contains', field: 'imported_payee', value: 'MARKET' },
+      ],
+      actions: [{ op: 'set', field: 'category', value: 'groceries' }],
+    });
+    const ruleMetaId = await db.insertWithUUID('ai_rule_meta', {
+      rule_id: ruleId,
+      payee_name: 'Market',
+      op: 'contains',
+      value: 'MARKET',
+      category_id: 'groceries',
+      rationale: 'Stable user history',
+      sample_transaction_ids: '[]',
+      status: 'approved',
+      hits: 0,
+      confirmed: 0,
+      corrected: 0,
+      run_id: null,
+      created_at: Date.now(),
+      tombstone: 0,
+    });
+
+    await runRules({
+      id: 'txn-ai-rule',
+      imported_payee: 'LOCAL MARKET 01',
+      category: null,
+    });
+
+    expect(
+      await db.first<{
+        rule_meta_id: string;
+        transaction_id: string;
+        category_id: string;
+        status: string;
+      }>('SELECT * FROM ai_rule_hits WHERE transaction_id = ?', [
+        'txn-ai-rule',
+      ]),
+    ).toMatchObject({
+      rule_meta_id: ruleMetaId,
+      transaction_id: 'txn-ai-rule',
+      category_id: 'groceries',
+      status: 'pending',
+    });
+  });
+
   test('update a rule in the database', async () => {
     await loadRules();
     const id = await insertRule({

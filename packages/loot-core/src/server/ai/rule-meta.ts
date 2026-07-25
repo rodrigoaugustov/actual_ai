@@ -6,6 +6,11 @@ import { insertRule } from '#server/transactions/transaction-rules';
 import { q } from '#shared/query';
 import type { AiRuleMetaEntity } from '#types/models/ai';
 
+import {
+  parseRuleSampleTransactionIds,
+  recordRuleSampleHits,
+} from './rule-hits';
+
 export async function createRuleProposal(params: {
   proposal: RuleProposal;
   sampleTransactionIds: string[];
@@ -55,7 +60,9 @@ function parseRuleMetaRows(
 ): AiRuleMetaEntity[] {
   return data.map(row => ({
     ...row,
-    sampleTransactionIds: JSON.parse(row.sampleTransactionIds || '[]'),
+    sampleTransactionIds: parseRuleSampleTransactionIds(
+      row.sampleTransactionIds,
+    ),
   }));
 }
 
@@ -77,7 +84,48 @@ export async function getRuleHealth(): Promise<AiRuleMetaEntity[]> {
       .select([...RULE_META_SELECT])
       .orderBy({ created_at: 'desc' }),
   );
-  return parseRuleMetaRows(data);
+  const rules = parseRuleMetaRows(data);
+  if (rules.length === 0) return rules;
+
+  const falsePositives = await db.all<{
+    ruleMetaId: string;
+    transactionId: string;
+    payeeName: string | null;
+    rationale: string | null;
+    auditedAt: number | null;
+  }>(
+    `WITH ranked_hits AS (
+       SELECT h.*,
+              ROW_NUMBER() OVER (
+                PARTITION BY h.rule_meta_id
+                ORDER BY h.audited_at DESC
+              ) AS position
+         FROM ai_rule_hits h
+        WHERE h.status = 'corrected' AND h.tombstone = 0
+     )
+     SELECT h.rule_meta_id AS ruleMetaId,
+            h.transaction_id AS transactionId,
+            p.name AS payeeName,
+            h.rationale,
+            h.audited_at AS auditedAt
+       FROM ranked_hits h
+       LEFT JOIN transactions t ON t.id = h.transaction_id
+       LEFT JOIN payees p ON p.id = t.description
+      WHERE h.position <= 3
+      ORDER BY h.audited_at DESC`,
+  );
+  const byRule = new Map<string, AiRuleMetaEntity['recentFalsePositives']>();
+  for (const falsePositive of falsePositives) {
+    const current = byRule.get(falsePositive.ruleMetaId) ?? [];
+    if (current.length < 3) {
+      current.push(falsePositive);
+      byRule.set(falsePositive.ruleMetaId, current);
+    }
+  }
+  return rules.map(rule => ({
+    ...rule,
+    recentFalsePositives: byRule.get(rule.id) ?? [],
+  }));
 }
 
 export async function resolveRuleProposal({
@@ -120,4 +168,11 @@ export async function resolveRuleProposal({
   });
 
   await db.update('ai_rule_meta', { id, status: 'approved', rule_id: ruleId });
+  await recordRuleSampleHits({
+    ruleId,
+    transactionIds: parseRuleSampleTransactionIds(
+      proposal.sample_transaction_ids as string,
+    ),
+    categoryId: proposal.category_id as string,
+  });
 }

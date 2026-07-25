@@ -106,6 +106,134 @@ export type DbAiSuggestion = {
   tombstone: 1 | 0;
 };
 
+export type DbAiFeedback = {
+  id: string;
+  transaction_id: string;
+  account_id: string;
+  payee_name: string;
+  normalized_payee: string;
+  amount: number;
+  suggested_category_id: string | null;
+  final_category_id: string | null;
+  source:
+    | 'manual'
+    | 'accepted'
+    | 'corrected'
+    | 'rejected'
+    | 'auto_applied_overridden';
+  suggestion_id: string | null;
+  run_id: string | null;
+  created_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiRuleHit = {
+  id: string;
+  rule_meta_id: string;
+  rule_id: string;
+  transaction_id: string;
+  category_id: string;
+  status: 'pending' | 'confirmed' | 'corrected' | 'skipped';
+  rationale: string | null;
+  audited_at: number | null;
+  created_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiConversation = {
+  id: string;
+  title: string;
+  status: 'active' | 'archived';
+  summary: string | null;
+  created_at: number;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiMessage = {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  parts_json: string;
+  run_id: string | null;
+  created_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiMemoryFact = {
+  id: string;
+  subject: string;
+  kind: string;
+  value_json: string;
+  original_text: string | null;
+  source: 'user' | 'conversation' | 'document' | 'system';
+  confidence: number;
+  status: 'candidate' | 'confirmed' | 'rejected' | 'superseded';
+  sensitivity: 'normal' | 'sensitive';
+  source_message_id: string | null;
+  source_document_id: string | null;
+  supersedes_id: string | null;
+  valid_from: number | null;
+  valid_to: number | null;
+  last_confirmed_at: number | null;
+  created_at: number;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiGoal = {
+  id: string;
+  title: string;
+  description: string;
+  target_amount: number | null;
+  target_date: number | null;
+  priority: number;
+  flexibility: 'fixed' | 'flexible';
+  status: 'active' | 'paused' | 'completed' | 'cancelled';
+  progress_note: string | null;
+  next_review_at: number | null;
+  created_at: number;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiDocument = {
+  id: string;
+  title: string;
+  kind: string;
+  content: string;
+  source: 'user' | 'conversation' | 'import';
+  created_at: number;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiDocumentChunk = {
+  id: string;
+  document_id: string;
+  position: number;
+  content: string;
+  token_count: number;
+  created_at: number;
+};
+
+export type DbAiAdviceRecord = {
+  id: string;
+  conversation_id: string | null;
+  title: string;
+  recommendation: string;
+  assumptions_json: string;
+  evidence_json: string;
+  alternatives_json: string;
+  risks_json: string;
+  status: 'proposed' | 'accepted' | 'rejected' | 'completed';
+  follow_up_at: number | null;
+  created_at: number;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
 export type DbBank = {
   id: string;
   bank_id: string;

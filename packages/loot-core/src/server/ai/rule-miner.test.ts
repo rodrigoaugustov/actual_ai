@@ -5,7 +5,7 @@ import * as db from '#server/db';
 
 import { DEFAULT_AI_CONFIG, setAiConfig } from './config';
 import { getRuleProposals } from './rule-meta';
-import { mineRuleProposals } from './rule-miner';
+import { maybeMineRuleProposals, mineRuleProposals } from './rule-miner';
 
 const runWorkflowMock = vi.fn();
 
@@ -95,6 +95,53 @@ describe('mineRuleProposals', () => {
 
     expect(runWorkflowMock).not.toHaveBeenCalled();
     expect(outcome).toEqual({ status: 'no-candidates' });
+  });
+
+  it('starts continuous mining only after five new human decisions', async () => {
+    await prepareCategorizedHistory();
+    await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
+    mockWorkflowOutput({ proposals: [] });
+
+    for (let index = 0; index < 4; index++) {
+      await db.insertWithUUID('ai_feedback', {
+        transaction_id: `txn${index % 3}`,
+        account_id: 'checking',
+        payee_name: 'Extra',
+        normalized_payee: 'extra',
+        amount: -1000,
+        suggested_category_id: null,
+        final_category_id: 'groceries',
+        source: 'manual',
+        suggestion_id: null,
+        run_id: null,
+        created_at: Date.now() + index,
+        tombstone: 0,
+      });
+    }
+
+    expect(await maybeMineRuleProposals()).toBeNull();
+    expect(runWorkflowMock).not.toHaveBeenCalled();
+
+    await db.insertWithUUID('ai_feedback', {
+      transaction_id: 'txn1',
+      account_id: 'checking',
+      payee_name: 'Extra',
+      normalized_payee: 'extra',
+      amount: -1000,
+      suggested_category_id: null,
+      final_category_id: 'groceries',
+      source: 'manual',
+      suggestion_id: null,
+      run_id: null,
+      created_at: Date.now() + 10,
+      tombstone: 0,
+    });
+
+    expect(await maybeMineRuleProposals()).toEqual({
+      status: 'ok',
+      proposalsCreated: 0,
+    });
+    expect(runWorkflowMock).toHaveBeenCalledTimes(1);
   });
 
   it('creates a proposal from the mined output, linked to sample transaction ids', async () => {

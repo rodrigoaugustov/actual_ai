@@ -87,6 +87,29 @@ describe('app-ai proxy', () => {
     expect(options.headers.authorization).toBe('Bearer sk-openai-real-key');
   });
 
+  it('forwards OpenAI Responses API requests through the same authenticated proxy', async () => {
+    secretsService.set(SecretName.ai_openai_key, 'sk-openai-real-key');
+    mockUpstream(
+      200,
+      { 'content-type': 'application/json' },
+      JSON.stringify({ id: 'resp_1', status: 'completed' }),
+    );
+
+    const res = await call('/proxy/openai/v1/responses', {
+      model: 'gpt-5.6-luna',
+      tools: [{ type: 'function', name: 'snapshot' }],
+    });
+
+    expect(res.status).toBe(200);
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toBe('https://api.openai.com/v1/responses');
+    expect(options.headers.authorization).toBe('Bearer sk-openai-real-key');
+    expect(JSON.parse(options.body.toString())).toMatchObject({
+      model: 'gpt-5.6-luna',
+      tools: [{ type: 'function', name: 'snapshot' }],
+    });
+  });
+
   it('routes ollama to the configured host without injecting an auth header', async () => {
     secretsService.set(
       SecretName.ai_ollama_baseUrl,

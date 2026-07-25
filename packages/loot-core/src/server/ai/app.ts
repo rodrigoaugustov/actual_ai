@@ -2,15 +2,48 @@ import { createApp } from '#server/app';
 import { mutator } from '#server/mutators';
 import { undoable } from '#server/undo';
 import type {
+  AiAdviceRecordEntity,
   AiConfig,
+  AiConversationEntity,
+  AiDocumentEntity,
+  AiGoalEntity,
+  AiMemoryFactEntity,
+  AiMemoryFactStatus,
+  AiMessageEntity,
   AiRuleMetaEntity,
   AiRunEntity,
   AiSuggestionForReview,
   AiSuggestionIndexEntry,
+  AuditRulesOutcome,
   ClassifyOutcome,
   MineRulesOutcome,
 } from '#types/models/ai';
 
+import { cancelAdvisorRun, startAdvisorRun } from './advisor';
+import type { StartAdvisorRunOutcome } from './advisor';
+import {
+  createAdviceRecord,
+  createConversation,
+  createDocument,
+  createGoal,
+  createMemoryCandidate,
+  deleteAdviceRecord,
+  deleteConversation,
+  deleteDocument,
+  deleteGoal,
+  deleteMemoryFact,
+  listAdviceRecords,
+  listConversationMessages,
+  listConversations,
+  listDocuments,
+  listGoals,
+  listMemoryFacts,
+  resolveMemoryFact,
+  updateAdviceRecord,
+  updateConversation,
+  updateDocument,
+  updateGoal,
+} from './advisor-memory';
 import { auditApprovedRules } from './auditor';
 import { classifyTransactionsById } from './classify';
 import { getAiConfig, setAiConfig } from './config';
@@ -45,6 +78,29 @@ export type AiHandlers = {
   'ai/audit-rules': typeof auditRulesHandler;
   'ai/get-rule-health': typeof getRuleHealthHandler;
   'ai/get-secrets-status': typeof getSecretsStatusHandler;
+  'ai/advisor/start': typeof startAdvisorHandler;
+  'ai/advisor/cancel': typeof cancelAdvisorHandler;
+  'ai/advisor/create-conversation': typeof createConversationHandler;
+  'ai/advisor/list-conversations': typeof listConversationsHandler;
+  'ai/advisor/update-conversation': typeof updateConversation;
+  'ai/advisor/delete-conversation': typeof deleteConversationHandler;
+  'ai/advisor/list-messages': typeof listMessagesHandler;
+  'ai/advisor/list-memory': typeof listMemoryHandler;
+  'ai/advisor/create-memory': typeof createMemoryHandler;
+  'ai/advisor/resolve-memory': typeof resolveMemoryFact;
+  'ai/advisor/delete-memory': typeof deleteMemoryHandler;
+  'ai/advisor/list-goals': typeof listGoalsHandler;
+  'ai/advisor/create-goal': typeof createGoal;
+  'ai/advisor/update-goal': typeof updateGoal;
+  'ai/advisor/delete-goal': typeof deleteGoalHandler;
+  'ai/advisor/list-documents': typeof listDocumentsHandler;
+  'ai/advisor/create-document': typeof createDocument;
+  'ai/advisor/update-document': typeof updateDocument;
+  'ai/advisor/delete-document': typeof deleteDocumentHandler;
+  'ai/advisor/list-advice': typeof listAdviceHandler;
+  'ai/advisor/create-advice': typeof createAdviceRecord;
+  'ai/advisor/update-advice': typeof updateAdviceRecord;
+  'ai/advisor/delete-advice': typeof deleteAdviceHandler;
 };
 
 export const app = createApp<AiHandlers>();
@@ -68,6 +124,41 @@ app.method(
 app.method('ai/audit-rules', auditRulesHandler);
 app.method('ai/get-rule-health', getRuleHealthHandler);
 app.method('ai/get-secrets-status', getSecretsStatusHandler);
+app.method('ai/advisor/start', startAdvisorHandler);
+app.method('ai/advisor/cancel', cancelAdvisorHandler);
+app.method(
+  'ai/advisor/create-conversation',
+  mutator(undoable(createConversationHandler)),
+);
+app.method('ai/advisor/list-conversations', listConversationsHandler);
+app.method(
+  'ai/advisor/update-conversation',
+  mutator(undoable(updateConversation)),
+);
+app.method(
+  'ai/advisor/delete-conversation',
+  mutator(undoable(deleteConversationHandler)),
+);
+app.method('ai/advisor/list-messages', listMessagesHandler);
+app.method('ai/advisor/list-memory', listMemoryHandler);
+app.method('ai/advisor/create-memory', mutator(undoable(createMemoryHandler)));
+app.method('ai/advisor/resolve-memory', mutator(undoable(resolveMemoryFact)));
+app.method('ai/advisor/delete-memory', mutator(undoable(deleteMemoryHandler)));
+app.method('ai/advisor/list-goals', listGoalsHandler);
+app.method('ai/advisor/create-goal', mutator(undoable(createGoal)));
+app.method('ai/advisor/update-goal', mutator(undoable(updateGoal)));
+app.method('ai/advisor/delete-goal', mutator(undoable(deleteGoalHandler)));
+app.method('ai/advisor/list-documents', listDocumentsHandler);
+app.method('ai/advisor/create-document', mutator(undoable(createDocument)));
+app.method('ai/advisor/update-document', mutator(undoable(updateDocument)));
+app.method(
+  'ai/advisor/delete-document',
+  mutator(undoable(deleteDocumentHandler)),
+);
+app.method('ai/advisor/list-advice', listAdviceHandler);
+app.method('ai/advisor/create-advice', mutator(undoable(createAdviceRecord)));
+app.method('ai/advisor/update-advice', mutator(undoable(updateAdviceRecord)));
+app.method('ai/advisor/delete-advice', mutator(undoable(deleteAdviceHandler)));
 
 export async function getConfig(): Promise<AiConfig> {
   return getAiConfig();
@@ -132,7 +223,7 @@ export async function resolveRuleProposalHandler(params: {
   return resolveRuleProposal(params);
 }
 
-export async function auditRulesHandler(): Promise<void> {
+export async function auditRulesHandler(): Promise<AuditRulesOutcome> {
   return auditApprovedRules();
 }
 
@@ -146,4 +237,106 @@ export async function getSecretsStatusHandler({
   fileId?: string | null;
 } = {}): Promise<ConfiguredSecrets> {
   return getConfiguredSecrets(fileId);
+}
+
+export async function startAdvisorHandler(params: {
+  conversationId: string;
+  message: string;
+}): Promise<StartAdvisorRunOutcome> {
+  return startAdvisorRun(params);
+}
+
+export async function cancelAdvisorHandler({
+  runId,
+}: {
+  runId: string;
+}): Promise<boolean> {
+  return cancelAdvisorRun(runId);
+}
+
+export async function createConversationHandler({
+  title,
+}: {
+  title?: string;
+} = {}): Promise<AiConversationEntity> {
+  return createConversation(title);
+}
+
+export async function listConversationsHandler(): Promise<
+  AiConversationEntity[]
+> {
+  return listConversations();
+}
+
+export async function deleteConversationHandler({
+  id,
+}: {
+  id: string;
+}): Promise<void> {
+  return deleteConversation(id);
+}
+
+export async function listMessagesHandler({
+  conversationId,
+}: {
+  conversationId: string;
+}): Promise<AiMessageEntity[]> {
+  return listConversationMessages(conversationId);
+}
+
+export async function listMemoryHandler({
+  status,
+}: {
+  status?: AiMemoryFactStatus;
+} = {}): Promise<AiMemoryFactEntity[]> {
+  return listMemoryFacts(status);
+}
+
+export async function createMemoryHandler(params: {
+  kind: string;
+  value: unknown;
+  originalText?: string | null;
+  sensitivity?: 'normal' | 'sensitive';
+}): Promise<AiMemoryFactEntity> {
+  return createMemoryCandidate({ ...params, source: 'user' });
+}
+
+export async function deleteMemoryHandler({
+  id,
+}: {
+  id: string;
+}): Promise<void> {
+  return deleteMemoryFact(id);
+}
+
+export async function listGoalsHandler(): Promise<AiGoalEntity[]> {
+  return listGoals();
+}
+
+export async function deleteGoalHandler({ id }: { id: string }): Promise<void> {
+  return deleteGoal(id);
+}
+
+export async function listDocumentsHandler(): Promise<AiDocumentEntity[]> {
+  return listDocuments();
+}
+
+export async function deleteDocumentHandler({
+  id,
+}: {
+  id: string;
+}): Promise<void> {
+  return deleteDocument(id);
+}
+
+export async function listAdviceHandler(): Promise<AiAdviceRecordEntity[]> {
+  return listAdviceRecords();
+}
+
+export async function deleteAdviceHandler({
+  id,
+}: {
+  id: string;
+}): Promise<void> {
+  return deleteAdviceRecord(id);
 }

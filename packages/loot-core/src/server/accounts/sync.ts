@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import * as asyncStorage from '#platform/server/asyncStorage';
 import { logger } from '#platform/server/log';
+import { auditApprovedRules } from '#server/ai/auditor';
 import { classifyPendingTransactions } from '#server/ai/classify';
 import { aqlQuery } from '#server/aql';
 import { syncPluggyBills } from '#server/credit-cards/pluggy';
@@ -1275,9 +1276,11 @@ export async function syncAccount(
   // wait on it. It reports progress and results over its own events
   // ('ai-classification-started'/'-event', emitted from classify.ts)
   // instead of through this function's return value.
-  void classifyPendingTransactions(id).catch(error => {
-    logger.warn('AI classification failed', error);
-  });
+  void classifyPendingTransactions(id)
+    .then(() => auditApprovedRules())
+    .catch(error => {
+      logger.warn('AI post-sync processing failed', error);
+    });
 
   return result;
 }

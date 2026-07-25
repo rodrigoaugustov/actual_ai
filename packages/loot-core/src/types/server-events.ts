@@ -1,6 +1,8 @@
 import type { Backup } from '#server/budgetfiles/backups';
 import type { UndoState } from '#server/undo';
 
+import type { AiTracePart } from './models/ai';
+
 type SyncSubtype =
   | 'out-of-sync'
   | 'apply-failure'
@@ -73,6 +75,49 @@ type AiClassificationStartedEvent = {
   count: number;
 };
 
+export type AiAdvisorEvent =
+  | {
+      type: 'started';
+      runId: string;
+      conversationId: string;
+    }
+  | {
+      type: 'text-delta';
+      runId: string;
+      conversationId: string;
+      text: string;
+    }
+  | {
+      type: 'tool-call' | 'tool-result';
+      runId: string;
+      conversationId: string;
+      toolName: string;
+    }
+  | {
+      type: 'trace';
+      runId: string;
+      conversationId: string;
+      trace: AiTracePart;
+    }
+  | {
+      type: 'memory-candidate';
+      runId: string;
+      conversationId: string;
+      candidateId: string;
+    }
+  | {
+      type: 'completed';
+      runId: string;
+      conversationId: string;
+      messageId: string;
+    }
+  | {
+      type: 'cancelled' | 'error';
+      runId: string;
+      conversationId: string;
+      message?: string;
+    };
+
 type PrefsUpdatedEvent = undefined;
 type SchedulesOfflineEvent = undefined;
 type ServerErrorEvent = undefined;
@@ -82,6 +127,7 @@ type StartLoadEvent = undefined;
 type ApiFetchRedirectedEvent = undefined;
 
 export type ServerEvents = {
+  'ai-advisor-event': AiAdvisorEvent;
   'ai-classification-event': AiClassificationEvent;
   'ai-classification-started': AiClassificationStartedEvent;
   'backups-updated': BackupUpdatedEvent;

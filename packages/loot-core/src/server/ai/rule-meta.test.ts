@@ -52,6 +52,17 @@ describe('createRuleProposal / getRuleProposals', () => {
 describe('resolveRuleProposal', () => {
   it('approve creates a real rule matching imported_payee and marks the proposal approved', async () => {
     await prepare();
+    await db.insertAccount({ id: 'checking', name: 'Checking' });
+    const payeeId = await db.insertPayee({ name: 'Extra' });
+    await db.insertTransaction({
+      id: 'txn1',
+      account: 'checking',
+      payee: payeeId,
+      category: 'groceries',
+      imported_payee: 'EXTRA SUPERMERCADOS',
+      amount: -1000,
+      date: '2026-01-05',
+    });
     const id = await createRuleProposal({
       proposal: {
         payeeName: 'Extra',
@@ -61,7 +72,7 @@ describe('resolveRuleProposal', () => {
         rationale: 'x',
         confidence: 0.9,
       },
-      sampleTransactionIds: [],
+      sampleTransactionIds: ['txn1'],
     });
 
     await resolveRuleProposal({ id, action: 'approve' });
@@ -75,6 +86,22 @@ describe('resolveRuleProposal', () => {
     expect(rules[0].actions).toMatchObject([
       { field: 'category', op: 'set', value: 'groceries' },
     ]);
+    expect(
+      await db.first<{
+        transactionId: string;
+        categoryId: string;
+        status: string;
+      }>(
+        `SELECT transaction_id AS transactionId,
+                category_id AS categoryId,
+                status
+           FROM ai_rule_hits`,
+      ),
+    ).toEqual({
+      transactionId: 'txn1',
+      categoryId: 'groceries',
+      status: 'pending',
+    });
   });
 
   it('approve splits a comma-joined oneOf value into an array condition', async () => {

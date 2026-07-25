@@ -42,8 +42,8 @@ export type WorkflowDeps = {
 
 /** Runs a single-shot, structured-output workflow step: no tool-use loop,
  * no multi-step control by the model — the calling code owns the pipeline
- * (classification, rule mining, auditing). Tool-use agents (the wizard,
- * the advisor) are a separate runner, not yet built. */
+ * (classification, rule mining, auditing). The tool-use advisor has a
+ * separate runner planned for a later phase. */
 export async function runWorkflow<
   Input,
   Output extends Record<string, unknown>,

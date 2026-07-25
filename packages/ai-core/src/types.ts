@@ -65,3 +65,64 @@ export type WorkflowResult<Output extends Record<string, unknown>> = {
   output: Output;
   run: RunRecord;
 };
+
+export type ToolAccess = 'read' | 'write';
+
+export type AgentLoopDefinition = {
+  name: string;
+  tier: Tier;
+  instructions: string;
+  maxSteps: number;
+  maxOutputTokens?: number;
+  requiredToolFollowUps?: readonly {
+    after: string;
+    require: string;
+  }[];
+};
+
+export type AgentLoopEvent =
+  | { type: 'text-delta'; text: string }
+  | {
+      type: 'tool-call';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }
+  | {
+      type: 'tool-result';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      output: unknown;
+    }
+  | {
+      type: 'tool-error';
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+      error: string;
+    }
+  | {
+      type: 'tool-repair';
+      toolCallId: string;
+      toolName: string;
+      attempt: number;
+      state: 'started' | 'completed' | 'failed';
+    }
+  | {
+      type: 'tool-follow-up';
+      after: string;
+      toolName: string;
+    }
+  | {
+      type: 'response-recovery';
+      state: 'started' | 'completed';
+    }
+  | { type: 'finish-step'; step: number }
+  | { type: 'finish'; finishReason: string };
+
+export type AgentLoopResult = {
+  text: string;
+  steps: number;
+  run: RunRecord;
+};

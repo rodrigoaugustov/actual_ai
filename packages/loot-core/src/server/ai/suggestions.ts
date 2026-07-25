@@ -8,6 +8,8 @@ import type {
   AiSuggestionStatus,
 } from '#types/models/ai';
 
+import { recordFeedback } from './feedback';
+
 export async function createSuggestion(params: {
   transactionId: string;
   categoryId: string | null;
@@ -105,5 +107,24 @@ export async function resolveSuggestion({
   await db.update('ai_suggestions', {
     id,
     status: action === 'reject' ? 'rejected' : 'accepted',
+  });
+
+  await recordFeedback({
+    transactionId: suggestion.transaction_id,
+    source:
+      action === 'reject'
+        ? 'rejected'
+        : action === 'correct'
+          ? 'corrected'
+          : 'accepted',
+    suggestedCategoryId: suggestion.category_id,
+    finalCategoryId:
+      action === 'reject'
+        ? null
+        : action === 'correct'
+          ? (correctedCategoryId ?? null)
+          : suggestion.category_id,
+    suggestionId: suggestion.id,
+    runId: suggestion.run_id,
   });
 }

@@ -175,6 +175,7 @@ __metadata:
     vitest: "npm:^4.1.10"
     xml2js: "npm:^0.6.2"
     yargs: "npm:^18.0.0"
+    zod: "npm:^4.4.3"
   languageName: unknown
   linkType: soft
 

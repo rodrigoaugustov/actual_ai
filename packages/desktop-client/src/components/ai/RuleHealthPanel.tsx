@@ -6,14 +6,77 @@ import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
-import type { AiRuleMetaEntity } from '@actual-app/core/types/models';
+import type {
+  AiRuleMetaEntity,
+  AuditRulesOutcome,
+} from '@actual-app/core/types/models';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useCategoriesById } from '#hooks/useCategories';
+import type { Notification } from '#notifications/notificationsSlice';
+import { addNotification } from '#notifications/notificationsSlice';
+import { useDispatch } from '#redux';
 
 const HEALTH_QUERY_KEY = ['ai-rule-health'];
 const REVIEW_CANDIDATE_MIN_HITS = 5;
 const REVIEW_CANDIDATE_MAX_PRECISION = 0.8;
+
+function auditRulesNotification(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  result: AuditRulesOutcome,
+): Notification {
+  switch (result.status) {
+    case 'disabled':
+      return {
+        type: 'warning',
+        message: t('AI features are disabled — enable them above first.'),
+      };
+    case 'budget-exceeded':
+      return {
+        type: 'warning',
+        message: t("Skipped: today's AI spend limit has already been reached."),
+      };
+    case 'no-pending':
+      return {
+        type: 'message',
+        message: t(
+          'There are no pending rule hits to audit. New hits are recorded as approved rules categorize transactions.',
+        ),
+      };
+    case 'ok': {
+      const message = t(
+        'Audit completed: {{audited}} audited, {{confirmed}} confirmed, {{corrected}} corrected, and {{skipped}} skipped.',
+        {
+          audited: result.audited,
+          confirmed: result.confirmed,
+          corrected: result.corrected,
+          skipped: result.skipped,
+        },
+      );
+      return result.failed > 0
+        ? {
+            type: 'warning',
+            message: t(
+              'Audit completed with {{failed}} failure(s): {{audited}} audited, {{confirmed}} confirmed, {{corrected}} corrected, and {{skipped}} skipped. Check the AI usage log for details.',
+              {
+                failed: result.failed,
+                audited: result.audited,
+                confirmed: result.confirmed,
+                corrected: result.corrected,
+                skipped: result.skipped,
+              },
+            ),
+          }
+        : { type: 'message', message };
+    }
+    default: {
+      const exhaustive: never = result;
+      throw new Error(
+        `Unknown audit-rules outcome: ${JSON.stringify(exhaustive)}`,
+      );
+    }
+  }
+}
 
 function precisionOf(rule: AiRuleMetaEntity): number | null {
   return rule.hits > 0 ? rule.confirmed / rule.hits : null;
@@ -30,6 +93,7 @@ function isReviewCandidate(rule: AiRuleMetaEntity): boolean {
 
 export function RuleHealthPanel() {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const [isAuditing, setIsAuditing] = useState(false);
   const { data: rules = [] } = useQuery({
@@ -46,8 +110,28 @@ export function RuleHealthPanel() {
   const onAuditNow = async () => {
     setIsAuditing(true);
     try {
-      await send('ai/audit-rules');
-      await queryClient.invalidateQueries({ queryKey: HEALTH_QUERY_KEY });
+      const result = await send('ai/audit-rules');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: HEALTH_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['ai-runs'] }),
+        queryClient.invalidateQueries({ queryKey: ['ai-usage-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] }),
+        queryClient.invalidateQueries({ queryKey: ['ai-suggestions-index'] }),
+      ]);
+      dispatch(
+        addNotification({ notification: auditRulesNotification(t, result) }),
+      );
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'The rule audit could not be completed. Check the AI usage log for details.',
+            ),
+          },
+        }),
+      );
     } finally {
       setIsAuditing(false);
     }
@@ -101,6 +185,33 @@ export function RuleHealthPanel() {
                       hits: rule.hits,
                     })}
               </Text>
+              {rule.recentFalsePositives &&
+                rule.recentFalsePositives.length > 0 && (
+                  <View style={{ marginTop: 4, gap: 2 }}>
+                    <Text
+                      style={{
+                        color: theme.warningText,
+                        fontSize: '0.8em',
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Trans>Recent false positives</Trans>
+                    </Text>
+                    {rule.recentFalsePositives.map(falsePositive => (
+                      <Text
+                        key={`${falsePositive.transactionId}-${falsePositive.auditedAt}`}
+                        style={{
+                          color: theme.pageTextSubdued,
+                          fontSize: '0.8em',
+                        }}
+                      >
+                        {falsePositive.payeeName ?? t('Unknown payee')}
+                        {' — '}
+                        {falsePositive.rationale ?? t('Category was corrected')}
+                      </Text>
+                    ))}
+                  </View>
+                )}
             </View>
             {flagged && (
               <Text

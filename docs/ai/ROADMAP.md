@@ -14,20 +14,22 @@ usuário ainda, exceto a tela de configuração.
 
 Entregáveis:
 
-- [ ] Pacote `packages/ai-core` (`@actual-app/ai`): registry de
+- [x] Pacote `packages/ai-core` (`@actual-app/ai`): registry de
       providers/modelos/tiers sobre o Vercel AI SDK, definição declarativa de
       agentes, `runWorkflow`, contabilidade de custo, blocos de prompt com
       cache, redação de PII.
-- [ ] `app-ai` no sync-server: proxy autenticado com allowlist + injeção de
+- [x] `app-ai` no sync-server: proxy autenticado com allowlist + injeção de
       chave; novos `SecretName` no secrets service (per-budget, padrão Pluggy).
-- [ ] Migração `ai_runs` + lockstep (db/types, models, AQL schema).
-- [ ] UI de settings: escolha de provider por tier, entrada de chaves (salvas
+- [x] Migração `ai_runs` + lockstep (db/types, models, AQL schema).
+- [x] UI de settings: escolha de provider por tier, entrada de chaves (salvas
       no servidor), host do Ollama, toggle de redação de PII.
-- [ ] Telemetria mínima: tokens/custo acumulado visível na tela de settings.
+- [x] Telemetria mínima: tokens/custo acumulado visível na tela de settings.
 
 Critério de saída: um comando dev (`ai/classify-pending` chamado à mão numa
 transação) percorre cliente → proxy → provider → resposta estruturada → registro
 em `ai_runs`, com pelo menos dois providers testados (um cloud + Ollama).
+O fluxo cloud foi coberto pelo sync real da Fase 1; o smoke test com Ollama
+continua como validação operacional.
 
 ## Fase 1 — Triagem pós-sync (MVP) ← primeira entrega
 
@@ -35,21 +37,24 @@ Classificação em lote dos não-categorizados a cada bank sync.
 
 Entregáveis:
 
-- [ ] Agente `classifier` (workflow, tier standard): lote de até ~50
+- [x] Agente `classifier` (workflow, tier standard): lote de até ~50
       transações, contexto com árvore de categorias + histórico de payee +
       few-shot de correções, saída estruturada `{id, category, confidence,
 rationale}`.
-- [ ] Migração `ai_suggestions` + lockstep.
-- [ ] Hook pós-sync em `accounts/sync.ts` (mesmo ponto do `syncPluggyBills`).
-- [ ] Cache local de respostas (payee normalizado + faixa de valor + conta).
-- [ ] Política de confiança: alta → aplica com marcação de origem IA;
+- [x] Migração `ai_suggestions` + lockstep.
+- [x] Hook pós-sync em `accounts/sync.ts` (mesmo ponto do `syncPluggyBills`).
+- [x] Cache persistente de decisões confirmadas (payee normalizado + faixa de
+      valor + conta), com consenso mínimo e evidência negativa de rejeições.
+- [x] Política de confiança: alta → aplica com marcação de origem IA;
       média → pendência; baixa → nada.
-- [ ] Inbox de revisão na UI: lista de pendências, aceitar / corrigir /
+- [x] Inbox de revisão na UI: lista de pendências, aceitar / corrigir /
       rejeitar; marcação visual no register para `auto_applied`.
-- [ ] Correções alimentam o golden set de evals (base do feedback loop).
+- [x] Aceites, correções, rejeições e classificações manuais alimentam
+      `ai_feedback`, os few-shots e o golden set de evals.
 
 Critério de saída: um sync Pluggy real classifica o lote do dia com custo
-registrado e as pendências aparecem no inbox.
+registrado e as pendências aparecem no inbox. **Validado manualmente em
+24/07/2026.**
 
 ## Fase 2 — Mineração de regras
 
@@ -58,18 +63,20 @@ auditável.
 
 Entregáveis:
 
-- [ ] Agente `rule-miner` (workflow): agrupa transações por payee/descrição,
+- [x] Agente `rule-miner` (workflow): agrupa transações por payee/descrição,
       propõe regras (`matches`/`contains`/`oneOf` — operadores já existentes
       no motor de regras) apenas quando o padrão é consistente no histórico.
-- [ ] Migração `ai_rule_meta` (rationale, amostras, estatísticas de precisão) + lockstep.
-- [ ] UI de aprovação em lote: regras nascem como proposta, nunca ativas
+- [x] Migração `ai_rule_meta` (rationale, amostras, estatísticas de precisão) + lockstep.
+- [x] UI de aprovação em lote: regras nascem como proposta, nunca ativas
       direto; usuário revisa com o rationale e as transações-amostra ao lado.
-- [ ] Feedback loop: correções do usuário (Fase 1) entram na fila do minerador
-      para propor regra nova ou ajuste de regra existente.
+- [x] Feedback loop: decisões do usuário (Fase 1) disparam nova rodada do
+      minerador a cada cinco evidências acumuladas, para propor regra nova ou
+      ajuste de regra existente.
 
 Critério de saída: rodada de mineração no histórico real propõe regras que,
 aprovadas, reduzem mensuravelmente o volume que chega ao classificador
-(comparar `ai_runs` antes/depois).
+(comparar `ai_runs` antes/depois). A implementação está concluída; essa medição
+depende de uma rodada acompanhada em dados reais.
 
 ## Fase 3 — Auditor por amostragem
 
@@ -77,45 +84,48 @@ Fecha o trio regras → auditoria → especialista com custo sob controle.
 
 Entregáveis:
 
-- [ ] Agente `auditor` (workflow, tier fast): valida hits de regra por
-      amostragem — 100% em regra nova, decaindo até 2–5% conforme a precisão
-      observada em `ai_rule_meta` sobe; correção do usuário reseta a taxa.
-- [ ] Hit reprovado pelo auditor cai no classificador (Fase 1) e gera
+- [x] Agente `auditor` (workflow, tier fast): valida hits reais do motor de
+      regras por amostragem — 100% em regra nova, decaindo até 2–5% conforme
+      a precisão observada em `ai_rule_meta` sobe; correção do usuário reseta
+      a taxa.
+- [x] Hit reprovado pelo auditor cai no classificador (Fase 1) e gera
       pendência.
-- [ ] Painel de saúde das regras: precisão observada, últimos falsos
+- [x] Painel de saúde das regras: precisão observada, últimos falsos
       positivos, regra candidata a revisão.
-- [ ] Evals rodando em CI local (vitest) contra o golden set.
+- [x] Evals determinísticos rodando em CI local (vitest) contra o contrato do
+      golden set; casos reais são materializados de `ai_feedback`.
 
 Critério de saída: taxa de auditoria média das regras maduras < 10% dos hits,
-sem queda de precisão no golden set.
+sem queda de precisão no golden set. A política de 2–5% e a regressão do golden
+set estão cobertas por testes; a observação longitudinal depende de regras
+maduras em uso real.
 
-## Fase 4 — Wizard de categorias (onboarding)
+## Fase 4 — Consultor financeiro
 
-Primeiro uso da infra conversacional; é também o ensaio para o consultor.
+Agente conversacional personalizado e longitudinal. A arquitetura de memória
+está definida em [ADR-001](./ADR-001-ADVISOR-MEMORY.md), a especificação em
+[PHASE-4-SPEC.md](./PHASE-4-SPEC.md) e os gates em
+[PHASE-4-PLAN.md](./PHASE-4-PLAN.md).
 
 Entregáveis:
 
-- [ ] `runAgentLoop` no ai-core: loop de tool-use com orçamento de passos,
-      streaming para a UI.
-- [ ] Agente `category-designer` (loop, tier frontier): observa as transações
-      das contas conectadas, propõe uma estrutura de categorias, itera com o
-      usuário até a lista final e aplica (tool `write` com confirmação).
-- [ ] UI de conversa reutilizável (será a base do chat do consultor).
+- [x] **4A — Memória consultiva**: conversas, fatos confirmáveis, objetivos,
+      documentos, recomendações e follow-ups persistidos local-first.
+- [x] **4B — Harness conversacional**: agente `advisor` no tier frontier,
+      `runAgentLoop`, streaming, cancelamento, tool registry e limites.
+- [x] **4C — Tools read-only**: transações, orçamento, fluxo de caixa, contas,
+      patrimônio, faturas e contexto pessoal por contratos tipados; nunca
+      SQL/AQL arbitrário gerado pelo modelo.
+- [x] **4D — Experiência de conversa**: chat persistente, fontes, atividades de
+      tools, gestão de memória e confirmação explícita de novas informações.
+- [x] **4E — Recuperação e acompanhamento**: RAG híbrido sobre documentos e
+      episódios, questões abertas, revisões de objetivos e ledger de conselho.
 
-Critério de saída: num orçamento novo com contas Pluggy conectadas, o wizard
-chega a uma lista de categorias aceita pelo usuário e a cria de fato.
-
-## Fase 5 — Consultor financeiro
-
-Agente conversacional com acesso amplo aos dados. Escopo a refinar quando a
-Fase 4 estiver de pé; o que já está decidido:
-
-- Nasce **read-only**: tools de consulta (transações, orçamento, relatórios,
-  faturas de cartão) via AQL; qualquer tool `write` exige confirmação
-  explícita na UI, sempre.
-- Tier frontier, streaming, memória de conversa persistida localmente.
-- Reusa integralmente: tool registry, runner de loop, UI de conversa (Fase 4),
-  telemetria e limites de custo (Fase 0).
+Critério de saída: uma conversa retomável combina dados financeiros exatos e
+contexto de vida confirmado em uma resposta transmitida progressivamente,
+explica fontes e premissas, registra custo e não altera o domínio financeiro.
+Implementação, smoke test e aceite operacional com orçamento sincronizado e
+Ollama local concluídos em 24/07/2026.
 
 ## Riscos e mitigação
 

@@ -1,5 +1,10 @@
 import type * as AiCore from '@actual-app/ai';
-import type { AuditorOutput, WorkflowResult } from '@actual-app/ai';
+import type {
+  AuditorOutput,
+  ClassifierOutput,
+  RunRecord,
+  WorkflowResult,
+} from '@actual-app/ai';
 
 import * as db from '#server/db';
 
@@ -9,11 +14,13 @@ import {
   matchesRuleCondition,
 } from './auditor';
 import { DEFAULT_AI_CONFIG, setAiConfig } from './config';
+import { recordRuleHit } from './rule-hits';
 import {
   createRuleProposal,
   getRuleHealth,
   resolveRuleProposal,
 } from './rule-meta';
+import { getPendingSuggestions } from './suggestions';
 
 const runWorkflowMock = vi.fn();
 
@@ -72,26 +79,30 @@ describe('matchesRuleCondition', () => {
   });
 });
 
+function workflowRun(agent: string): RunRecord {
+  return {
+    agent,
+    tier: 'fast',
+    provider: 'anthropic',
+    model: 'test-model',
+    inputTokens: 5,
+    outputTokens: 5,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    costUsd: 0.0001,
+    durationMs: 5,
+    status: 'ok' as const,
+  };
+}
+
 function mockVerdict(verdict: AuditorOutput['verdict']) {
   runWorkflowMock.mockResolvedValue({
     output: { verdict, rationale: 'x' },
-    run: {
-      agent: 'auditor',
-      tier: 'fast',
-      provider: 'anthropic',
-      model: 'test-model',
-      inputTokens: 5,
-      outputTokens: 5,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
-      costUsd: 0.0001,
-      durationMs: 5,
-      status: 'ok',
-    },
+    run: workflowRun('auditor'),
   } satisfies WorkflowResult<AuditorOutput>);
 }
 
-async function prepareApprovedRule() {
+async function prepareApprovedRule(): Promise<string> {
   await db.insertAccount({ id: 'checking', name: 'checking' });
   await db.insertCategoryGroup({ id: 'group1', name: 'Expenses' });
   await db.insertCategory({
@@ -122,21 +133,35 @@ async function prepareApprovedRule() {
     sampleTransactionIds: ['txn1'],
   });
   await resolveRuleProposal({ id: proposalId, action: 'approve' });
+  const [rule] = await getRuleHealth();
+  if (!rule.ruleId) {
+    throw new Error('Expected the approved proposal to create a rule');
+  }
+  return rule.ruleId;
 }
 
 describe('auditApprovedRules', () => {
   it('is a no-op when AI is disabled', async () => {
     await prepareApprovedRule();
-    await auditApprovedRules();
+    await expect(auditApprovedRules()).resolves.toEqual({
+      status: 'disabled',
+    });
     expect(runWorkflowMock).not.toHaveBeenCalled();
   });
 
-  it('increments confirmed and hits when the auditor agrees', async () => {
+  it('audits an approved proposal sample and increments confirmed hits', async () => {
     await prepareApprovedRule();
     await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
     mockVerdict('correct');
 
-    await auditApprovedRules();
+    await expect(auditApprovedRules()).resolves.toEqual({
+      status: 'ok',
+      audited: 1,
+      confirmed: 1,
+      corrected: 0,
+      skipped: 0,
+      failed: 0,
+    });
 
     const health = await getRuleHealth();
     expect(health).toHaveLength(1);
@@ -145,16 +170,119 @@ describe('auditApprovedRules', () => {
 
   it('increments corrected and hits when the auditor disagrees', async () => {
     await prepareApprovedRule();
+    await db.insertCategory({
+      id: 'restaurants',
+      name: 'Restaurants',
+      cat_group: 'group1',
+    });
     await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
-    mockVerdict('incorrect');
+    runWorkflowMock
+      .mockResolvedValueOnce({
+        output: { verdict: 'incorrect', rationale: 'x' },
+        run: workflowRun('auditor'),
+      } satisfies WorkflowResult<AuditorOutput>)
+      .mockResolvedValueOnce({
+        output: {
+          items: [
+            {
+              id: 'txn1',
+              categoryId: 'restaurants',
+              confidence: 0.8,
+              rationale: 'Looks like a restaurant',
+            },
+          ],
+        },
+        run: workflowRun('classifier'),
+      } satisfies WorkflowResult<ClassifierOutput>);
 
-    await auditApprovedRules();
+    await expect(auditApprovedRules()).resolves.toEqual({
+      status: 'ok',
+      audited: 1,
+      confirmed: 0,
+      corrected: 1,
+      skipped: 0,
+      failed: 0,
+    });
 
     const health = await getRuleHealth();
     expect(health[0]).toMatchObject({ hits: 1, confirmed: 0, corrected: 1 });
+    expect(health[0].recentFalsePositives).toMatchObject([
+      {
+        transactionId: 'txn1',
+        payeeName: 'Extra',
+        rationale: 'x',
+      },
+    ]);
+    expect(await getPendingSuggestions()).toMatchObject([
+      {
+        transactionId: 'txn1',
+        categoryId: 'restaurants',
+        status: 'pending',
+      },
+    ]);
   });
 
-  it('does not call the auditor when no transaction matches the rule condition', async () => {
+  it('marks mature-rule hits outside the sample so they are not audited later', async () => {
+    const ruleId = await prepareApprovedRule();
+    const [rule] = await getRuleHealth();
+    await db.update('ai_rule_meta', {
+      id: rule.id,
+      hits: 100,
+      confirmed: 99,
+    });
+    for (let index = 1; index <= 10; index++) {
+      const transactionId = `sample-${index}`;
+      await db.insertTransaction({
+        id: transactionId,
+        account: 'checking',
+        category: 'groceries',
+        amount: -1000,
+        date: '2026-01-05',
+      });
+      await recordRuleHit({
+        ruleId,
+        transactionId,
+        categoryId: 'groceries',
+      });
+    }
+    await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
+    mockVerdict('correct');
+
+    await auditApprovedRules();
+
+    expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+    expect(
+      await db.first<{ count: number }>(
+        `SELECT COUNT(*) AS count
+           FROM ai_rule_hits
+          WHERE status = 'pending'`,
+      ),
+    ).toEqual({ count: 0 });
+    expect(
+      await db.first<{ count: number }>(
+        `SELECT COUNT(*) AS count
+           FROM ai_rule_hits
+          WHERE status = 'skipped'`,
+      ),
+    ).toEqual({ count: 10 });
+  });
+
+  it('backfills samples for rules approved before hit tracking existed', async () => {
+    await prepareApprovedRule();
+    await db.run('DELETE FROM ai_rule_hits');
+    await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
+    mockVerdict('correct');
+
+    await expect(auditApprovedRules()).resolves.toMatchObject({
+      status: 'ok',
+      audited: 1,
+      confirmed: 1,
+    });
+
+    expect(runWorkflowMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call the auditor when the rule engine recorded no hit', async () => {
     await db.insertAccount({ id: 'checking', name: 'checking' });
     await db.insertCategoryGroup({ id: 'group1', name: 'Expenses' });
     await db.insertCategory({
@@ -186,7 +314,9 @@ describe('auditApprovedRules', () => {
     await resolveRuleProposal({ id: proposalId, action: 'approve' });
     await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
 
-    await auditApprovedRules();
+    await expect(auditApprovedRules()).resolves.toEqual({
+      status: 'no-pending',
+    });
 
     expect(runWorkflowMock).not.toHaveBeenCalled();
   });

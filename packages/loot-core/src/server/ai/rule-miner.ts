@@ -7,6 +7,7 @@ import {
 
 import { logger } from '#platform/server/log';
 import { aqlQuery } from '#server/aql';
+import * as db from '#server/db';
 import { q } from '#shared/query';
 import type { MineRulesOutcome } from '#types/models/ai';
 
@@ -19,6 +20,9 @@ const MIN_SAMPLES = 3;
 const MAX_TRANSACTIONS = 2000;
 const MAX_CANDIDATES = 30;
 const MAX_SAMPLES_PER_CANDIDATE = 5;
+const MIN_NEW_FEEDBACK_TO_MINE = 5;
+let pendingFeedbackMining: Promise<MineRulesOutcome | null> | null = null;
+let shouldRecheckFeedbackAfterPending = false;
 
 type PayeeGroup = {
   categoryCounts: Record<string, number>;
@@ -132,4 +136,45 @@ export async function mineRuleProposals(): Promise<MineRulesOutcome> {
     logger.warn('Rule mining run failed:', error);
     return { status: 'run-failed' };
   }
+}
+
+/** Starts a background mining pass only after enough new human decisions have
+ * accumulated since the previous miner run. This keeps continuous learning
+ * useful without turning every categorization click into an LLM call. */
+async function mineWhenFeedbackThresholdReached(): Promise<MineRulesOutcome | null> {
+  const config = getAiConfig();
+  if (!config.enabled) return null;
+
+  const lastRun = await db.first<{ created_at: number | null }>(
+    `SELECT MAX(created_at) AS created_at
+       FROM ai_runs
+      WHERE agent = 'rule-miner' AND tombstone = 0`,
+  );
+  const feedback = await db.first<{ count: number }>(
+    `SELECT COUNT(*) AS count
+       FROM ai_feedback
+      WHERE tombstone = 0
+        AND final_category_id IS NOT NULL
+        AND created_at > ?`,
+    [lastRun?.created_at ?? 0],
+  );
+  if ((feedback?.count ?? 0) < MIN_NEW_FEEDBACK_TO_MINE) return null;
+  return mineRuleProposals();
+}
+
+export function maybeMineRuleProposals(): Promise<MineRulesOutcome | null> {
+  if (pendingFeedbackMining) {
+    shouldRecheckFeedbackAfterPending = true;
+    return pendingFeedbackMining;
+  }
+  pendingFeedbackMining = mineWhenFeedbackThresholdReached().finally(() => {
+    pendingFeedbackMining = null;
+    if (shouldRecheckFeedbackAfterPending) {
+      shouldRecheckFeedbackAfterPending = false;
+      void maybeMineRuleProposals().catch(error => {
+        logger.warn('Feedback-triggered rule mining failed:', error);
+      });
+    }
+  });
+  return pendingFeedbackMining;
 }

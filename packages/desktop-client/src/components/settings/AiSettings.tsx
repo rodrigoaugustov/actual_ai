@@ -351,6 +351,36 @@ export function AiSettings() {
 
       <View
         style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <Text>
+          <Trans>
+            <strong>Share sensitive advisor memories</strong> — include
+            confirmed profile facts marked as sensitive in requests to the AI
+            provider. Off by default; those facts remain stored locally and
+            synchronized with your budget.
+          </Trans>
+        </Text>
+        <Toggle
+          id="ai-share-sensitive-memory"
+          isOn={config.shareSensitiveMemoryWithProvider ?? false}
+          onToggle={() =>
+            setConfig({
+              ...config,
+              shareSensitiveMemoryWithProvider: !(
+                config.shareSensitiveMemoryWithProvider ?? false
+              ),
+            })
+          }
+        />
+      </View>
+
+      <View
+        style={{
           width: '100%',
           borderTop: '1px solid ' + theme.pillBorderDark,
           paddingTop: 10,

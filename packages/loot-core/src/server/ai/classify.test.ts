@@ -6,6 +6,7 @@ import * as db from '#server/db';
 
 import { classifyPendingTransactions } from './classify';
 import { DEFAULT_AI_CONFIG, setAiConfig } from './config';
+import { recordFeedback } from './feedback';
 import { getPendingSuggestions } from './suggestions';
 
 const runWorkflowMock = vi.fn();
@@ -195,6 +196,60 @@ describe('classifyPendingTransactions', () => {
 
     expect(runWorkflowMock).not.toHaveBeenCalled();
     expect(outcome).toEqual({ status: 'no-pending' });
+  });
+
+  it('reuses repeated user decisions after restart without calling the model', async () => {
+    const accountId = 'acct-learned';
+    await db.insertAccount({ id: accountId, name: accountId });
+    await db.insertPayee({ id: 'market', name: 'Mercado São João' });
+    await db.insertCategoryGroup({ id: 'group1', name: 'Expenses' });
+    await db.insertCategory({
+      id: 'groceries',
+      name: 'Groceries',
+      cat_group: 'group1',
+    });
+    for (const id of ['learned-1', 'learned-2']) {
+      await db.insertTransaction({
+        id,
+        account: accountId,
+        payee: 'market',
+        category: 'groceries',
+        amount: -5000,
+        date: '2026-01-05',
+      });
+      await recordFeedback({
+        transactionId: id,
+        source: 'manual',
+        finalCategoryId: 'groceries',
+      });
+    }
+    await db.insertTransaction({
+      id: 'txn-learned',
+      account: accountId,
+      payee: 'market',
+      amount: -5000,
+      date: '2026-01-06',
+    });
+    await setAiConfig({
+      ...DEFAULT_AI_CONFIG,
+      enabled: true,
+      confidenceThreshold: 0.8,
+    });
+
+    const outcome = await classifyPendingTransactions(accountId);
+
+    expect(runWorkflowMock).not.toHaveBeenCalled();
+    expect(
+      await db.first<{ category: string }>(
+        'SELECT category FROM transactions WHERE id = ?',
+        ['txn-learned'],
+      ),
+    ).toEqual({ category: 'groceries' });
+    expect(outcome).toEqual({
+      status: 'ok',
+      autoApplied: 1,
+      pendingReview: 0,
+    });
   });
 
   it('processes the whole backlog across multiple batches, not just the first 50', async () => {

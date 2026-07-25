@@ -23,6 +23,7 @@ import { useDispatch, useSelector } from '#redux';
 
 import { UserAccessPage } from './admin/UserAccess/UserAccessPage';
 import { UserDirectoryPage } from './admin/UserDirectory/UserDirectoryPage';
+import { AdvisorPage } from './ai/AdvisorPage';
 import { AiUsagePage } from './ai/AiUsagePage';
 import { PendingCategorizationsPage } from './ai/PendingCategorizationsPage';
 import { BankSyncStatus } from './BankSyncStatus';
@@ -378,6 +379,7 @@ export function FinancesApp() {
                     element={<PendingCategorizationsPage />}
                   />
                   <Route path="/ai-usage" element={<AiUsagePage />} />
+                  <Route path="/advisor" element={<AdvisorPage />} />
                   <Route path="/settings" element={<Settings />} />
 
                   <Route

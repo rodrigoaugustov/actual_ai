@@ -1,4 +1,7 @@
 export type {
+  AgentLoopDefinition,
+  AgentLoopEvent,
+  AgentLoopResult,
   AgentDefinition,
   PromptBlock,
   ProviderConfig,
@@ -7,8 +10,12 @@ export type {
   RunStatus,
   Tier,
   TierConfig,
+  ToolAccess,
   WorkflowResult,
 } from './types';
+export type { ModelMessage } from 'ai';
+
+export { advisorAgent, ADVISOR_MAX_STEPS } from './agents/advisor';
 
 export { auditorAgent, buildAuditorPrompt } from './agents/auditor';
 export type { AuditorInput, AuditorOutput } from './agents/auditor';
@@ -21,6 +28,7 @@ export type {
   ClassifierHistoryEntry,
   ClassifierInput,
   ClassifierOutput,
+  ClassifierRejectionEntry,
 } from './agents/classifier';
 export { classifierOutputSchema } from './agents/classifier';
 
@@ -64,3 +72,17 @@ export { redactPii } from './redact/pii';
 
 export { WorkflowError, runWorkflow } from './runner/workflow';
 export type { WorkflowDeps } from './runner/workflow';
+export { runAgentLoop } from './runner/agent-loop';
+export type { AgentLoopDeps } from './runner/agent-loop';
+
+export {
+  assertToolAccess,
+  assertToolRegistryComplete,
+} from './tools/contracts';
+export type { ToolHandler, ToolHandlerMap, ToolSpec } from './tools/contracts';
+
+export { evaluateClassifierGoldenSet } from './evals/classifier';
+export type {
+  ClassifierEvalResult,
+  ClassifierGoldenCase,
+} from './evals/classifier';

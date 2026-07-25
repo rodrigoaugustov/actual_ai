@@ -1,6 +1,7 @@
 // @ts-strict-ignore
 
 import { logger } from '#platform/server/log';
+import { recordRuleHit } from '#server/ai/rule-hits';
 import { aqlQuery, schemaConfig } from '#server/aql';
 import * as db from '#server/db';
 import {
@@ -363,7 +364,9 @@ export async function runRules(
     formulaStrings,
   );
 
+  let categoryRuleId: string | null = null;
   for (let i = 0; i < rules.length; i++) {
+    const categoryBefore = finalTrans.category;
     // If there is a scheduleRuleID (meaning this transaction came from a schedule) then exclude rules linked to other schedules.
     if (scheduleRuleID !== '') {
       if (rules[i].id === scheduleRuleID) {
@@ -384,9 +387,20 @@ export async function runRules(
       finalTrans = rules[i].apply(finalTrans);
       await resolvePayeeNameForRules(finalTrans);
     }
+    if (finalTrans.category && finalTrans.category !== categoryBefore) {
+      categoryRuleId = rules[i].id;
+    }
   }
 
-  return await finalizeTransactionForRules(finalTrans);
+  const finalized = await finalizeTransactionForRules(finalTrans);
+  if (categoryRuleId && finalized.id && finalized.category) {
+    await recordRuleHit({
+      ruleId: categoryRuleId,
+      transactionId: finalized.id,
+      categoryId: finalized.category,
+    });
+  }
+  return finalized;
 }
 
 function conditionSpecialCases(cond: Condition | null): Condition | null {

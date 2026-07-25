@@ -9,30 +9,41 @@ import { logger } from '#platform/server/log';
 import { aqlQuery } from '#server/aql';
 import * as db from '#server/db';
 import { q } from '#shared/query';
+import type { AuditRulesOutcome } from '#types/models/ai';
 
+import { classifyTransactionForReview } from './classify';
 import { getAiConfig } from './config';
 import { buildProviderConfigForTier } from './fetch-client';
+import {
+  getPendingRuleHits,
+  parseRuleSampleTransactionIds,
+  recordRuleSampleHits,
+  resolveRuleHit,
+} from './rule-hits';
 import { getSpendTodayUsd, recordRun } from './runs';
 
-const MAX_CANDIDATE_TRANSACTIONS_PER_RULE = 100;
+const MAX_PENDING_HITS_PER_RULE = 100;
 
 type ApprovedRule = {
   id: string;
+  ruleId: string | null;
   op: string;
   value: string;
   categoryId: string;
   rationale: string;
+  sampleTransactionIds: string;
   hits: number;
   confirmed: number;
   corrected: number;
 };
 
-type CandidateTransaction = {
-  id: string;
-  payeeName: string | null;
-  amount: number;
-  notes: string | null;
-  imported_payee: string | null;
+type RuleAuditSummary = {
+  pending: number;
+  audited: number;
+  confirmed: number;
+  corrected: number;
+  skipped: number;
+  failed: number;
 };
 
 /** New rules are audited in full; the sample rate decays as observed
@@ -49,10 +60,9 @@ export function computeSampleRate(hits: number, confirmed: number): number {
   return 0.5;
 }
 
-/** Actual doesn't record which rule categorized a transaction, so a hit is
- * approximated by re-applying the rule's own condition against the raw
- * bank description — good enough to find audit candidates, not meant to
- * replace the real rule engine's matching semantics. */
+/** Mirrors the supported string operators and remains exported for rule
+ * proposal validation and focused tests. Auditing itself consumes hits
+ * recorded by the real rule engine. */
 export function matchesRuleCondition(
   op: string,
   value: string,
@@ -89,29 +99,40 @@ async function fetchCategoryNames(): Promise<Map<string, string>> {
 async function auditRule(
   rule: ApprovedRule,
   categoryNames: Map<string, string>,
-): Promise<void> {
-  const { data: candidates } = await aqlQuery(
-    q('transactions')
-      .filter({ category: rule.categoryId, transfer_id: null })
-      .select([
-        'id',
-        { payeeName: 'payee.name' },
-        'amount',
-        'notes',
-        'imported_payee',
-      ])
-      .orderBy({ date: 'desc' })
-      .limit(MAX_CANDIDATE_TRANSACTIONS_PER_RULE),
-  );
+): Promise<RuleAuditSummary> {
+  if (rule.ruleId) {
+    await recordRuleSampleHits({
+      ruleId: rule.ruleId,
+      transactionIds: parseRuleSampleTransactionIds(rule.sampleTransactionIds),
+      categoryId: rule.categoryId,
+    });
+  }
 
-  const hits = (candidates as CandidateTransaction[]).filter(t =>
-    matchesRuleCondition(rule.op, rule.value, t.imported_payee),
-  );
-  if (hits.length === 0) return;
+  const hits = await getPendingRuleHits(rule.id, MAX_PENDING_HITS_PER_RULE);
+  if (hits.length === 0) {
+    return {
+      pending: 0,
+      audited: 0,
+      confirmed: 0,
+      corrected: 0,
+      skipped: 0,
+      failed: 0,
+    };
+  }
 
   const rate = computeSampleRate(rule.hits, rule.confirmed);
   const sampleSize = Math.max(1, Math.round(hits.length * rate));
   const sample = hits.slice(0, sampleSize);
+  const skippedHits = hits.slice(sampleSize);
+  await Promise.all(
+    skippedHits.map(hit =>
+      resolveRuleHit({
+        hitId: hit.hitId,
+        status: 'skipped',
+        rationale: `Not selected by the ${Math.round(rate * 100)}% audit sample.`,
+      }),
+    ),
+  );
 
   const categoryName = categoryNames.get(rule.categoryId) ?? rule.categoryId;
   const providerConfig = await buildProviderConfigForTier(auditorAgent.tier);
@@ -119,13 +140,14 @@ async function auditRule(
   let audited = 0;
   let confirmed = 0;
   let corrected = 0;
+  let failed = 0;
 
   for (const transaction of sample) {
     try {
       const result = await runWorkflow(
         auditorAgent,
         {
-          payeeName: transaction.payeeName ?? '',
+          payeeName: transaction.payeeName ?? transaction.importedPayee ?? '',
           amountCents: transaction.amount,
           notes: transaction.notes ?? undefined,
           appliedCategoryName: categoryName,
@@ -135,12 +157,28 @@ async function auditRule(
       );
       await recordRun(result.run);
       audited++;
-      if (result.output.verdict === 'correct') confirmed++;
-      if (result.output.verdict === 'incorrect') corrected++;
+      if (result.output.verdict === 'correct') {
+        confirmed++;
+        await resolveRuleHit({
+          hitId: transaction.hitId,
+          status: 'confirmed',
+          rationale: result.output.rationale,
+        });
+      }
+      if (result.output.verdict === 'incorrect') {
+        corrected++;
+        await resolveRuleHit({
+          hitId: transaction.hitId,
+          status: 'corrected',
+          rationale: result.output.rationale,
+        });
+        await classifyTransactionForReview(transaction.transactionId);
+      }
     } catch (error) {
       if (error instanceof WorkflowError) {
         await recordRun(error.run);
       }
+      failed++;
       logger.warn('Rule audit run failed:', error);
     }
   }
@@ -153,14 +191,23 @@ async function auditRule(
       corrected: rule.corrected + corrected,
     });
   }
+
+  return {
+    pending: hits.length,
+    audited,
+    confirmed,
+    corrected,
+    skipped: skippedHits.length,
+    failed,
+  };
 }
 
-/** Runs an audit sampling pass over every approved, mined rule. Meant to be
- * triggered periodically (e.g. alongside rule mining), not on every sync —
- * auditing is cheap per call (tier `fast`) but still real spend. */
-export async function auditApprovedRules(): Promise<void> {
+/** Runs an audit sampling pass over recorded hits for every approved mined
+ * rule. It is safe to trigger after sync because only still-pending hits are
+ * considered and the adaptive sampling rate limits mature rules. */
+export async function auditApprovedRules(): Promise<AuditRulesOutcome> {
   const config = getAiConfig();
-  if (!config.enabled) return;
+  if (!config.enabled) return { status: 'disabled' };
 
   try {
     assertCanStartRun(
@@ -169,7 +216,7 @@ export async function auditApprovedRules(): Promise<void> {
     );
   } catch (error) {
     logger.warn('Rule audit skipped (budget):', error);
-    return;
+    return { status: 'budget-exceeded' };
   }
 
   const { data: approvedRules } = await aqlQuery(
@@ -177,20 +224,49 @@ export async function auditApprovedRules(): Promise<void> {
       .filter({ status: 'approved' })
       .select([
         'id',
+        { ruleId: 'rule_id' },
         'op',
         'value',
         { categoryId: 'category_id' },
         'rationale',
+        { sampleTransactionIds: 'sample_transaction_ids' },
         'hits',
         'confirmed',
         'corrected',
       ]),
   );
 
-  if ((approvedRules as ApprovedRule[]).length === 0) return;
+  if ((approvedRules as ApprovedRule[]).length === 0) {
+    return { status: 'no-pending' };
+  }
 
   const categoryNames = await fetchCategoryNames();
+  const total: RuleAuditSummary = {
+    pending: 0,
+    audited: 0,
+    confirmed: 0,
+    corrected: 0,
+    skipped: 0,
+    failed: 0,
+  };
   for (const rule of approvedRules as ApprovedRule[]) {
-    await auditRule(rule, categoryNames);
+    const summary = await auditRule(rule, categoryNames);
+    total.pending += summary.pending;
+    total.audited += summary.audited;
+    total.confirmed += summary.confirmed;
+    total.corrected += summary.corrected;
+    total.skipped += summary.skipped;
+    total.failed += summary.failed;
   }
+
+  return total.pending === 0
+    ? { status: 'no-pending' }
+    : {
+        status: 'ok',
+        audited: total.audited,
+        confirmed: total.confirmed,
+        corrected: total.corrected,
+        skipped: total.skipped,
+        failed: total.failed,
+      };
 }

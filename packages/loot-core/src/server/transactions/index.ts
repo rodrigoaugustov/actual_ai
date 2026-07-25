@@ -1,6 +1,7 @@
 // @ts-strict-ignore
 
 import * as connection from '#platform/server/connection';
+import { recordManualCategorizationFeedback } from '#server/ai/feedback';
 import { onTransactionsChanged as extendStatementCoverage } from '#server/credit-cards/statements';
 import * as db from '#server/db';
 import { incrFetch, whereIn } from '#server/db/util';
@@ -53,6 +54,10 @@ export async function batchUpdateTransactions({
   // Track the ids of each type of transaction change (see below for why)
   let addedIds = [];
   const updatedIds = updated ? updated.map(u => u.id) : [];
+  const beforeUpdated =
+    learnCategories && updatedIds.length > 0
+      ? await getTransactionsByIds(updatedIds)
+      : [];
   const deletedIds = deleted
     ? await idsWithChildren(deleted.map(d => d.id))
     : [];
@@ -171,6 +176,18 @@ export async function batchUpdateTransactions({
     ]);
     await rules.updateCategoryRules(
       allAdded.concat(allUpdated).filter(trans => ids.has(trans.id)),
+    );
+
+    const beforeById = new Map(
+      beforeUpdated.map(transaction => [transaction.id, transaction]),
+    );
+    await Promise.all(
+      allUpdated.map(async transaction => {
+        const before = beforeById.get(transaction.id);
+        if (before) {
+          await recordManualCategorizationFeedback(before, transaction);
+        }
+      }),
     );
   }
 

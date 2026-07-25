@@ -18,17 +18,16 @@ export function buildModel(config: ProviderConfig): LanguageModelV4 {
 
   switch (provider) {
     case 'openai':
-      // createOpenAI(...)(model) defaults to the Responses API
-      // (/responses) in this SDK version — a behavioral default that
-      // changed out from under earlier versions. We explicitly pick the
-      // Chat Completions API (.chat) instead: it's the surface our proxy
-      // path-versioning (/v1) and PROVIDER_HOSTS assume, and the one most
-      // OpenAI-compatible accounts/keys support without extra opt-in.
+      // OpenAI reasoning models require the Responses API when function tools
+      // are used with reasoning effort. Keep this explicit so a future SDK
+      // default change cannot silently route the advisor back through Chat
+      // Completions. OpenAI-compatible providers retain their own adapters
+      // below and are unaffected by this choice.
       return createOpenAI({
         baseURL,
         apiKey: PLACEHOLDER_KEY,
         fetch: proxiedFetch,
-      }).chat(model);
+      }).responses(model);
     case 'anthropic':
       return createAnthropic({
         baseURL,
