@@ -83,37 +83,43 @@ export function PendingCategorizationsPage({
         padding={isMobile ? 0 : undefined}
       >
         <View
+          data-testid="pending-categorizations-scroll-region"
           style={{
-            flex: 1,
+            flex: isMobile ? '0 0 auto' : 1,
             minHeight: 0,
-            overflowY: 'auto',
+            overflowY: isMobile ? 'visible' : 'auto',
             padding: isMobile ? 12 : 0,
             paddingBottom: isMobile ? MOBILE_NAV_HEIGHT : 12,
           }}
         >
-          <PendingCountBanner />
-          <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>
-            <Trans>
-              Transactions the AI classifier wasn't confident enough to
-              auto-apply. Accept a suggestion to apply the suggested category,
-              or reject it to leave the transaction uncategorized.
-            </Trans>
-          </Text>
-          <SuggestionsInbox isMobile={isMobile} />
-          <View style={{ marginTop: 18, gap: 12 }}>
-            <View>
-              <Text style={{ fontSize: 16, fontWeight: 600 }}>
-                <Trans>Automation and rule health</Trans>
-              </Text>
-              <Text style={{ color: theme.pageTextSubdued }}>
-                <Trans>
-                  Review proposed automations and inspect rules that may need
-                  attention.
-                </Trans>
-              </Text>
+          <View
+            data-testid="pending-categorizations-content"
+            style={{ flex: '0 0 auto', width: '100%' }}
+          >
+            <PendingCountBanner />
+            <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>
+              <Trans>
+                Transactions the AI classifier wasn't confident enough to
+                auto-apply. Accept a suggestion to apply the suggested category,
+                or reject it to leave the transaction uncategorized.
+              </Trans>
+            </Text>
+            <SuggestionsInbox isMobile={isMobile} />
+            <View style={{ flexShrink: 0, marginTop: 18, gap: 12 }}>
+              <View>
+                <Text style={{ fontSize: 16, fontWeight: 600 }}>
+                  <Trans>Automation and rule health</Trans>
+                </Text>
+                <Text style={{ color: theme.pageTextSubdued }}>
+                  <Trans>
+                    Review proposed automations and inspect rules that may need
+                    attention.
+                  </Trans>
+                </Text>
+              </View>
+              <RuleProposalsPanel />
+              <RuleHealthPanel />
             </View>
-            <RuleProposalsPanel />
-            <RuleHealthPanel />
           </View>
         </View>
       </Page>

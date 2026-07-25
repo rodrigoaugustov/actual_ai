@@ -80,7 +80,7 @@ export function SuggestionsInbox({
 
   if (isMobile) {
     return (
-      <View style={{ width: '100%', gap: 10 }}>
+      <View style={{ flex: '0 0 auto', width: '100%', gap: 10 }}>
         {suggestions.map(suggestion => (
           <SuggestionRow key={suggestion.id} suggestion={suggestion} isMobile />
         ))}
@@ -92,8 +92,8 @@ export function SuggestionsInbox({
   // Notes/Category are all flex there too) so the two screens read the same;
   // the AI-only columns (Confidence, actions) are the trailing fixed ones.
   return (
-    <View style={{ width: '100%', overflowX: 'auto' }}>
-      <View style={{ minWidth: 1050 }}>
+    <View style={{ flex: '0 0 auto', width: '100%', overflowX: 'auto' }}>
+      <View style={{ flex: '0 0 auto', minWidth: 1050 }}>
         <TableHeader
           headers={[
             { name: t('Date'), width: 110 },
@@ -191,7 +191,9 @@ function SuggestionRow({
   if (isMobile) {
     return (
       <View
+        data-testid="mobile-ai-suggestion"
         style={{
+          flex: '0 0 auto',
           gap: 10,
           padding: 12,
           border: '1px solid ' + theme.tableBorder,

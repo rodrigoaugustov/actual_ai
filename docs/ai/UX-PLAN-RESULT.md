@@ -49,10 +49,16 @@ responsiva, corrigidos no mesmo marco:
 6. A tela mobile de transações sem categoria passou a oferecer
    `Classificar todas com IA`, reutilizando a mesma ação e o mesmo tratamento de
    sucesso/erro do registro web.
+7. Um reteste com o volume real de pendências revelou que o contêiner flex da
+   página ainda comprimia a lista e os painéis de regras para a altura da
+   viewport. O conteúdo passou a ter altura intrínseca e a não encolher; no web
+   ele fica dentro de uma única região rolável, enquanto no mobile a rolagem é
+   delegada à própria página e cada cartão permanece no fluxo normal.
 
 Validação adicional:
 
-- 23 testes direcionados aprovados em sete arquivos.
+- 24 testes direcionados aprovados em sete arquivos, incluindo as asserções de
+  regressão para o fluxo intrínseco da lista no web e no mobile.
 - Typecheck estrito do workspace web aprovado.
 - Oxfmt e oxlint aprovados nos 19 arquivos do escopo. O check global continua
   encontrando a normalização de fim de linha preexistente em 392 arquivos no

@@ -160,7 +160,7 @@ export function RuleHealthPanel() {
   };
 
   return (
-    <View style={{ width: '100%', gap: 8 }}>
+    <View style={{ flex: '0 0 auto', width: '100%', gap: 8 }}>
       <View
         style={{
           flexDirection: isNarrowWidth ? 'column' : 'row',
@@ -206,6 +206,7 @@ export function RuleHealthPanel() {
             <View
               key={rule.id}
               style={{
+                flex: '0 0 auto',
                 flexDirection: isNarrowWidth ? 'column' : 'row',
                 alignItems: isNarrowWidth ? 'stretch' : 'center',
                 gap: 8,

@@ -9,7 +9,10 @@ import { createTestQueryClient, TestProviders } from '#mocks';
 
 import { MobileAiUsagePage } from './AiUsagePage';
 import { PendingAiReviewNotice } from './PendingAiReviewNotice';
-import { MobilePendingCategorizationsPage } from './PendingCategorizationsPage';
+import {
+  MobilePendingCategorizationsPage,
+  PendingCategorizationsPage,
+} from './PendingCategorizationsPage';
 import { RuleHealthPanel } from './RuleHealthPanel';
 import { SuggestionsInbox } from './SuggestionsInbox';
 
@@ -183,6 +186,18 @@ describe('mobile AI list pages', () => {
     expect(screen.getAllByText('Sample transactions')).toHaveLength(2);
     expect(screen.getByText(/MARKET STORE 12/)).toBeVisible();
     expect(screen.getByText('Mined rule health')).toBeVisible();
+    expect(
+      screen.getByTestId('pending-categorizations-scroll-region'),
+    ).toHaveStyle({
+      flex: '0 0 auto',
+      overflowY: 'visible',
+    });
+    expect(screen.getByTestId('pending-categorizations-content')).toHaveStyle({
+      flex: '0 0 auto',
+    });
+    expect(screen.getByTestId('mobile-ai-suggestion')).toHaveStyle({
+      flex: '0 0 auto',
+    });
 
     await user.click(screen.getByRole('button', { name: 'Accept' }));
 
@@ -206,6 +221,21 @@ describe('mobile AI list pages', () => {
     expect(send).toHaveBeenCalledWith('ai/resolve-rule-proposal', {
       id: 'proposal-2',
       action: 'approve',
+    });
+  });
+
+  it('keeps the desktop list content intrinsic inside its scroll region', async () => {
+    renderPage(<PendingCategorizationsPage />);
+
+    expect(await screen.findByText('Market')).toBeVisible();
+    expect(
+      screen.getByTestId('pending-categorizations-scroll-region'),
+    ).toHaveStyle({
+      flex: '1 1 0%',
+      overflowY: 'auto',
+    });
+    expect(screen.getByTestId('pending-categorizations-content')).toHaveStyle({
+      flex: '0 0 auto',
     });
   });
 
