@@ -140,8 +140,14 @@ em cada domínio de disponibilidade. Anote o **IP público** que ele imprime.
 ## 6. Provisionar Cloudflare
 
 ```bash
-CF_API_TOKEN=<seu-token> ./provision-cloudflare.sh
+cd deploy
+./provision-cloudflare.sh
 ```
+
+Ele pede o token da Cloudflare de forma oculta. **O token não vai para arquivo
+nenhum** — é a credencial de administração da sua conta, usada só nesta
+execução. Não confunda com o `TUNNEL_TOKEN` que o script gera: esse sim é
+guardado no `.env` do servidor, e só sabe servir este hostname.
 
 Cria o tunnel, aponta o ingress para `http://actual:5006`, cria o CNAME
 proxied, **desliga Rocket Loader / minify / email obfuscation** (os três

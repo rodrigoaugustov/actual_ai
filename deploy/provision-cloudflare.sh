@@ -30,10 +30,20 @@ OUTPUT="${OUTPUT:-$DEPLOY_DIR/.env.generated}"
 
 API=https://api.cloudflare.com/client/v4
 
-: "${CF_API_TOKEN:?set CF_API_TOKEN — see docs/DEPLOY.md for the required scopes}"
-
 command -v curl >/dev/null || { echo "curl is required" >&2; exit 1; }
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
+
+# Prompt rather than require it on the command line: this is the account-wide
+# admin token, and `CF_API_TOKEN=... ./provision-cloudflare.sh` would leave it
+# in the shell history. It is used for this run only and never written to disk —
+# the only credential that gets persisted is the tunnel token, which can do
+# nothing beyond serving this one hostname.
+if [[ -z "${CF_API_TOKEN:-}" ]]; then
+  printf 'Cloudflare API token (input hidden): ' >&2
+  read -rs CF_API_TOKEN
+  printf '\n' >&2
+fi
+[[ -n "$CF_API_TOKEN" ]] || { echo "no token given — see docs/DEPLOY.md for the required scopes" >&2; exit 1; }
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
