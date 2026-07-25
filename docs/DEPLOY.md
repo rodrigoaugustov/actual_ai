@@ -8,18 +8,18 @@ Referência de operação do dia a dia: [`deploy/README.md`](../deploy/README.md
 
 ## Panorama
 
-| #   | Estágio                         | Como                  | Tempo         |
-| --- | ------------------------------- | --------------------- | ------------- |
-| 1   | Validar o build na CI           | automático (push)     | ~20 min       |
-| 2   | Publicar a imagem no GHCR       | automático + 1 clique | 2 min         |
-| 3   | Ferramentas locais              | script                | 10 min        |
-| 4   | Credenciais Oracle e Cloudflare | **manual**            | 15 min        |
-| 5   | Provisionar a VM Oracle         | script (com retry)    | 5 min a horas |
-| 6   | Provisionar Cloudflare          | script                | 1 min         |
-| 7   | Chaves do R2 e backup           | **manual** + script   | 10 min        |
-| 8   | Subir a stack no host           | script                | 10 min        |
-| 9   | Primeiro login e segredos       | **manual**            | 5 min         |
-| 10  | Verificação e monitor           | script + **manual**   | 10 min        |
+| #   | Estágio                         | Como                   | Tempo         |
+| --- | ------------------------------- | ---------------------- | ------------- |
+| 1   | Validar o build na CI           | automático (push)      | ~20 min       |
+| 2   | Conferir a imagem no GHCR       | automático (1 comando) | 2 min         |
+| 3   | Ferramentas locais              | script                 | 10 min        |
+| 4   | Credenciais Oracle e Cloudflare | **manual**             | 15 min        |
+| 5   | Provisionar a VM Oracle         | script (com retry)     | 5 min a horas |
+| 6   | Provisionar Cloudflare          | script                 | 1 min         |
+| 7   | Chaves do R2 e backup           | **manual** + script    | 10 min        |
+| 8   | Subir a stack no host           | script                 | 10 min        |
+| 9   | Primeiro login e segredos       | **manual**             | 5 min         |
+| 10  | Verificação e monitor           | script + **manual**    | 10 min        |
 
 O estágio 5 pode demorar: capacidade Always Free A1 vive esgotada. O script
 tenta em loop em todos os domínios de disponibilidade — deixe rodando.
@@ -46,22 +46,27 @@ Dois workflows disparam: `CI` (lint, typecheck, testes) e `Image` (build arm64
 nativo, teste de boot, push para o GHCR). Se o `Image` falhar em
 `yarn build:browser` com erro de import de tema, a correção da Fase 0 não pegou.
 
-## 2. Publicar a imagem no GHCR
+## 2. Conferir a imagem no GHCR
 
-Depois do primeiro `Image` verde, o pacote existe mas nasce **privado**, mesmo
-em repositório público — e não há endpoint REST para mudar isso.
-
-**Manual:** `github.com/rodrigoaugustov?tab=packages` → `actual-ai` → _Package
-settings_ → _Change visibility_ → **Public**.
-
-Alternativa, se preferir manter privado: crie um PAT com escopo `read:packages`
-e preencha `GHCR_USER`/`GHCR_TOKEN` no `.env` do servidor (estágio 8).
-
-Confirme:
+Depois do primeiro `Image` verde, verifique se o host vai conseguir puxar a
+imagem **sem credencial**. Não confie no `docker manifest inspect`: ele usa o
+login local e responde 200 mesmo num pacote privado. Faça um pull anônimo de
+verdade:
 
 ```bash
-docker manifest inspect ghcr.io/rodrigoaugustov/actual-ai:master
+TOK=$(curl -s "https://ghcr.io/token?scope=repository:rodrigoaugustov/actual-ai:pull&service=ghcr.io" | jq -r .token)
+curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOK" \
+  https://ghcr.io/v2/rodrigoaugustov/actual-ai/manifests/master
 ```
+
+`200` significa público, e não há nada a fazer — foi o que aconteceu aqui, o
+pacote herdou a visibilidade do repositório.
+
+Se der `401`/`403`, o pacote está privado e não existe endpoint REST para mudar
+isso. Ou torne-o público em `github.com/rodrigoaugustov?tab=packages` →
+`actual-ai` → _Package settings_ → _Change visibility_, ou crie um PAT com
+escopo `read:packages` e preencha `GHCR_USER`/`GHCR_TOKEN` no `.env` do
+servidor (estágio 8).
 
 ## 3. Ferramentas locais
 
@@ -236,7 +241,6 @@ a instância Always Free por ociosidade.
 
 | Passo                                 | Motivo                               |
 | ------------------------------------- | ------------------------------------ |
-| Visibilidade do pacote no GHCR        | não existe endpoint REST             |
 | Upload da chave pública da API Oracle | bootstrap de credencial              |
 | Criação do token Cloudflare           | bootstrap de credencial              |
 | Chaves S3 do R2                       | não expostas por API                 |
