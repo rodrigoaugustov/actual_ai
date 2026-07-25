@@ -9,8 +9,10 @@
 # The reason this is a script and not a few clicks in the console: Always Free
 # A1 capacity is almost never available on the first try. `oci compute instance
 # launch` fails with OutOfHostCapacity, and the console makes you redo the whole
-# wizard. This retries across every availability domain until it lands, which
-# can take hours — start it and walk away.
+# wizard by hand for every retry. This retries automatically across every
+# availability domain the region has (many regions, including sa-saopaulo-1,
+# have exactly one — the loop still applies, it just has one AD to iterate)
+# until it lands, which can take hours — start it and walk away.
 
 set -euo pipefail
 
@@ -108,6 +110,21 @@ echo "    $COMPARTMENT"
 # --- network ----------------------------------------------------------------
 # Nothing needs an inbound port for the app itself: cloudflared dials out. The
 # only ingress opened is SSH, for managing the box.
+#
+# The console's "VCN with Internet Connectivity" wizard builds all of this
+# correctly in one step, and is frankly the better tool for it — this section
+# exists only to keep the whole thing reproducible. Pass SUBNET_ID to skip it
+# and go straight to the launch retry loop, which is the part worth automating:
+#
+#   SUBNET_ID=ocid1.subnet.oc1... ./provision-oracle.sh
+
+if [[ -n "${SUBNET_ID:-}" ]]; then
+  say "Network"
+  step "using the subnet you passed in"
+  # Fail early on a typo rather than at launch time, hours later.
+  oci_ network subnet get --subnet-id "$SUBNET_ID" --query 'data.id' --raw-output >/dev/null
+  done_ "$SUBNET_ID"
+else
 
 say "VCN"
 step "looking for an existing VCN named $NAME"
@@ -175,6 +192,8 @@ if [[ -z "$SUBNET_ID" || "$SUBNET_ID" == "null" ]]; then
 else
   done_ "reusing $SUBNET_ID"
 fi
+
+fi # end of the network section skipped by SUBNET_ID
 
 # --- instance ---------------------------------------------------------------
 
