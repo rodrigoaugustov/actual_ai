@@ -27,6 +27,18 @@ docker pull --quiet "$CHANNEL_REF" >/dev/null || die "pull failed"
 
 NEW_REF="$(resolve_digest "$CHANNEL_REF")"
 [[ -n "$NEW_REF" ]] || die "could not resolve a digest for $CHANNEL_REF"
+BUILD_DESCRIPTION="$(
+  docker image inspect \
+    --format '{{ index .Config.Labels "org.opencontainers.image.description" }}' \
+    "$CHANNEL_REF" 2>/dev/null || true
+)"
+BUILD_REVISION="$(
+  docker image inspect \
+    --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' \
+    "$CHANNEL_REF" 2>/dev/null || true
+)"
+[[ "$BUILD_DESCRIPTION" == "<no value>" ]] && BUILD_DESCRIPTION=""
+[[ "$BUILD_REVISION" == "<no value>" ]] && BUILD_REVISION=""
 
 CURRENT_REF="${ACTUAL_IMAGE:-}"
 
@@ -44,7 +56,7 @@ if [[ -f "$BLOCKED" && "$(cat "$BLOCKED")" == "$NEW_REF" ]]; then
 fi
 rm --force "$BLOCKED"
 
-log "new image available: $NEW_REF (was ${CURRENT_REF:-none})"
+log "new image available: $NEW_REF (was ${CURRENT_REF:-none}); ${BUILD_DESCRIPTION:-version unavailable}; revision ${BUILD_REVISION:-unavailable}"
 
 # Snapshot before touching anything. This deliberately aborts the rollout if it
 # fails: the client-side migrations that ship with a new bundle rewrite the

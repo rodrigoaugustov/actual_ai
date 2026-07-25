@@ -49,6 +49,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Prepare build metadata
+        id: build_meta
+        run: |
+          echo "client_version=$(jq -r .actualAiVersion packages/desktop-client/package.json)" >> "$GITHUB_OUTPUT"
+          echo "server_version=$(jq -r .actualAiVersion packages/sync-server/package.json)" >> "$GITHUB_OUTPUT"
+          echo "created=$(git show -s --format=%cI "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
@@ -70,6 +77,11 @@ jobs:
           push: false
           load: true
           tags: actual-ai:test
+          build-args: |
+            BUILD_REVISION=${{ github.sha }}
+            BUILD_CREATED=${{ steps.build_meta.outputs.created }}
+            CLIENT_VERSION=${{ steps.build_meta.outputs.client_version }}
+            SERVER_VERSION=${{ steps.build_meta.outputs.server_version }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
@@ -95,6 +107,11 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true
+          build-args: |
+            BUILD_REVISION=${{ github.sha }}
+            BUILD_CREATED=${{ steps.build_meta.outputs.created }}
+            CLIENT_VERSION=${{ steps.build_meta.outputs.client_version }}
+            SERVER_VERSION=${{ steps.build_meta.outputs.server_version }}
           cache-from: type=gha,scope=${{ matrix.platform }}
 
       - name: Export digest
@@ -116,6 +133,18 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Prepare build metadata
+        id: build_meta
+        run: |
+          echo "client_version=$(jq -r .actualAiVersion packages/desktop-client/package.json)" >> "$GITHUB_OUTPUT"
+          echo "server_version=$(jq -r .actualAiVersion packages/sync-server/package.json)" >> "$GITHUB_OUTPUT"
+          echo "created=$(git show -s --format=%cI "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+
       - name: Download digests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -150,6 +179,12 @@ jobs:
           tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
           # shellcheck disable=SC2046
           docker buildx imagetools create $tags \
+            --annotation "index:org.opencontainers.image.title=Actual AI" \
+            --annotation "index:org.opencontainers.image.description=Actual AI - Client v${{ steps.build_meta.outputs.client_version }}, Server v${{ steps.build_meta.outputs.server_version }} (commit ${GITHUB_SHA::7})" \
+            --annotation "index:org.opencontainers.image.version=client-${{ steps.build_meta.outputs.client_version }}_server-${{ steps.build_meta.outputs.server_version }}" \
+            --annotation "index:org.opencontainers.image.revision=$GITHUB_SHA" \
+            --annotation "index:org.opencontainers.image.created=${{ steps.build_meta.outputs.created }}" \
+            --annotation "index:org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             $(printf '${{ env.IMAGE }}@sha256:%s ' *)
 
       - name: Inspect
@@ -163,4 +198,8 @@ jobs:
             echo '```'
             echo "${{ steps.meta.outputs.tags }}"
             echo '```'
+            echo
+            echo "Client: v${{ steps.build_meta.outputs.client_version }}"
+            echo "Server: v${{ steps.build_meta.outputs.server_version }}"
+            echo "Revision: \`${GITHUB_SHA::7}\`"
           } >> "$GITHUB_STEP_SUMMARY"

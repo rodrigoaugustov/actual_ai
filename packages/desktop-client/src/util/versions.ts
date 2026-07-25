@@ -18,6 +18,20 @@ function cmpSemanticVersion(
   return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
 }
 
+export function formatBuildVersion(version: string, revision?: string): string {
+  const normalizedRevision = revision?.trim();
+  return normalizedRevision
+    ? `${version} (${normalizedRevision.slice(0, 7)})`
+    : version;
+}
+
+export function getClientBuildVersion(): string {
+  return formatBuildVersion(
+    window.Actual.ACTUAL_AI_VERSION ?? window.Actual.ACTUAL_VERSION,
+    window.Actual.ACTUAL_BUILD_REVISION,
+  );
+}
+
 export async function getLatestVersion(): Promise<string | 'unknown'> {
   if (Platform.isPlaywright || import.meta.env.REACT_APP_REVIEW_ID) {
     return Promise.resolve('v99.9.9');

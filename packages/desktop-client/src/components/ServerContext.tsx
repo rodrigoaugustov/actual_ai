@@ -15,6 +15,7 @@ import { t } from 'i18next';
 import { useOnVisible } from '#hooks/useOnVisible';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
+import { formatBuildVersion } from '#util/versions';
 
 type LoginMethod = {
   method: string;
@@ -79,7 +80,7 @@ async function getServerVersion() {
   }
   const result = await send('get-server-version');
   if ('version' in result) {
-    return result.version;
+    return formatBuildVersion(result.version, result.revision);
   }
   return '';
 }

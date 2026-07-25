@@ -25,6 +25,7 @@ import { useGlobalPref } from '#hooks/useGlobalPref';
 import { useMetadataPref } from '#hooks/useMetadataPref';
 import { loadPrefs, saveSyncedPrefs } from '#prefs/prefsSlice';
 import { useDispatch, useSelector } from '#redux';
+import { getClientBuildVersion } from '#util/versions';
 
 import { AiSettings } from './AiSettings';
 import { AuthSettings } from './AuthSettings';
@@ -77,7 +78,7 @@ function About() {
       >
         <Text>
           <Trans>
-            Client version: {{ version: `v${window.Actual?.ACTUAL_VERSION}` }}
+            Client version: {{ version: `v${getClientBuildVersion()}` }}
           </Trans>
         </Text>
         <Text>

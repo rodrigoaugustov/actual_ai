@@ -121,7 +121,9 @@ app.get('/info', (_req, res) => {
     build: {
       name: packageJson?.name,
       description: packageJson?.description,
-      version: packageJson?.version,
+      version: packageJson?.actualAiVersion ?? packageJson?.version,
+      revision: process.env.ACTUAL_BUILD_REVISION,
+      created: process.env.ACTUAL_BUILD_CREATED,
     },
   });
 });

@@ -22,10 +22,11 @@ describe('API handlers', () => {
     it('does not require an open budget', async () => {
       handlers['get-server-version'] = vi
         .fn()
-        .mockResolvedValue({ version: '26.6.0' });
+        .mockResolvedValue({ version: '1.0.0', revision: 'e8010db' });
 
       await expect(handlers['api/get-server-version']()).resolves.toEqual({
-        version: '26.6.0',
+        version: '1.0.0',
+        revision: 'e8010db',
       });
     });
   });

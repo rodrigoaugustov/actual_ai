@@ -285,6 +285,8 @@ export type ApiHandlers = {
     name: string;
   }) => Promise<string>;
   'api/get-server-version': () => Promise<
-    { error: 'no-server' } | { error: 'network-failure' } | { version: string }
+    | { error: 'no-server' }
+    | { error: 'network-failure' }
+    | { version: string; revision?: string }
   >;
 };

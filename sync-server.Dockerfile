@@ -21,8 +21,11 @@ FROM deps AS builder
 
 WORKDIR /app
 
+ARG BUILD_REVISION=local
+
 # Increase memory limit for the build process to 8GB
 ENV NODE_OPTIONS=--max_old_space_size=8192
+ENV REACT_APP_BUILD_REVISION=$BUILD_REVISION
 
 # lage's task hasher invokes `git ls-tree HEAD` during initialization, so it
 # needs a git repo even when individual targets disable caching. .dockerignore
@@ -51,6 +54,21 @@ FROM node:22-bookworm-slim AS prod
 
 # Minimal runtime dependencies
 RUN apt-get update && apt-get install -y tini && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Build identity is exposed by /info and by OCI image metadata.
+ARG BUILD_REVISION=local
+ARG BUILD_CREATED=unknown
+ARG CLIENT_VERSION=1.0.0
+ARG SERVER_VERSION=1.0.0
+ENV ACTUAL_BUILD_REVISION=$BUILD_REVISION
+ENV ACTUAL_BUILD_CREATED=$BUILD_CREATED
+LABEL org.opencontainers.image.title="Actual AI" \
+      org.opencontainers.image.description="Actual AI - Client v${CLIENT_VERSION}, Server v${SERVER_VERSION}" \
+      org.opencontainers.image.version="client-${CLIENT_VERSION}_server-${SERVER_VERSION}" \
+      org.opencontainers.image.revision="${BUILD_REVISION}" \
+      org.opencontainers.image.created="${BUILD_CREATED}" \
+      io.actual.client.version="${CLIENT_VERSION}" \
+      io.actual.server.version="${SERVER_VERSION}"
 
 # Create a non-root user
 ARG USERNAME=actual

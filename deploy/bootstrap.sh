@@ -17,7 +17,7 @@ DATA_DIR_DEFAULT=/srv/actual/data
 echo "==> packages"
 apt-get update --quiet
 apt-get install --yes --quiet \
-  ca-certificates curl gnupg rsync sqlite3 age rclone
+  ca-certificates curl gnupg jq rsync sqlite3 age rclone
 
 echo "==> docker"
 if ! command -v docker >/dev/null; then

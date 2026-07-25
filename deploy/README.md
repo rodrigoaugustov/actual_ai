@@ -147,6 +147,26 @@ docker compose -f compose.prod.yml --env-file .env ps
 ./verify.sh                              # confirma que a versão nova está no ar e saudável
 ```
 
+As versões próprias deste fork começam em `1.0.0` e ficam no campo
+`actualAiVersion` de `packages/desktop-client/package.json` e
+`packages/sync-server/package.json`. Cada imagem também recebe o commit do
+build; por isso Configurações mostra, por exemplo, `v1.0.0 (e8010db)`.
+
+Para consultar manualmente o que está rodando, os deploys desta VM e os builds
+recentes do workflow de imagem:
+
+```bash
+cd /srv/actual/repo
+git pull --ff-only                       # traz versões novas dos scripts de operação
+cd deploy
+./history.sh                             # últimos 20
+./history.sh 50                          # últimos 50
+```
+
+O histórico do GitHub é público e não precisa de token. Se o repositório ou o
+package forem tornados privados, exporte `GITHUB_TOKEN` com acesso de leitura
+antes de rodar o script.
+
 **Aviso no celular via ntfy.sh é opcional e está desligado nesta instância**
 (`NTFY_TOPIC` vazio no `.env`) — sem ele, `update.sh` só registra no
 `journalctl`, não empurra nada para o telefone. Para ligar, escolha um tópico

@@ -24,6 +24,7 @@ import {
 import { useMetaThemeColor } from '#hooks/useMetaThemeColor';
 import { useDispatch, useSelector } from '#redux';
 import { loggedIn } from '#users/usersSlice';
+import { getClientBuildVersion } from '#util/versions';
 
 import { BudgetFileSelection } from './BudgetFileSelection';
 import { ConfigServer } from './ConfigServer';
@@ -56,7 +57,7 @@ function Version() {
       }}
     >
       <Trans>
-        App: v{{ appVersion: window.Actual.ACTUAL_VERSION }} | Server:{' '}
+        App: v{{ appVersion: getClientBuildVersion() }} | Server:{' '}
         {{ serverVersion: version }}
       </Trans>
     </Text>

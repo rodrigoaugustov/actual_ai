@@ -20,6 +20,8 @@ const ACTUAL_VERSION = Platform.isPlaywright
   : import.meta.env.REACT_APP_REVIEW_ID
     ? '.preview'
     : packageJson.version;
+const ACTUAL_AI_VERSION = packageJson.actualAiVersion;
+const ACTUAL_BUILD_REVISION = import.meta.env.REACT_APP_BUILD_REVISION ?? '';
 
 // The OIDC callback (/openid-cb) is reached via a full-page navigation back
 // from the OpenID provider. Routing it through the SharedWorker coordinator is
@@ -81,6 +83,8 @@ const updateSW = IS_DEV
 global.Actual = {
   IS_DEV,
   ACTUAL_VERSION,
+  ACTUAL_AI_VERSION,
+  ACTUAL_BUILD_REVISION,
 
   logToTerminal: (...args) => {
     console.log(...args);
