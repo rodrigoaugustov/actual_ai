@@ -8,21 +8,30 @@ Referência de operação do dia a dia: [`deploy/README.md`](../deploy/README.md
 
 ## Panorama
 
-| #   | Estágio                         | Como                   | Tempo         |
-| --- | ------------------------------- | ---------------------- | ------------- |
-| 1   | Validar o build na CI           | automático (push)      | ~20 min       |
-| 2   | Conferir a imagem no GHCR       | automático (1 comando) | 2 min         |
-| 3   | Ferramentas locais              | script                 | 10 min        |
-| 4   | Credenciais Oracle e Cloudflare | **manual**             | 15 min        |
-| 5   | Provisionar a VM Oracle         | script (com retry)     | 5 min a horas |
-| 6   | Provisionar Cloudflare          | script                 | 1 min         |
-| 7   | Chaves do R2 e backup           | **manual** + script    | 10 min        |
-| 8   | Subir a stack no host           | script                 | 10 min        |
-| 9   | Primeiro login e segredos       | **manual**             | 5 min         |
-| 10  | Verificação e monitor           | script + **manual**    | 10 min        |
+| #   | Estágio                       | Como                   | Tempo                              |
+| --- | ----------------------------- | ---------------------- | ---------------------------------- |
+| 1   | Validar o build na CI         | automático (push)      | ~20 min                            |
+| 2   | Conferir a imagem no GHCR     | automático (1 comando) | 2 min                              |
+| 3   | Ferramentas locais            | script                 | 10 min                             |
+| 4   | Credenciais Cloudflare        | **manual**             | 5 min                              |
+| 5   | Escolher e provisionar o host | **manual** + script    | 1 min (GCP) / 5 min–horas (Oracle) |
+| 6   | Provisionar Cloudflare        | script                 | 1 min                              |
+| 7   | Chaves do R2 e backup         | **manual** + script    | 10 min                             |
+| 8   | Subir a stack no host         | script                 | 10 min                             |
+| 9   | Primeiro login e segredos     | **manual**             | 5 min                              |
+| 10  | Verificação e monitor         | script + **manual**    | 10 min                             |
 
-O estágio 5 pode demorar: capacidade Always Free A1 vive esgotada. O script
-tenta em loop em todos os domínios de disponibilidade — deixe rodando.
+Dois hosts são suportados, publicados sob o mesmo manifest multi-arch
+(`ghcr.io/rodrigoaugustov/actual-ai:master` resolve para `amd64` ou `arm64`
+automaticamente). O resto da esteira (estágios 6–10) não muda dependendo de
+qual você escolher, e dá para trocar depois sem tocar no domínio — o Cloudflare
+Tunnel abstrai a origem.
+
+- **Google Cloud e2-micro** — sem fila de capacidade, provisiona em ~1 min.
+  Grátis para sempre, mas só nas três regiões dos EUA (Oregon, Iowa, Carolina
+  do Sul) e com 1 vCPU compartilhada / 1 GB de RAM.
+- **Oracle Ampere A1** — 2 OCPU / 12 GB dedicados, região São Paulo, mas
+  capacidade Always Free vive esgotada; o script tenta em loop até horas.
 
 ---
 
@@ -42,9 +51,11 @@ Acompanhe:
 gh run watch
 ```
 
-Dois workflows disparam: `CI` (lint, typecheck, testes) e `Image` (build arm64
-nativo, teste de boot, push para o GHCR). Se o `Image` falhar em
-`yarn build:browser` com erro de import de tema, a correção da Fase 0 não pegou.
+Três jobs disparam: `CI` (lint, typecheck, testes) e `Image`, que builda
+`linux/amd64` e `linux/arm64` nativamente em paralelo (um runner de cada
+arquitetura, sem QEMU) e mescla os dois num único manifest multi-arch. Se
+algum build falhar em `yarn build:browser` com erro de import de tema, a
+correção da Fase 0 não pegou.
 
 ## 2. Conferir a imagem no GHCR
 
@@ -70,46 +81,37 @@ servidor (estágio 8).
 
 ## 3. Ferramentas locais
 
-Você já tem `gh`, `docker`, `node` e `ssh`. Faltam `oci`, `jq`, `age` e uma
-chave SSH.
+Você já tem `gh`, `docker`, `node` e `ssh`. Para o host escolhido:
+
+**Google Cloud:**
+
+```bash
+winget install --id Google.CloudSDK --accept-package-agreements
+gcloud init
+gcloud auth login
+```
+
+**Oracle (alternativa):**
 
 ```bash
 winget install --id Oracle.OCI-CLI --accept-package-agreements
+```
+
+Em qualquer caso, faltam `jq` e `age`, e uma chave SSH:
+
+```bash
 winget install --id jqlang.jq --accept-package-agreements
 winget install --id FiloSottile.age --accept-package-agreements
+ssh-keygen -t ed25519 -C actual-ai
 ```
 
 `rclone` só é necessário no servidor, e o `bootstrap.sh` o instala lá.
 
-Chave SSH para a VM (se ainda não tiver):
-
-```bash
-ssh-keygen -t ed25519 -C actual-ai
-```
-
 Os scripts de provisionamento são bash — rode-os no **Git Bash**, não no
-PowerShell.
+PowerShell. Depois de instalar o SDK/CLI numa sessão, abra um Git Bash **novo**
+para o binário entrar no PATH.
 
-## 4. Credenciais (manual)
-
-### Oracle
-
-```bash
-oci setup config
-```
-
-Ele gera um par de chaves e pergunta tenancy OCID, user OCID e região — todos
-em _Profile → Tenancy / User settings_ no console. Ao final ele imprime o
-caminho da **chave pública**; cole o conteúdo em _User settings → API keys →
-Add API key → Paste public key_.
-
-Teste:
-
-```bash
-oci iam region list --output table
-```
-
-### Cloudflare
+## 4. Credenciais Cloudflare (manual)
 
 Crie um token em _My Profile → API Tokens → Create Token → Custom token_ com:
 
@@ -123,19 +125,70 @@ Crie um token em _My Profile → API Tokens → Create Token → Custom token_ c
 
 Guarde no gerenciador de senhas.
 
-## 5. Provisionar a VM Oracle
+## 5. Escolher e provisionar o host
+
+### Opção A — Google Cloud e2-micro (recomendado)
+
+**Um projeto dedicado (manual, uma vez).** Não reuse um projeto GCP existente
+— um app de finanças pessoais não deve dividir IAM/faturamento com outro
+produto seu. `PROJECT_ID` precisa ser único globalmente:
+
+```bash
+gcloud projects create actual-ai-financas --name="Actual AI - Financas"
+gcloud billing projects link actual-ai-financas --billing-account=<ID da conta>
+gcloud services enable compute.googleapis.com --project=actual-ai-financas
+```
+
+`gcloud billing accounts list` mostra os IDs disponíveis. Um projeto novo já
+vem com a VPC `default` e a regra `default-allow-ssh` — normalmente nada mais
+a fazer na rede.
+
+**A instância (script):**
+
+```bash
+cd deploy
+PROJECT_ID=actual-ai-financas ./provision-gcp.sh
+```
+
+Cria (ou reusa) uma `e2-micro` em `us-central1-a` com disco `pd-standard` de
+30 GB — os limites exatos do Always Free. O script recusa rodar fora das três
+regiões elegíveis (`us-west1`, `us-central1`, `us-east1`), para nunca cobrar
+por engano. Sem fila de capacidade: normalmente termina em menos de um minuto.
+
+**Antes de confiar que ficará grátis:** o benefício Always Free do e2-micro é
+por **conta de faturamento**, não por projeto. Se a mesma conta já tiver outra
+instância em qualquer projeto, a cota pode já estar consumida:
+
+```bash
+gcloud compute instances list --project=<outro-projeto-na-mesma-conta>
+```
+
+### Opção B — Oracle Ampere A1 (alternativa)
+
+```bash
+oci setup config
+```
+
+Ele gera um par de chaves e pergunta tenancy OCID, user OCID e região — todos
+em _Profile → Tenancy / User settings_ no console. Ao final ele imprime o
+caminho da **chave pública**; cole o conteúdo em _User settings → API keys →
+Add API key → Paste public key_. Teste com `oci iam region list --output table`.
 
 ```bash
 cd deploy
 ./provision-oracle.sh
 ```
 
-Cria VCN, gateway, rotas, security list (só SSH de entrada — o app não precisa
-de porta nenhuma, o cloudflared disca para fora) e a instância
-`VM.Standard.A1.Flex` 2 OCPU / 12 GB / 100 GB com Ubuntu 24.04 arm64.
+Cria VCN, gateway, rotas, security list (só SSH de entrada) e a instância
+`VM.Standard.A1.Flex` 2 OCPU / 12 GB / 100 GB com Ubuntu 24.04 arm64. Se
+aparecer `no capacity` repetidamente, é normal — o script continua tentando.
+Já tem a rede pronta pelo console? Pule direto para a instância:
 
-Se aparecer `no capacity` repetidamente, é normal: o script continua tentando
-em cada domínio de disponibilidade. Anote o **IP público** que ele imprime.
+```bash
+SUBNET_ID=<ocid da subnet> ./provision-oracle.sh
+```
+
+Em ambas as opções, anote o **IP público** que o script imprime no final.
 
 ## 6. Provisionar Cloudflare
 
@@ -177,6 +230,10 @@ Write**. Anote Access Key ID, Secret e o endpoint da conta.
 
 ## 8. Subir a stack no host
 
+O usuário SSH difere por provedor: `ubuntu` em ambos, na verdade — Oracle usa
+`ubuntu` por padrão na imagem Canonical, e o `provision-gcp.sh` cria o usuário
+`ubuntu` explicitamente via metadata. Um único comando serve para os dois:
+
 ```bash
 ssh ubuntu@<IP>
 sudo apt-get update && sudo apt-get install -y git
@@ -203,7 +260,9 @@ sudo ./bootstrap.sh
 ```
 
 A partir daqui o deploy contínuo está ligado: todo push no `master` vira imagem
-nova, e o host a instala em até 5 minutos com health check e rollback.
+nova, e o host a instala em até 5 minutos com health check e rollback — o
+`update.sh` pula silenciosamente para a plataforma certa, porque o Docker do
+host já resolve o manifest multi-arch sozinho.
 
 ## 9. Primeiro login e segredos (manual)
 
@@ -238,20 +297,30 @@ AGE_IDENTITY=~/actual-backup-key.txt ./restore.sh <arquivo> --into /tmp/drill
 ```
 
 **Manual:** cadastre `https://financas.caderninho-digital.com/health` no
-UptimeRobot a cada 5 min. Além do alerta, o tráfego evita que a Oracle recicle
-a instância Always Free por ociosidade.
+UptimeRobot a cada 5 min. No host Oracle, o tráfego também evita que a
+instância Always Free seja reciclada por ociosidade — no GCP isso não se
+aplica, o e2-micro não é recuperado por inatividade.
 
 ---
 
+## Migrar entre hosts
+
+Como o domínio aponta para o Cloudflare Tunnel, e não direto para uma VM,
+trocar de host depois é só: `backup.sh` no host antigo, `provision-*.sh` +
+`bootstrap.sh` no novo, `restore.sh --force`, e reapontar o ingress do tunnel
+(`cloudflared tunnel route` ou `provision-cloudflare.sh` de novo) para o
+`actual:5006` do host novo. Nenhum cliente percebe.
+
 ## O que ficou manual, e por quê
 
-| Passo                                 | Motivo                               |
-| ------------------------------------- | ------------------------------------ |
-| Upload da chave pública da API Oracle | bootstrap de credencial              |
-| Criação do token Cloudflare           | bootstrap de credencial              |
-| Chaves S3 do R2                       | não expostas por API                 |
-| Senha do admin e chaves de IA no app  | credenciais que só você deve digitar |
-| UptimeRobot                           | conta de terceiro, fora do escopo    |
+| Passo                                        | Motivo                               |
+| -------------------------------------------- | ------------------------------------ |
+| Criar o projeto GCP e vincular o faturamento | decisão de qual conta/projeto usar   |
+| Upload da chave pública da API Oracle        | bootstrap de credencial              |
+| Criação do token Cloudflare                  | bootstrap de credencial              |
+| Chaves S3 do R2                              | não expostas por API                 |
+| Senha do admin e chaves de IA no app         | credenciais que só você deve digitar |
+| UptimeRobot                                  | conta de terceiro, fora do escopo    |
 
 Tudo o mais é reexecutável: os scripts são idempotentes e servem tanto para
 recriar o ambiente do zero quanto para migrar de máquina.
