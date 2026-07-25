@@ -28,6 +28,7 @@ import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
+import { send } from '@actual-app/core/platform/client/connection';
 import { validForMerge } from '@actual-app/core/shared/merge';
 import * as monthUtils from '@actual-app/core/shared/months';
 import { isPreviewId } from '@actual-app/core/shared/transactions';
@@ -35,9 +36,11 @@ import { validForTransfer } from '@actual-app/core/shared/transfer';
 import { groupById, integerToCurrency } from '@actual-app/core/shared/util';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type {
+  AiSuggestionIndexEntry,
   CategoryEntity,
   TransactionEntity,
 } from '@actual-app/core/types/models';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { FloatingActionBar } from '#components/mobile/FloatingActionBar';
 import { useAccounts } from '#hooks/useAccounts';
@@ -49,7 +52,10 @@ import { useScrollListener } from '#hooks/useScrollListener';
 import { useSelectedDispatch, useSelectedItems } from '#hooks/useSelected';
 import { useTransactionBatchActions } from '#hooks/useTransactionBatchActions';
 import { useUndo } from '#hooks/useUndo';
-import { setNotificationInset } from '#notifications/notificationsSlice';
+import {
+  addNotification,
+  setNotificationInset,
+} from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
 import { ROW_HEIGHT, TransactionListItem } from './TransactionListItem';
@@ -106,6 +112,23 @@ export function TransactionList({
 }: TransactionListProps) {
   const locale = useLocale();
   const { t } = useTranslation();
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+  const [resolvingSuggestionId, setResolvingSuggestionId] = useState<
+    string | null
+  >(null);
+  const resolvingSuggestionRef = useRef<string | null>(null);
+  const { data: aiSuggestionsIndex = [] } = useQuery({
+    queryKey: ['ai-suggestions-index'],
+    queryFn: async () => (await send('ai/get-suggestions-index')) ?? [],
+  });
+  const aiSuggestionsByTransactionId = useMemo(() => {
+    const map = new Map<string, AiSuggestionIndexEntry>();
+    for (const entry of aiSuggestionsIndex) {
+      map.set(entry.transactionId, entry);
+    }
+    return map;
+  }, [aiSuggestionsIndex]);
   const sections = useMemo(() => {
     // Group by date. We can assume transactions is ordered
     const sections: {
@@ -146,6 +169,44 @@ export function TransactionList({
       }
     },
     [dispatchSelected, onOpenTransaction, selectedTransactions],
+  );
+
+  const onResolveAiSuggestion = useCallback(
+    async (suggestion: AiSuggestionIndexEntry, action: 'accept' | 'reject') => {
+      if (resolvingSuggestionRef.current != null) {
+        return;
+      }
+
+      resolvingSuggestionRef.current = suggestion.id;
+      setResolvingSuggestionId(suggestion.id);
+      try {
+        await send('ai/resolve-suggestion', {
+          id: suggestion.id,
+          action,
+        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['ai-suggestions-index'],
+          }),
+          queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] }),
+        ]);
+      } catch {
+        dispatch(
+          addNotification({
+            notification: {
+              type: 'error',
+              message: t(
+                'Could not resolve this suggestion. Check your connection and try again.',
+              ),
+            },
+          }),
+        );
+      } finally {
+        resolvingSuggestionRef.current = null;
+        setResolvingSuggestionId(null);
+      }
+    },
+    [dispatch, queryClient, t],
   );
 
   useScrollListener(
@@ -190,6 +251,9 @@ export function TransactionList({
               showRunningBalances,
               isReconciling,
               onToggleTransactionCleared,
+              aiSuggestionsByTransactionId,
+              onResolveAiSuggestion,
+              resolvingSuggestionId,
               t,
             ]}
             renderEmptyState={() =>
@@ -241,6 +305,14 @@ export function TransactionList({
                           showRunningBalance={showRunningBalances}
                           runningBalance={runningBalances?.get(transaction.id)}
                           transaction={transaction}
+                          aiSuggestion={aiSuggestionsByTransactionId.get(
+                            transaction.id,
+                          )}
+                          isResolvingAiSuggestion={
+                            resolvingSuggestionId ===
+                            aiSuggestionsByTransactionId.get(transaction.id)?.id
+                          }
+                          onResolveAiSuggestion={onResolveAiSuggestion}
                           isReconciling={isReconciling}
                           onPress={trans => onTransactionPress(trans)}
                           onLongPress={trans => onTransactionPress(trans, true)}

@@ -2323,5 +2323,13 @@
   "Conversations": "Conversas",
   "Choose a conversation": "Escolha uma conversa",
   "Advisor message": "Mensagem para o consultor",
-  "New": "Nova"
+  "New": "Nova",
+  "AI auto-applied": "Aplicada automaticamente pela IA",
+  "AI suggestion approved": "Sugestão da IA aprovada",
+  "AI suggestion pending": "Sugestão da IA pendente",
+  "The AI selected and applied this category automatically.": "A IA selecionou e aplicou esta categoria automaticamente.",
+  "You approved the category originally suggested by the AI.": "Você aprovou a categoria originalmente sugerida pela IA.",
+  "The AI suggested a category and is waiting for your review.": "A IA sugeriu uma categoria e aguarda sua revisão.",
+  "Accept AI suggestion": "Aceitar sugestão da IA",
+  "Reject AI suggestion": "Rejeitar sugestão da IA"
 }

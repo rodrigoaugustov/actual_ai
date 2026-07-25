@@ -4,8 +4,9 @@ import { mergeProps } from 'react-aria';
 import type { ListBoxItemRenderProps } from 'react-aria-components';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
+import { Button, ButtonWithLoading } from '@actual-app/components/button';
 import {
+  SvgDelete,
   SvgLeftArrow2,
   SvgRightArrow2,
   SvgSplit,
@@ -26,6 +27,7 @@ import { integerToCurrency } from '@actual-app/core/shared/util';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type {
   AccountEntity,
+  AiSuggestionIndexEntry,
   TransactionEntity,
 } from '@actual-app/core/types/models';
 import {
@@ -34,6 +36,7 @@ import {
   usePress,
 } from '@react-aria/interactions';
 
+import { AiOriginBadge } from '#components/ai/AiOriginBadge';
 import { makeAmountFullStyle } from '#components/budget/util';
 import {
   installmentDisplayNotes,
@@ -75,6 +78,12 @@ const getScheduleIconStyle = ({ isPreview }: { isPreview: boolean }) => ({
 
 type TransactionListItemProps = ListBoxItemRenderProps & {
   transaction?: TransactionEntity;
+  aiSuggestion?: AiSuggestionIndexEntry;
+  isResolvingAiSuggestion?: boolean;
+  onResolveAiSuggestion?: (
+    suggestion: AiSuggestionIndexEntry,
+    action: 'accept' | 'reject',
+  ) => void;
   showRunningBalance?: boolean;
   runningBalance?: IntegerAmount;
   isReconciling?: boolean;
@@ -91,6 +100,9 @@ export function TransactionListItem({
   onLongPress,
   onToggleCleared,
   transaction,
+  aiSuggestion,
+  isResolvingAiSuggestion = false,
+  onResolveAiSuggestion,
   ...itemProps
 }: TransactionListItemProps) {
   const { t } = useTranslation();
@@ -153,6 +165,15 @@ export function TransactionListItem({
         : null;
 
   const prettyCategory = specialCategory || categoryName;
+  const suggestedCategoryName =
+    aiSuggestion?.status === 'pending' && aiSuggestion.categoryId
+      ? lookupName(categories, aiSuggestion.categoryId)
+      : null;
+  const displayedCategory =
+    suggestedCategoryName && !specialCategory
+      ? t('AI suggests: {{category}}', { category: suggestedCategoryName })
+      : prettyCategory || t('Uncategorized');
+  const hasDisplayedCategory = Boolean(suggestedCategoryName || prettyCategory);
   const textStyle = getTextStyle({ isPreview });
   const displayedNotes = installmentDisplayNotes(
     notes,
@@ -287,27 +308,35 @@ export function TransactionListItem({
                         total={transaction.installment_total}
                       />
                     )}
+                  {aiSuggestion &&
+                    aiSuggestion.status !== 'rejected' &&
+                    !specialCategory && (
+                      <AiOriginBadge status={aiSuggestion.status} />
+                    )}
                   <TextOneLine
                     style={{
                       fontSize: 11,
                       marginLeft:
-                        transaction.installment_num != null &&
-                        transaction.installment_total != null
+                        (transaction.installment_num != null &&
+                          transaction.installment_total != null) ||
+                        (aiSuggestion &&
+                          aiSuggestion.status !== 'rejected' &&
+                          !specialCategory)
                           ? 5
                           : undefined,
                       marginTop: 1,
                       fontWeight: '400',
-                      color: prettyCategory
+                      color: hasDisplayedCategory
                         ? theme.tableText
                         : theme.menuItemTextSelected,
                       fontStyle:
-                        specialCategory || !prettyCategory
+                        specialCategory || !hasDisplayedCategory
                           ? 'italic'
                           : undefined,
                       textAlign: 'left',
                     }}
                   >
-                    {prettyCategory || t('Uncategorized')}
+                    {displayedCategory}
                   </TextOneLine>
                 </View>
               )}
@@ -360,6 +389,13 @@ export function TransactionListItem({
           </View>
         </Button>
       </PressResponder>
+      {!isReconciling && !isPreview && aiSuggestion?.status === 'pending' && (
+        <MobileAiSuggestionActions
+          suggestion={aiSuggestion}
+          isLoading={isResolvingAiSuggestion}
+          onResolve={onResolveAiSuggestion}
+        />
+      )}
       {isReconciling &&
         !isPreview &&
         (isChild ? (
@@ -401,6 +437,59 @@ export function TransactionListItem({
           </Button>
         ))}
     </View>
+  );
+}
+
+type MobileAiSuggestionActionsProps = {
+  suggestion: AiSuggestionIndexEntry;
+  isLoading: boolean;
+  onResolve?: (
+    suggestion: AiSuggestionIndexEntry,
+    action: 'accept' | 'reject',
+  ) => void;
+};
+
+export function MobileAiSuggestionActions({
+  suggestion,
+  isLoading,
+  onResolve,
+}: MobileAiSuggestionActionsProps) {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <ButtonWithLoading
+        variant="bare"
+        aria-label={t('Accept AI suggestion')}
+        style={{
+          width: 40,
+          height: '100%',
+          flexShrink: 0,
+          borderRadius: 0,
+          color: theme.noticeTextLight,
+        }}
+        isDisabled={isLoading}
+        isLoading={isLoading}
+        onPress={() => onResolve?.(suggestion, 'accept')}
+      >
+        <SvgCheckCircle1 style={{ width: 15, height: 15 }} />
+      </ButtonWithLoading>
+      <Button
+        variant="bare"
+        aria-label={t('Reject AI suggestion')}
+        style={{
+          width: 40,
+          height: '100%',
+          flexShrink: 0,
+          borderRadius: 0,
+          color: theme.errorTextMenu,
+        }}
+        isDisabled={isLoading}
+        onPress={() => onResolve?.(suggestion, 'reject')}
+      >
+        <SvgDelete style={{ width: 13, height: 13 }} />
+      </Button>
+    </>
   );
 }
 
