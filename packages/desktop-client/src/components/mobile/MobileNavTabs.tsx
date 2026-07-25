@@ -7,6 +7,7 @@ import { animated, config, useSpring } from 'react-spring';
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import {
   SvgAdd,
+  SvgChatBubbleDots,
   SvgCog,
   SvgCreditCard,
   SvgPiggyBank,
@@ -145,6 +146,12 @@ export function MobileNavTabs() {
           },
         ]
       : []),
+    {
+      name: t('Financial advisor'),
+      path: '/advisor',
+      style: navTabStyle,
+      Icon: SvgChatBubbleDots,
+    },
     {
       name: t('Settings'),
       path: '/settings',
