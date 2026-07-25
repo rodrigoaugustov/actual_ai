@@ -30,6 +30,63 @@ command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
 [[ -f "$SSH_KEY" ]] || { echo "no public key at $SSH_KEY (ssh-keygen -t ed25519)" >&2; exit 1; }
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
+step() { printf '    %s ... ' "$*"; }
+done_() { printf '%s\n' "${1:-ok}"; }
+
+# Every OCI call goes through this. Two things it guarantees:
+#
+#   * stdin is /dev/null, so a call can never block on a hidden prompt. This
+#     script runs unattended for hours; a prompt nobody sees is indistinguishable
+#     from a hang, and that is exactly how the first run of this script stalled.
+#   * stderr is captured and shown on failure instead of being discarded, so a
+#     real error is never silent.
+#
+# Usage:  out="$(oci_ some oci args...)"  — returns non-zero on failure with the
+# CLI's own message on stderr.
+oci_() {
+  local out status
+  out="$(oci "$@" 2>"$OCI_ERR" </dev/null)"
+  status=$?
+  if (( status != 0 )); then
+    printf '\n' >&2
+    printf 'oci %s\n' "$*" >&2
+    cat "$OCI_ERR" >&2
+    return "$status"
+  fi
+  printf '%s' "$out"
+}
+
+OCI_ERR="$(mktemp)"
+trap 'rm -f "$OCI_ERR"' EXIT
+
+# Poll for a lifecycle state ourselves instead of using the CLI's
+# `--wait-for-state`. That flag runs its own polling loop with a progress
+# indicator, which is the one piece of this script that cannot be verified
+# without creating billable resources — and when it misbehaves it looks exactly
+# like a hang. Polling here is explicit, bounded, and prints where it is.
+#
+#   wait_state <desired> <oci get args...>
+wait_state() {
+  local want="$1"; shift
+  local deadline state
+  deadline=$(( $(date +%s) + ${WAIT_TIMEOUT:-900} ))
+  while (( $(date +%s) < deadline )); do
+    state="$(oci "$@" --query 'data."lifecycle-state"' --raw-output 2>/dev/null </dev/null || true)"
+    case "$state" in
+      "$want") return 0 ;;
+      TERMINATING|TERMINATED|FAILED)
+        printf '\n' >&2
+        echo "resource went to $state instead of $want" >&2
+        return 1
+        ;;
+    esac
+    printf '.'
+    sleep 5
+  done
+  printf '\n' >&2
+  echo "timed out waiting for $want (last state: ${state:-unknown})" >&2
+  return 1
+}
 
 # The root compartment is the tenancy itself. Read it from the config `oci setup
 # config` wrote, rather than trying to spot it in a compartment listing.
@@ -53,87 +110,109 @@ echo "    $COMPARTMENT"
 # only ingress opened is SSH, for managing the box.
 
 say "VCN"
-VCN_ID="$(oci network vcn list --compartment-id "$COMPARTMENT" --display-name "$NAME" \
-  --query 'data[0].id' --raw-output 2>/dev/null || true)"
+step "looking for an existing VCN named $NAME"
+VCN_ID="$(oci_ network vcn list --compartment-id "$COMPARTMENT" --display-name "$NAME" \
+  --query 'data[0].id' --raw-output || true)"
 if [[ -z "$VCN_ID" || "$VCN_ID" == "null" ]]; then
-  VCN_ID="$(oci network vcn create --compartment-id "$COMPARTMENT" \
+  done_ "none"
+  step "creating"
+  VCN_ID="$(oci_ network vcn create --compartment-id "$COMPARTMENT" \
     --display-name "$NAME" --cidr-blocks "[\"$VCN_CIDR\"]" \
-    --dns-label "${NAME//-/}" --wait-for-state AVAILABLE \
+    --dns-label "${NAME//-/}" \
     --query 'data.id' --raw-output)"
-  echo "    created $VCN_ID"
+  wait_state AVAILABLE network vcn get --vcn-id "$VCN_ID"
+  done_ "$VCN_ID"
 else
-  echo "    reusing $VCN_ID"
+  done_ "reusing $VCN_ID"
 fi
 
 say "Internet gateway"
-IGW_ID="$(oci network internet-gateway list --compartment-id "$COMPARTMENT" --vcn-id "$VCN_ID" \
-  --query 'data[0].id' --raw-output 2>/dev/null || true)"
+step "looking"
+IGW_ID="$(oci_ network internet-gateway list --compartment-id "$COMPARTMENT" --vcn-id "$VCN_ID" \
+  --query 'data[0].id' --raw-output || true)"
 if [[ -z "$IGW_ID" || "$IGW_ID" == "null" ]]; then
-  IGW_ID="$(oci network internet-gateway create --compartment-id "$COMPARTMENT" \
+  done_ "none"
+  step "creating"
+  IGW_ID="$(oci_ network internet-gateway create --compartment-id "$COMPARTMENT" \
     --vcn-id "$VCN_ID" --is-enabled true --display-name "$NAME" \
-    --wait-for-state AVAILABLE --query 'data.id' --raw-output)"
-  echo "    created $IGW_ID"
+    --query 'data.id' --raw-output)"
+  wait_state AVAILABLE network internet-gateway get --ig-id "$IGW_ID"
+  done_ "$IGW_ID"
 else
-  echo "    reusing $IGW_ID"
+  done_ "reusing $IGW_ID"
 fi
 
 say "Route table"
-RT_ID="$(oci network vcn get --vcn-id "$VCN_ID" --query 'data."default-route-table-id"' --raw-output)"
-oci network route-table update --rt-id "$RT_ID" --force \
+step "default route -> internet gateway"
+RT_ID="$(oci_ network vcn get --vcn-id "$VCN_ID" --query 'data."default-route-table-id"' --raw-output)"
+oci_ network route-table update --rt-id "$RT_ID" --force \
   --route-rules "[{\"destination\":\"0.0.0.0/0\",\"destinationType\":\"CIDR_BLOCK\",\"networkEntityId\":\"$IGW_ID\"}]" \
   >/dev/null
-echo "    default route -> internet gateway"
+done_
 
 say "Security list"
-SL_ID="$(oci network vcn get --vcn-id "$VCN_ID" --query 'data."default-security-list-id"' --raw-output)"
-oci network security-list update --security-list-id "$SL_ID" --force \
+step "egress all, ingress tcp/22 only"
+SL_ID="$(oci_ network vcn get --vcn-id "$VCN_ID" --query 'data."default-security-list-id"' --raw-output)"
+oci_ network security-list update --security-list-id "$SL_ID" --force \
   --egress-security-rules '[{"destination":"0.0.0.0/0","protocol":"all","isStateless":false}]' \
   --ingress-security-rules '[{"source":"0.0.0.0/0","protocol":"6","isStateless":false,"tcpOptions":{"destinationPortRange":{"min":22,"max":22}}}]' \
   >/dev/null
-echo "    egress all, ingress tcp/22 only"
+done_
 
 say "Subnet"
-SUBNET_ID="$(oci network subnet list --compartment-id "$COMPARTMENT" --vcn-id "$VCN_ID" \
-  --display-name "$NAME" --query 'data[0].id' --raw-output 2>/dev/null || true)"
+step "looking"
+SUBNET_ID="$(oci_ network subnet list --compartment-id "$COMPARTMENT" --vcn-id "$VCN_ID" \
+  --display-name "$NAME" --query 'data[0].id' --raw-output || true)"
 if [[ -z "$SUBNET_ID" || "$SUBNET_ID" == "null" ]]; then
-  SUBNET_ID="$(oci network subnet create --compartment-id "$COMPARTMENT" --vcn-id "$VCN_ID" \
+  done_ "none"
+  step "creating"
+  SUBNET_ID="$(oci_ network subnet create --compartment-id "$COMPARTMENT" --vcn-id "$VCN_ID" \
     --display-name "$NAME" --cidr-block "$SUBNET_CIDR" \
-    --prohibit-public-ip-on-vnic false --wait-for-state AVAILABLE \
+    --prohibit-public-ip-on-vnic false \
     --query 'data.id' --raw-output)"
-  echo "    created $SUBNET_ID"
+  wait_state AVAILABLE network subnet get --subnet-id "$SUBNET_ID"
+  done_ "$SUBNET_ID"
 else
-  echo "    reusing $SUBNET_ID"
+  done_ "reusing $SUBNET_ID"
 fi
 
 # --- instance ---------------------------------------------------------------
 
 say "Existing instance?"
-INSTANCE_ID="$(oci compute instance list --compartment-id "$COMPARTMENT" --display-name "$NAME" \
-  --lifecycle-state RUNNING --query 'data[0].id' --raw-output 2>/dev/null || true)"
+step "looking"
+INSTANCE_ID="$(oci_ compute instance list --compartment-id "$COMPARTMENT" --display-name "$NAME" \
+  --lifecycle-state RUNNING --query 'data[0].id' --raw-output || true)"
 
 if [[ -n "$INSTANCE_ID" && "$INSTANCE_ID" != "null" ]]; then
-  echo "    already running: $INSTANCE_ID"
+  done_ "already running: $INSTANCE_ID"
 else
+  done_ "none"
+
   say "Ubuntu 24.04 aarch64 image"
-  IMAGE_ID="$(oci compute image list --compartment-id "$COMPARTMENT" \
+  step "resolving"
+  IMAGE_ID="$(oci_ compute image list --compartment-id "$COMPARTMENT" \
     --operating-system 'Canonical Ubuntu' --operating-system-version '24.04' \
     --shape "$SHAPE" --sort-by TIMECREATED --sort-order DESC \
     --query 'data[0].id' --raw-output)"
   [[ -n "$IMAGE_ID" && "$IMAGE_ID" != "null" ]] || { echo "no matching image" >&2; exit 1; }
-  echo "    $IMAGE_ID"
+  done_ "$IMAGE_ID"
 
-  mapfile -t ADS < <(oci iam availability-domain list --compartment-id "$COMPARTMENT" \
+  step "availability domains"
+  mapfile -t ADS < <(oci_ iam availability-domain list --compartment-id "$COMPARTMENT" \
     --query 'data[].name' --raw-output | jq -r '.[]')
-  say "Launching (${#ADS[@]} availability domains, retrying on OutOfHostCapacity)"
+  (( ${#ADS[@]} > 0 )) || { echo "no availability domains returned" >&2; exit 1; }
+  done_ "${#ADS[@]}"
+
+  say "Launching (retrying on OutOfHostCapacity — this can take hours)"
 
   METADATA="$(jq -n --arg k "$(cat "$SSH_KEY")" '{ssh_authorized_keys: $k}')"
-  ERR="$(mktemp)"
-  trap 'rm -f "$ERR"' EXIT
   attempt=0
   while (( attempt < MAX_ATTEMPTS )); do
     for ad in "${ADS[@]}"; do
       attempt=$(( attempt + 1 ))
-      printf '    [%3d] %s ... ' "$attempt" "$ad"
+      printf '    [%3d] %s %s ... ' "$attempt" "$(date +%H:%M:%S)" "$ad"
+      # Not via oci_: a failure here is the expected case, and the error text is
+      # inspected rather than printed.
       if INSTANCE_ID="$(oci compute instance launch \
             --availability-domain "$ad" \
             --compartment-id "$COMPARTMENT" \
@@ -145,17 +224,20 @@ else
             --boot-volume-size-in-gbs "$BOOT_GB" \
             --display-name "$NAME" \
             --metadata "$METADATA" \
-            --wait-for-state RUNNING \
-            --query 'data.id' --raw-output 2>"$ERR")"; then
-        echo "launched"
+            --query 'data.id' --raw-output 2>"$OCI_ERR" </dev/null)"; then
+        # OutOfHostCapacity comes back synchronously from launch, so reaching
+        # here means the request was accepted and the instance is provisioning.
+        printf 'accepted, provisioning '
+        wait_state RUNNING compute instance get --instance-id "$INSTANCE_ID" || exit 1
+        echo " running"
         break 2
       fi
       # Only capacity errors are worth retrying. A quota, permission or bad
       # image error would otherwise loop silently for hours.
-      if ! grep --quiet --ignore-case 'out of host capacity\|outofhostcapacity' "$ERR"; then
+      if ! grep --quiet --ignore-case 'out of host capacity\|outofhostcapacity' "$OCI_ERR"; then
         echo "error"
         printf '\n' >&2
-        cat "$ERR" >&2
+        cat "$OCI_ERR" >&2
         echo "Not a capacity problem — stopping." >&2
         exit 1
       fi
@@ -169,10 +251,11 @@ else
 fi
 
 say "Public IP"
-VNIC_ID="$(oci compute instance list-vnics --instance-id "$INSTANCE_ID" \
+step "resolving"
+VNIC_ID="$(oci_ compute instance list-vnics --instance-id "$INSTANCE_ID" \
   --query 'data[0].id' --raw-output)"
-PUBLIC_IP="$(oci network vnic get --vnic-id "$VNIC_ID" --query 'data."public-ip"' --raw-output)"
-echo "    $PUBLIC_IP"
+PUBLIC_IP="$(oci_ network vnic get --vnic-id "$VNIC_ID" --query 'data."public-ip"' --raw-output)"
+done_ "$PUBLIC_IP"
 
 cat <<EOF
 
