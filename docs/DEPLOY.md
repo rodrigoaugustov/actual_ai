@@ -69,7 +69,7 @@ Você já tem `gh`, `docker`, `node` e `ssh`. Faltam `oci`, `jq`, `age` e uma
 chave SSH.
 
 ```bash
-winget install --id Oracle.OCICLI --accept-package-agreements
+winget install --id Oracle.OCI-CLI --accept-package-agreements
 winget install --id jqlang.jq --accept-package-agreements
 winget install --id FiloSottile.age --accept-package-agreements
 ```

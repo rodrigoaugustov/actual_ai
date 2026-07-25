@@ -97,5 +97,8 @@ Run all yarn commands from the repo root.
 
 ## Fallback without docker
 
-Commit only the test file; CI generates the snapshots when someone comments
-`/update-vrt` on the PR (`.github/workflows/vrt-update-generate.yml`).
+There isn't one on this fork. Upstream generates snapshots in CI when someone
+comments `/update-vrt` on a PR, but that workflow was removed here along with
+the rest of the upstream CI (it targeted `depot-*` runners that this fork has no
+access to). Snapshots must be generated locally in the docker image, which is
+the only environment whose rendering CI would have matched anyway.
