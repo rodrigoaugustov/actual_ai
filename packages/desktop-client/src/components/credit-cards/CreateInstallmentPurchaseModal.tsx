@@ -3,6 +3,7 @@ import { Form } from 'react-aria-components';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { InlineField } from '@actual-app/components/inline-field';
 import { Input } from '@actual-app/components/input';
 import { Text } from '@actual-app/components/text';
@@ -30,6 +31,8 @@ import {
 import { DateSelect } from '#components/select/DateSelect';
 import { useCategories } from '#hooks/useCategories';
 import { useDateFormat } from '#hooks/useDateFormat';
+import { addNotification } from '#notifications/notificationsSlice';
+import { useDispatch } from '#redux';
 
 const MIN_INSTALLMENTS = 2;
 const MAX_INSTALLMENTS = 36;
@@ -42,10 +45,14 @@ export function CreateInstallmentPurchaseModal({
   account,
 }: CreateInstallmentPurchaseModalProps) {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const queryClient = useQueryClient();
-  const { data: { grouped: categoryGroups } = { grouped: [] } } =
-    useCategories();
+  const {
+    data: { grouped: categoryGroups } = { grouped: [] },
+    isError: isCategoriesError,
+    isLoading: isCategoriesLoading,
+  } = useCategories();
 
   const [payeeId, setPayeeId] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -67,7 +74,7 @@ export function CreateInstallmentPurchaseModal({
     : [];
 
   const onSave = async (close: () => void) => {
-    if (!isValid) {
+    if (isSaving || !isValid) {
       return;
     }
     setIsSaving(true);
@@ -82,6 +89,17 @@ export function CreateInstallmentPurchaseModal({
       });
       await queryClient.invalidateQueries();
       close();
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not create the installment purchase. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -112,13 +130,23 @@ export function CreateInstallmentPurchaseModal({
               </InlineField>
 
               <InlineField label={t('Category')} width="100%">
-                <CategoryAutocomplete
-                  categoryGroups={categoryGroups}
-                  value={null}
-                  openOnFocus
-                  onSelect={id => setCategoryId(id ?? null)}
-                  inputProps={{ placeholder: t('(none)') }}
-                />
+                {isCategoriesLoading ? (
+                  <View style={{ alignItems: 'center', padding: 10 }}>
+                    <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+                  </View>
+                ) : isCategoriesError ? (
+                  <Text style={{ color: theme.errorText }}>
+                    <Trans>Could not load categories.</Trans>
+                  </Text>
+                ) : (
+                  <CategoryAutocomplete
+                    categoryGroups={categoryGroups}
+                    value={null}
+                    openOnFocus
+                    onSelect={id => setCategoryId(id ?? null)}
+                    inputProps={{ placeholder: t('(none)') }}
+                  />
+                )}
               </InlineField>
 
               <InlineField label={t('Total amount')} width="100%">

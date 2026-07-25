@@ -1,6 +1,7 @@
 import { ErrorBoundary } from 'react-error-boundary';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -14,7 +15,11 @@ import { SuggestionsInbox } from './SuggestionsInbox';
 
 function PendingCountBanner() {
   const { t } = useTranslation();
-  const { data: suggestions = [] } = useQuery({
+  const {
+    data: suggestions = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['ai-suggestions'],
     queryFn: () => send('ai/get-suggestions'),
   });
@@ -35,13 +40,21 @@ function PendingCountBanner() {
         marginBottom: 12,
       }}
     >
-      <Text style={{ fontWeight: 600 }}>
-        {suggestions.length > 0
-          ? t('{{count}} categorization(s) awaiting your review.', {
-              count: suggestions.length,
-            })
-          : t('No pending categorizations right now.')}
-      </Text>
+      {isLoading ? (
+        <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+      ) : isError ? (
+        <Text style={{ fontWeight: 600 }}>
+          <Trans>Could not load pending AI categorizations.</Trans>
+        </Text>
+      ) : (
+        <Text style={{ fontWeight: 600 }}>
+          {suggestions.length > 0
+            ? t('{{count}} categorization(s) awaiting your review.', {
+                count: suggestions.length,
+              })
+            : t('No pending categorizations right now.')}
+        </Text>
+      )}
     </View>
   );
 }

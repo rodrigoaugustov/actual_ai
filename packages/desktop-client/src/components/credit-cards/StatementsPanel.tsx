@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
+import { Button, ButtonWithLoading } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import {
   SvgArrowThinLeft,
   SvgArrowThinRight,
@@ -22,6 +23,7 @@ import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
 import { pushModal } from '#modals/modalsSlice';
+import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
 const SCROLL_AMOUNT = 380;
@@ -45,8 +47,15 @@ export function StatementsPanel({
   const dispatch = useDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const [updatingStatementId, setUpdatingStatementId] = useState<string | null>(
+    null,
+  );
 
-  const { data: statements = [] } = useQuery({
+  const {
+    data: statements = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['credit-card-statements', account.id],
     queryFn: () =>
       send('credit-card/get-statements', { accountId: account.id }),
@@ -118,11 +127,31 @@ export function StatementsPanel({
   };
 
   const onTogglePaid = async (statement: StatementWithDerived) => {
+    if (updatingStatementId != null) {
+      return;
+    }
+
     if (statement.status === 'paid') {
-      await send('credit-card/unmark-statement-paid', { id: statement.id });
-      await queryClient.invalidateQueries({
-        queryKey: ['credit-card-statements', account.id],
-      });
+      setUpdatingStatementId(statement.id);
+      try {
+        await send('credit-card/unmark-statement-paid', { id: statement.id });
+        await queryClient.invalidateQueries({
+          queryKey: ['credit-card-statements', account.id],
+        });
+      } catch {
+        dispatch(
+          addNotification({
+            notification: {
+              type: 'error',
+              message: t(
+                'Could not unmark this statement as paid. Check your connection and try again.',
+              ),
+            },
+          }),
+        );
+      } finally {
+        setUpdatingStatementId(null);
+      }
     } else {
       dispatch(
         pushModal({
@@ -171,11 +200,17 @@ export function StatementsPanel({
         </Button>
       )}
 
-      {visible.length === 0 && (
+      {isLoading ? (
+        <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+      ) : isError ? (
+        <Text style={{ color: theme.errorText, fontSize: '0.85em' }}>
+          <Trans>Could not load credit card statements.</Trans>
+        </Text>
+      ) : visible.length === 0 ? (
         <Text style={{ color: theme.pageTextSubdued, fontSize: '0.85em' }}>
           <Trans>No statements yet.</Trans>
         </Text>
-      )}
+      ) : null}
 
       <View
         ref={scrollRef}
@@ -243,9 +278,11 @@ export function StatementsPanel({
                 </FinancialText>
               </PrivacyFilter>
               {statement.status !== 'open' && (
-                <Button
+                <ButtonWithLoading
                   variant="bare"
                   style={{ fontSize: '0.8em' }}
+                  isLoading={updatingStatementId === statement.id}
+                  isDisabled={updatingStatementId != null}
                   onPress={() => onTogglePaid(statement)}
                 >
                   {statement.status === 'paid' ? (
@@ -253,7 +290,7 @@ export function StatementsPanel({
                   ) : (
                     <Trans>Mark paid</Trans>
                   )}
-                </Button>
+                </ButtonWithLoading>
               )}
             </View>
           </View>

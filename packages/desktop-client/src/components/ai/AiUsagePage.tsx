@@ -1,6 +1,7 @@
 import { ErrorBoundary } from 'react-error-boundary';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -103,7 +104,11 @@ function RunRow({ run }: { run: AiRunEntity }) {
 
 export function AiUsagePage() {
   const { t } = useTranslation();
-  const { data: runs = [] } = useQuery({
+  const {
+    data: runs = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['ai-runs'],
     queryFn: () => send('ai/get-runs'),
   });
@@ -118,48 +123,60 @@ export function AiUsagePage() {
             actually worth what it costs.
           </Trans>
         </Text>
-        <SummaryBar runs={runs} />
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: 8,
-            padding: '4px 0',
-            borderBottom: '2px solid ' + theme.pillBorderDark,
-          }}
-        >
-          <Text style={{ ...HEADER_STYLE, width: 140 }}>
-            <Trans>When</Trans>
+        {isLoading ? (
+          <View style={{ alignItems: 'center', padding: 20 }}>
+            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+          </View>
+        ) : isError ? (
+          <Text style={{ color: theme.errorText }}>
+            <Trans>Could not load AI usage.</Trans>
           </Text>
-          <Text style={{ ...HEADER_STYLE, width: 110 }}>
-            <Trans>Agent</Trans>
-          </Text>
-          <Text style={{ ...HEADER_STYLE, width: 90 }}>
-            <Trans>Tier</Trans>
-          </Text>
-          <Text style={{ ...HEADER_STYLE, width: 180 }}>
-            <Trans>Provider · model</Trans>
-          </Text>
-          <Text style={{ ...HEADER_STYLE, width: 110, textAlign: 'right' }}>
-            <Trans>Tokens in → out</Trans>
-          </Text>
-          <Text style={{ ...HEADER_STYLE, width: 90, textAlign: 'right' }}>
-            <Trans>Cost</Trans>
-          </Text>
-          <Text style={{ ...HEADER_STYLE, width: 80, textAlign: 'right' }}>
-            <Trans>Duration</Trans>
-          </Text>
-          <Text style={{ ...HEADER_STYLE, width: 70 }}>
-            <Trans>Status</Trans>
-          </Text>
-        </View>
-        {runs.length === 0 && (
-          <Text style={{ color: theme.pageTextSubdued, marginTop: 8 }}>
-            <Trans>No AI calls recorded yet.</Trans>
-          </Text>
+        ) : (
+          <>
+            <SummaryBar runs={runs} />
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 8,
+                padding: '4px 0',
+                borderBottom: '2px solid ' + theme.pillBorderDark,
+              }}
+            >
+              <Text style={{ ...HEADER_STYLE, width: 140 }}>
+                <Trans>When</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 110 }}>
+                <Trans>Agent</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 90 }}>
+                <Trans>Tier</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 180 }}>
+                <Trans>Provider · model</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 110, textAlign: 'right' }}>
+                <Trans>Tokens in → out</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 90, textAlign: 'right' }}>
+                <Trans>Cost</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 80, textAlign: 'right' }}>
+                <Trans>Duration</Trans>
+              </Text>
+              <Text style={{ ...HEADER_STYLE, width: 70 }}>
+                <Trans>Status</Trans>
+              </Text>
+            </View>
+            {runs.length === 0 && (
+              <Text style={{ color: theme.pageTextSubdued, marginTop: 8 }}>
+                <Trans>No AI calls recorded yet.</Trans>
+              </Text>
+            )}
+            {runs.map(run => (
+              <RunRow key={run.id} run={run} />
+            ))}
+          </>
         )}
-        {runs.map(run => (
-          <RunRow key={run.id} run={run} />
-        ))}
       </Page>
     </ErrorBoundary>
   );

@@ -112,6 +112,10 @@ export function RuleHealthPanel() {
   const categoriesById = data?.list;
 
   const onAuditNow = async () => {
+    if (isAuditing) {
+      return;
+    }
+
     setIsAuditing(true);
     try {
       const result = await send('ai/audit-rules');
@@ -159,7 +163,11 @@ export function RuleHealthPanel() {
         <Text style={{ fontWeight: 600 }}>
           <Trans>Mined rule health</Trans>
         </Text>
-        <ButtonWithLoading isLoading={isAuditing} onPress={onAuditNow}>
+        <ButtonWithLoading
+          isDisabled={isAuditing}
+          isLoading={isAuditing}
+          onPress={onAuditNow}
+        >
           <Trans>Audit now</Trans>
         </ButtonWithLoading>
       </View>

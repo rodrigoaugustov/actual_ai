@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button, ButtonWithLoading } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
@@ -23,13 +24,41 @@ const SUGGESTIONS_QUERY_KEY = ['ai-suggestions'];
 
 export function SuggestionsInbox() {
   const { t } = useTranslation();
-  const { data: suggestions = [] } = useQuery({
+  const {
+    data: suggestions = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: SUGGESTIONS_QUERY_KEY,
     queryFn: () => send('ai/get-suggestions'),
   });
 
+  if (isLoading) {
+    return (
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <Text style={{ color: theme.errorText }}>
+          <Trans>Could not load pending AI categorizations.</Trans>
+        </Text>
+      </View>
+    );
+  }
+
   if (suggestions.length === 0) {
-    return null;
+    return (
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <Text style={{ color: theme.pageTextSubdued }}>
+          <Trans>No AI categorizations awaiting review right now.</Trans>
+        </Text>
+      </View>
+    );
   }
 
   // Column set/widths mirror the uncategorized register (Account/Payee/
@@ -82,6 +111,10 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
     );
 
   const onAccept = async () => {
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       await send('ai/resolve-suggestion', {
@@ -97,6 +130,10 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
   };
 
   const onReject = async () => {
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       await send('ai/resolve-suggestion', {
@@ -156,10 +193,14 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
         truncate={false}
         contentStyle={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}
       >
-        <ButtonWithLoading isLoading={isLoading} onPress={onAccept}>
+        <ButtonWithLoading
+          isDisabled={isLoading}
+          isLoading={isLoading}
+          onPress={onAccept}
+        >
           <Trans>Accept</Trans>
         </ButtonWithLoading>
-        <Button onPress={() => void onReject()}>
+        <Button isDisabled={isLoading} onPress={() => void onReject()}>
           <Trans>Reject</Trans>
         </Button>
       </Field>

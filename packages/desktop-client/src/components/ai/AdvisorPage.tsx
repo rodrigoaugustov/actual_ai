@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Input } from '@actual-app/components/input';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -20,6 +21,8 @@ import { css } from '@emotion/css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Page } from '#components/Page';
+import { addNotification } from '#notifications/notificationsSlice';
+import { useDispatch } from '#redux';
 
 import { AdvisorMessage } from './AdvisorMessage';
 
@@ -31,35 +34,113 @@ const panel = {
   gap: 8,
 };
 
+function useAdvisorMutation() {
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
+  const pendingRef = useRef(false);
+  const [isPending, setIsPending] = useState(false);
+
+  const run = async (
+    action: () => Promise<void>,
+    onError?: () => void,
+  ): Promise<void> => {
+    if (pendingRef.current) {
+      return;
+    }
+
+    pendingRef.current = true;
+    setIsPending(true);
+    try {
+      await action();
+    } catch {
+      onError?.();
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not complete this advisor action. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
+    } finally {
+      pendingRef.current = false;
+      setIsPending(false);
+    }
+  };
+
+  return { isPending, run };
+}
+
+function LoadingIndicator() {
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 0',
+      }}
+    >
+      <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+    </View>
+  );
+}
+
+function LoadingError() {
+  return (
+    <Text style={{ color: theme.errorText }}>
+      <Trans>
+        Could not load this advisor data. Check your connection and try again.
+      </Trans>
+    </Text>
+  );
+}
+
 function Profile({
   memories,
   refresh,
+  isLoading,
+  isError,
 }: {
   memories: AiMemoryFactEntity[];
   refresh: () => void;
+  isLoading: boolean;
+  isError: boolean;
 }) {
   const { t } = useTranslation();
   const [kind, setKind] = useState('');
   const [value, setValue] = useState('');
   const [isSensitive, setIsSensitive] = useState(false);
+  const mutation = useAdvisorMutation();
   const candidates = memories.filter(item => item.status === 'candidate');
   const confirmed = memories.filter(item => item.status === 'confirmed');
   const resolve = async (id: string, action: 'confirm' | 'reject') => {
-    await send('ai/advisor/resolve-memory', { id, action });
-    refresh();
+    await mutation.run(async () => {
+      await send('ai/advisor/resolve-memory', { id, action });
+      refresh();
+    });
   };
   const add = async () => {
     if (!kind.trim() || !value.trim()) return;
-    await send('ai/advisor/create-memory', {
-      kind: kind.trim(),
-      value: value.trim(),
-      originalText: value.trim(),
-      sensitivity: isSensitive ? 'sensitive' : 'normal',
+    await mutation.run(async () => {
+      await send('ai/advisor/create-memory', {
+        kind: kind.trim(),
+        value: value.trim(),
+        originalText: value.trim(),
+        sensitivity: isSensitive ? 'sensitive' : 'normal',
+      });
+      setKind('');
+      setValue('');
+      setIsSensitive(false);
+      refresh();
     });
-    setKind('');
-    setValue('');
-    setIsSensitive(false);
-    refresh();
+  };
+  const remove = async (id: string) => {
+    await mutation.run(async () => {
+      await send('ai/advisor/delete-memory', { id });
+      refresh();
+    });
   };
   return (
     <View style={{ gap: 16 }}>
@@ -73,38 +154,52 @@ function Profile({
             your confirmation.
           </Trans>
         </Text>
-        {candidates.length === 0 && (
-          <Text>
-            <Trans>No pending memories.</Trans>
-          </Text>
-        )}
-        {candidates.map(item => (
-          <View key={item.id} style={panel}>
-            <Text style={{ fontWeight: 600 }}>{item.kind}</Text>
-            {item.sensitivity === 'sensitive' && (
-              <Text style={{ color: theme.pageTextSubdued }}>
-                <Trans>Sensitive — excluded from AI prompts by default</Trans>
+        {isLoading ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError />
+        ) : (
+          <>
+            {candidates.length === 0 && (
+              <Text>
+                <Trans>No pending memories.</Trans>
               </Text>
             )}
-            <Text>
-              {typeof item.value === 'string'
-                ? item.value
-                : JSON.stringify(item.value)}
-            </Text>
-            {item.originalText && <Text>"{item.originalText}"</Text>}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button
-                variant="primary"
-                onPress={() => resolve(item.id, 'confirm')}
-              >
-                <Trans>Confirm</Trans>
-              </Button>
-              <Button onPress={() => resolve(item.id, 'reject')}>
-                <Trans>Reject</Trans>
-              </Button>
-            </View>
-          </View>
-        ))}
+            {candidates.map(item => (
+              <View key={item.id} style={panel}>
+                <Text style={{ fontWeight: 600 }}>{item.kind}</Text>
+                {item.sensitivity === 'sensitive' && (
+                  <Text style={{ color: theme.pageTextSubdued }}>
+                    <Trans>
+                      Sensitive — excluded from AI prompts by default
+                    </Trans>
+                  </Text>
+                )}
+                <Text>
+                  {typeof item.value === 'string'
+                    ? item.value
+                    : JSON.stringify(item.value)}
+                </Text>
+                {item.originalText && <Text>"{item.originalText}"</Text>}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Button
+                    variant="primary"
+                    isDisabled={mutation.isPending}
+                    onPress={() => resolve(item.id, 'confirm')}
+                  >
+                    <Trans>Confirm</Trans>
+                  </Button>
+                  <Button
+                    isDisabled={mutation.isPending}
+                    onPress={() => resolve(item.id, 'reject')}
+                  >
+                    <Trans>Reject</Trans>
+                  </Button>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
       </View>
       <View style={panel}>
         <Text style={{ fontWeight: 600 }}>
@@ -130,7 +225,7 @@ function Profile({
           onChangeValue={setValue}
           placeholder={t('What should the advisor remember?')}
         />
-        <Button variant="primary" onPress={add}>
+        <Button variant="primary" isDisabled={mutation.isPending} onPress={add}>
           <Trans>Add for confirmation</Trans>
         </Button>
       </View>
@@ -138,30 +233,34 @@ function Profile({
         <Text style={{ fontWeight: 600 }}>
           <Trans>Confirmed profile</Trans>
         </Text>
-        {confirmed.map(item => (
-          <View key={item.id} style={{ padding: 8 }}>
-            <Text style={{ fontWeight: 600 }}>{item.kind}</Text>
-            {item.sensitivity === 'sensitive' && (
-              <Text style={{ color: theme.pageTextSubdued }}>
-                <Trans>Sensitive — excluded from AI prompts by default</Trans>
+        {isLoading ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError />
+        ) : (
+          confirmed.map(item => (
+            <View key={item.id} style={{ padding: 8 }}>
+              <Text style={{ fontWeight: 600 }}>{item.kind}</Text>
+              {item.sensitivity === 'sensitive' && (
+                <Text style={{ color: theme.pageTextSubdued }}>
+                  <Trans>Sensitive — excluded from AI prompts by default</Trans>
+                </Text>
+              )}
+              <Text>
+                {typeof item.value === 'string'
+                  ? item.value
+                  : JSON.stringify(item.value)}
               </Text>
-            )}
-            <Text>
-              {typeof item.value === 'string'
-                ? item.value
-                : JSON.stringify(item.value)}
-            </Text>
-            <Button
-              variant="bare"
-              onPress={async () => {
-                await send('ai/advisor/delete-memory', { id: item.id });
-                refresh();
-              }}
-            >
-              <Trans>Delete</Trans>
-            </Button>
-          </View>
-        ))}
+              <Button
+                variant="bare"
+                isDisabled={mutation.isPending}
+                onPress={() => remove(item.id)}
+              >
+                <Trans>Delete</Trans>
+              </Button>
+            </View>
+          ))
+        )}
       </View>
     </View>
   );
@@ -170,22 +269,35 @@ function Profile({
 function Goals({
   goals,
   refresh,
+  isLoading,
+  isError,
 }: {
   goals: AiGoalEntity[];
   refresh: () => void;
+  isLoading: boolean;
+  isError: boolean;
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const mutation = useAdvisorMutation();
   const add = async () => {
     if (!title.trim() || !description.trim()) return;
-    await send('ai/advisor/create-goal', {
-      title: title.trim(),
-      description: description.trim(),
+    await mutation.run(async () => {
+      await send('ai/advisor/create-goal', {
+        title: title.trim(),
+        description: description.trim(),
+      });
+      setTitle('');
+      setDescription('');
+      refresh();
     });
-    setTitle('');
-    setDescription('');
-    refresh();
+  };
+  const remove = async (id: string) => {
+    await mutation.run(async () => {
+      await send('ai/advisor/delete-goal', { id });
+      refresh();
+    });
   };
   return (
     <View style={{ gap: 12 }}>
@@ -199,28 +311,32 @@ function Goals({
           onChangeValue={setDescription}
           placeholder={t('Desired outcome, deadline and constraints')}
         />
-        <Button variant="primary" onPress={add}>
+        <Button variant="primary" isDisabled={mutation.isPending} onPress={add}>
           <Trans>Add goal</Trans>
         </Button>
       </View>
-      {goals.map(goal => (
-        <View key={goal.id} style={panel}>
-          <Text style={{ fontWeight: 600 }}>{goal.title}</Text>
-          <Text>{goal.description}</Text>
-          <Text style={{ color: theme.pageTextSubdued }}>
-            {t('Priority {{priority}} · {{status}}', goal)}
-          </Text>
-          <Button
-            variant="bare"
-            onPress={async () => {
-              await send('ai/advisor/delete-goal', { id: goal.id });
-              refresh();
-            }}
-          >
-            <Trans>Delete</Trans>
-          </Button>
-        </View>
-      ))}
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError />
+      ) : (
+        goals.map(goal => (
+          <View key={goal.id} style={panel}>
+            <Text style={{ fontWeight: 600 }}>{goal.title}</Text>
+            <Text>{goal.description}</Text>
+            <Text style={{ color: theme.pageTextSubdued }}>
+              {t('Priority {{priority}} · {{status}}', goal)}
+            </Text>
+            <Button
+              variant="bare"
+              isDisabled={mutation.isPending}
+              onPress={() => remove(goal.id)}
+            >
+              <Trans>Delete</Trans>
+            </Button>
+          </View>
+        ))
+      )}
     </View>
   );
 }
@@ -228,23 +344,36 @@ function Goals({
 function Documents({
   documents,
   refresh,
+  isLoading,
+  isError,
 }: {
   documents: AiDocumentEntity[];
   refresh: () => void;
+  isLoading: boolean;
+  isError: boolean;
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const mutation = useAdvisorMutation();
   const add = async () => {
     if (!title.trim() || !content.trim()) return;
-    await send('ai/advisor/create-document', {
-      title: title.trim(),
-      kind: 'user-note',
-      content: content.trim(),
+    await mutation.run(async () => {
+      await send('ai/advisor/create-document', {
+        title: title.trim(),
+        kind: 'user-note',
+        content: content.trim(),
+      });
+      setTitle('');
+      setContent('');
+      refresh();
     });
-    setTitle('');
-    setContent('');
-    refresh();
+  };
+  const remove = async (id: string) => {
+    await mutation.run(async () => {
+      await send('ai/advisor/delete-document', { id });
+      refresh();
+    });
   };
   return (
     <View style={{ gap: 12 }}>
@@ -272,26 +401,32 @@ function Documents({
             'Paste a policy, benefit description or planning note.',
           )}
         />
-        <Button variant="primary" onPress={add}>
+        <Button variant="primary" isDisabled={mutation.isPending} onPress={add}>
           <Trans>Save document</Trans>
         </Button>
       </View>
-      {documents.map(document => (
-        <View key={document.id} style={panel}>
-          <Text style={{ fontWeight: 600 }}>{document.title}</Text>
-          <Text style={{ color: theme.pageTextSubdued }}>{document.kind}</Text>
-          <Text>{document.content.slice(0, 300)}</Text>
-          <Button
-            variant="bare"
-            onPress={async () => {
-              await send('ai/advisor/delete-document', { id: document.id });
-              refresh();
-            }}
-          >
-            <Trans>Delete</Trans>
-          </Button>
-        </View>
-      ))}
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError />
+      ) : (
+        documents.map(document => (
+          <View key={document.id} style={panel}>
+            <Text style={{ fontWeight: 600 }}>{document.title}</Text>
+            <Text style={{ color: theme.pageTextSubdued }}>
+              {document.kind}
+            </Text>
+            <Text>{document.content.slice(0, 300)}</Text>
+            <Button
+              variant="bare"
+              isDisabled={mutation.isPending}
+              onPress={() => remove(document.id)}
+            >
+              <Trans>Delete</Trans>
+            </Button>
+          </View>
+        ))
+      )}
     </View>
   );
 }
@@ -299,56 +434,86 @@ function Documents({
 function Plan({
   advice,
   refresh,
+  isLoading,
+  isError,
 }: {
   advice: AiAdviceRecordEntity[];
   refresh: () => void;
+  isLoading: boolean;
+  isError: boolean;
 }) {
+  const mutation = useAdvisorMutation();
   const update = async (
     id: string,
     status: 'accepted' | 'rejected' | 'completed',
   ) => {
-    await send('ai/advisor/update-advice', { id, status });
-    refresh();
+    await mutation.run(async () => {
+      await send('ai/advisor/update-advice', { id, status });
+      refresh();
+    });
   };
   return (
     <View style={{ gap: 12 }}>
-      {advice.length === 0 && (
-        <Text>
-          <Trans>Recommendations proposed in conversations appear here.</Trans>
-        </Text>
-      )}
-      {advice.map(item => (
-        <View key={item.id} style={panel}>
-          <Text style={{ fontWeight: 600 }}>{item.title}</Text>
-          <Text>{item.recommendation}</Text>
-          <Text style={{ color: theme.pageTextSubdued }}>{item.status}</Text>
-          {item.status === 'proposed' && (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button
-                variant="primary"
-                onPress={() => update(item.id, 'accepted')}
-              >
-                <Trans>Accept plan</Trans>
-              </Button>
-              <Button onPress={() => update(item.id, 'rejected')}>
-                <Trans>Reject</Trans>
-              </Button>
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError />
+      ) : (
+        <>
+          {advice.length === 0 && (
+            <Text>
+              <Trans>
+                Recommendations proposed in conversations appear here.
+              </Trans>
+            </Text>
+          )}
+          {advice.map(item => (
+            <View key={item.id} style={panel}>
+              <Text style={{ fontWeight: 600 }}>{item.title}</Text>
+              <Text>{item.recommendation}</Text>
+              <Text style={{ color: theme.pageTextSubdued }}>
+                {item.status}
+              </Text>
+              {item.status === 'proposed' && (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Button
+                    variant="primary"
+                    isDisabled={mutation.isPending}
+                    onPress={() => update(item.id, 'accepted')}
+                  >
+                    <Trans>Accept plan</Trans>
+                  </Button>
+                  <Button
+                    isDisabled={mutation.isPending}
+                    onPress={() => update(item.id, 'rejected')}
+                  >
+                    <Trans>Reject</Trans>
+                  </Button>
+                </View>
+              )}
+              {item.status === 'accepted' && (
+                <Button
+                  isDisabled={mutation.isPending}
+                  onPress={() => update(item.id, 'completed')}
+                >
+                  <Trans>Mark completed</Trans>
+                </Button>
+              )}
             </View>
-          )}
-          {item.status === 'accepted' && (
-            <Button onPress={() => update(item.id, 'completed')}>
-              <Trans>Mark completed</Trans>
-            </Button>
-          )}
-        </View>
-      ))}
+          ))}
+        </>
+      )}
     </View>
   );
 }
 
 export function AdvisorPage() {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const client = useQueryClient();
+  const conversationMutation = useAdvisorMutation();
+  const submitMutation = useAdvisorMutation();
+  const cancelMutation = useAdvisorMutation();
   const [tab, setTab] = useState<Tab>('conversation');
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -356,7 +521,9 @@ export function AdvisorPage() {
   const [liveTrace, setLiveTrace] = useState<AiTracePart[]>([]);
   const [runId, setRunId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [isCreatingInitial, setIsCreatingInitial] = useState(false);
   const createdInitial = useRef(false);
+  const runFailed = useRef(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   const conversations = useQuery({
     queryKey: ['advisor-conversations'],
@@ -399,12 +566,38 @@ export function AdvisorPage() {
       !createdInitial.current
     ) {
       createdInitial.current = true;
-      void send('ai/advisor/create-conversation', {}).then(item => {
-        setConversationId(item.id);
-        void client.invalidateQueries({ queryKey: ['advisor-conversations'] });
-      });
+      setIsCreatingInitial(true);
+      void (async () => {
+        try {
+          const item = await send('ai/advisor/create-conversation', {});
+          setConversationId(item.id);
+          await client.invalidateQueries({
+            queryKey: ['advisor-conversations'],
+          });
+        } catch {
+          dispatch(
+            addNotification({
+              notification: {
+                type: 'error',
+                message: t(
+                  'Could not complete this advisor action. Check your connection and try again.',
+                ),
+              },
+            }),
+          );
+        } finally {
+          createdInitial.current = false;
+          setIsCreatingInitial(false);
+        }
+      })();
     }
-  }, [client, conversations.data?.length, conversations.isSuccess]);
+  }, [
+    client,
+    conversations.data?.length,
+    conversations.isSuccess,
+    dispatch,
+    t,
+  ]);
   useEffect(
     () =>
       listen('ai-advisor-event', (event: AiAdvisorEvent) => {
@@ -412,6 +605,7 @@ export function AdvisorPage() {
         if (event.type === 'text-delta') {
           setStreamed(value => value + event.text);
         } else if (event.type === 'started') {
+          runFailed.current = false;
           setRunId(event.runId);
           setStreamed('');
           setLiveTrace([]);
@@ -440,6 +634,7 @@ export function AdvisorPage() {
             setLiveTrace([]);
           });
         } else if (event.type === 'cancelled' || event.type === 'error') {
+          runFailed.current = true;
           setRunId(null);
           setLiveTrace(value =>
             value.map(item =>
@@ -467,29 +662,83 @@ export function AdvisorPage() {
   }, [liveTrace, messages.data?.length, streamed]);
 
   const createConversation = async () => {
-    const item = await send('ai/advisor/create-conversation', {});
-    setConversationId(item.id);
-    await client.invalidateQueries({ queryKey: ['advisor-conversations'] });
+    if (createdInitial.current) {
+      return;
+    }
+
+    await conversationMutation.run(async () => {
+      const item = await send('ai/advisor/create-conversation', {});
+      setConversationId(item.id);
+      await client.invalidateQueries({ queryKey: ['advisor-conversations'] });
+    });
+  };
+  const deleteConversation = async (id: string) => {
+    await conversationMutation.run(async () => {
+      await send('ai/advisor/delete-conversation', { id });
+      if (conversationId === id) {
+        setConversationId(null);
+      }
+      await client.invalidateQueries({
+        queryKey: ['advisor-conversations'],
+      });
+    });
   };
   const submit = async () => {
-    if (!conversationId || !draft.trim() || runId) return;
-    const message = draft.trim();
-    setDraft('');
-    setError('');
-    setStreamed('');
-    setLiveTrace([]);
-    const result = await send('ai/advisor/start', { conversationId, message });
-    if (result.status === 'completed') {
-      await client.invalidateQueries({ queryKey: ['advisor-messages'] });
-    } else {
-      setError(
-        result.status === 'disabled'
-          ? t('Enable AI features in Settings before using the advisor.')
-          : result.status === 'budget-exceeded'
-            ? t("Today's AI spending limit has been reached.")
-            : t('Conversation not found.'),
-      );
+    if (!conversationId || !draft.trim() || runId || submitMutation.isPending) {
+      return;
     }
+
+    const draftAtSubmit = draft;
+    const message = draftAtSubmit.trim();
+    await submitMutation.run(
+      async () => {
+        runFailed.current = false;
+        setError('');
+        setStreamed('');
+        setLiveTrace([]);
+        const result = await send('ai/advisor/start', {
+          conversationId,
+          message,
+        });
+        if (result.status === 'completed') {
+          if (!runFailed.current) {
+            setDraft(currentDraft =>
+              currentDraft === draftAtSubmit ? '' : currentDraft,
+            );
+          }
+          await client.invalidateQueries({ queryKey: ['advisor-messages'] });
+        } else {
+          setError(
+            result.status === 'disabled'
+              ? t('Enable AI features in Settings before using the advisor.')
+              : result.status === 'budget-exceeded'
+                ? t("Today's AI spending limit has been reached.")
+                : t('Conversation not found.'),
+          );
+        }
+      },
+      () => {
+        setError(
+          t(
+            'Could not send this advisor message. Check your connection and try again.',
+          ),
+        );
+      },
+    );
+  };
+  const cancel = async (activeRunId: string) => {
+    await cancelMutation.run(
+      async () => {
+        await send('ai/advisor/cancel', { runId: activeRunId });
+      },
+      () => {
+        setError(
+          t(
+            'Could not stop this advisor response. Check your connection and try again.',
+          ),
+        );
+      },
+    );
   };
   const refresh = (key: string) => () => {
     void client.invalidateQueries({ queryKey: [key] });
@@ -529,33 +778,36 @@ export function AdvisorPage() {
                 overflow: 'auto',
               }}
             >
-              <Button variant="primary" onPress={createConversation}>
+              <Button
+                variant="primary"
+                isDisabled={isCreatingInitial || conversationMutation.isPending}
+                onPress={createConversation}
+              >
                 <Trans>New conversation</Trans>
               </Button>
-              {(conversations.data ?? []).map((item: AiConversationEntity) => (
-                <View key={item.id} style={{ gap: 2 }}>
-                  <Button
-                    variant={item.id === conversationId ? 'bare' : 'normal'}
-                    onPress={() => setConversationId(item.id)}
-                  >
-                    {item.title}
-                  </Button>
-                  <Button
-                    variant="bare"
-                    onPress={async () => {
-                      await send('ai/advisor/delete-conversation', {
-                        id: item.id,
-                      });
-                      if (conversationId === item.id) setConversationId(null);
-                      await client.invalidateQueries({
-                        queryKey: ['advisor-conversations'],
-                      });
-                    }}
-                  >
-                    <Trans>Delete</Trans>
-                  </Button>
-                </View>
-              ))}
+              {conversations.isLoading ? (
+                <LoadingIndicator />
+              ) : conversations.isError ? (
+                <LoadingError />
+              ) : (
+                (conversations.data ?? []).map((item: AiConversationEntity) => (
+                  <View key={item.id} style={{ gap: 2 }}>
+                    <Button
+                      variant={item.id === conversationId ? 'bare' : 'normal'}
+                      onPress={() => setConversationId(item.id)}
+                    >
+                      {item.title}
+                    </Button>
+                    <Button
+                      variant="bare"
+                      isDisabled={conversationMutation.isPending}
+                      onPress={() => deleteConversation(item.id)}
+                    >
+                      <Trans>Delete</Trans>
+                    </Button>
+                  </View>
+                ))
+              )}
             </View>
             <View style={{ flex: 1, minWidth: 0, minHeight: 0, gap: 10 }}>
               <View
@@ -570,9 +822,15 @@ export function AdvisorPage() {
                   padding: 8,
                 }}
               >
-                {(messages.data ?? []).map(item => (
-                  <AdvisorMessage key={item.id} message={item} />
-                ))}
+                {conversationId != null && messages.isLoading ? (
+                  <LoadingIndicator />
+                ) : messages.isError ? (
+                  <LoadingError />
+                ) : (
+                  (messages.data ?? []).map(item => (
+                    <AdvisorMessage key={item.id} message={item} />
+                  ))
+                )}
                 {(streamed || liveTrace.length > 0) && (
                   <AdvisorMessage
                     isStreaming={runId != null}
@@ -625,11 +883,22 @@ export function AdvisorPage() {
                   placeholder={t('Talk about a decision, concern or goal…')}
                 />
                 {runId ? (
-                  <Button onPress={() => send('ai/advisor/cancel', { runId })}>
+                  <Button
+                    isDisabled={cancelMutation.isPending}
+                    onPress={() => cancel(runId)}
+                  >
                     <Trans>Stop</Trans>
                   </Button>
                 ) : (
-                  <Button variant="primary" onPress={submit}>
+                  <Button
+                    variant="primary"
+                    isDisabled={
+                      !conversationId ||
+                      !draft.trim() ||
+                      submitMutation.isPending
+                    }
+                    onPress={submit}
+                  >
                     <Trans>Send</Trans>
                   </Button>
                 )}
@@ -653,21 +922,32 @@ export function AdvisorPage() {
           <Profile
             memories={memory.data ?? []}
             refresh={refresh('advisor-memory')}
+            isLoading={memory.isLoading}
+            isError={memory.isError}
           />
         )}
         {tab === 'goals' && (
-          <Goals goals={goals.data ?? []} refresh={refresh('advisor-goals')} />
+          <Goals
+            goals={goals.data ?? []}
+            refresh={refresh('advisor-goals')}
+            isLoading={goals.isLoading}
+            isError={goals.isError}
+          />
         )}
         {tab === 'documents' && (
           <Documents
             documents={documents.data ?? []}
             refresh={refresh('advisor-documents')}
+            isLoading={documents.isLoading}
+            isError={documents.isError}
           />
         )}
         {tab === 'plan' && (
           <Plan
             advice={advice.data ?? []}
             refresh={refresh('advisor-advice')}
+            isLoading={advice.isLoading}
+            isError={advice.isError}
           />
         )}
       </View>

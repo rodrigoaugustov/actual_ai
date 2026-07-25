@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { Button } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -44,7 +46,11 @@ export function TransactionPickerList({
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const [search, setSearch] = useState('');
 
-  const { data: transactions = [] } = useQuery({
+  const {
+    data: transactions = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['transaction-picker', accountId, excludeAccountId, search],
     queryFn: async () => {
       let query = q('transactions')
@@ -93,7 +99,21 @@ export function TransactionPickerList({
           borderRadius: 4,
         }}
       >
-        {transactions.length === 0 && (
+        {isLoading ? (
+          <View style={{ alignItems: 'center', padding: 10 }}>
+            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+          </View>
+        ) : isError ? (
+          <Text
+            style={{
+              padding: 10,
+              color: theme.errorText,
+              fontSize: '0.9em',
+            }}
+          >
+            <Trans>Could not load transactions.</Trans>
+          </Text>
+        ) : transactions.length === 0 ? (
           <Text
             style={{
               padding: 10,
@@ -103,64 +123,67 @@ export function TransactionPickerList({
           >
             <Trans>No matching transactions</Trans>
           </Text>
-        )}
-        {transactions.map(trans => {
-          // Open-banking imports often leave the payee unresolved; the
-          // raw description in notes is what actually identifies the
-          // transaction in that case, so prefer it as the primary line
-          const primary = trans.payeeName || trans.notes || t('(no payee)');
-          const secondaryParts = [
-            monthUtils.format(trans.date, dateFormat),
-            !accountId && trans.accountName ? trans.accountName : null,
-            trans.payeeName && trans.notes ? trans.notes : null,
-          ].filter(Boolean);
+        ) : null}
+        {!isLoading &&
+          !isError &&
+          transactions.map(trans => {
+            // Open-banking imports often leave the payee unresolved; the
+            // raw description in notes is what actually identifies the
+            // transaction in that case, so prefer it as the primary line
+            const primary = trans.payeeName || trans.notes || t('(no payee)');
+            const secondaryParts = [
+              monthUtils.format(trans.date, dateFormat),
+              !accountId && trans.accountName ? trans.accountName : null,
+              trans.payeeName && trans.notes ? trans.notes : null,
+            ].filter(Boolean);
 
-          return (
-            <View
-              key={trans.id}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 10px',
-                cursor: 'pointer',
-                borderBottom: '1px solid ' + theme.tableBorder,
-                flexShrink: 0,
-              }}
-              onClick={() => onSelect(trans.id)}
-            >
-              <View style={{ flex: 1, minWidth: 0, flexShrink: 1 }}>
-                <Text
-                  style={{
-                    fontWeight: 600,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={primary}
-                >
-                  {primary}
-                </Text>
-                <Text
-                  style={{
-                    color: theme.pageTextSubdued,
-                    fontSize: '0.85em',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={secondaryParts.join(' · ')}
-                >
-                  {secondaryParts.join(' · ')}
-                </Text>
-              </View>
-              <FinancialText style={{ fontWeight: 600, flexShrink: 0 }}>
-                {format(trans.amount, 'financial')}
-              </FinancialText>
-            </View>
-          );
-        })}
+            return (
+              <Button
+                key={trans.id}
+                variant="bare"
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid ' + theme.tableBorder,
+                  flexShrink: 0,
+                }}
+                onPress={() => onSelect(trans.id)}
+              >
+                <View style={{ flex: 1, minWidth: 0, flexShrink: 1 }}>
+                  <Text
+                    style={{
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={primary}
+                  >
+                    {primary}
+                  </Text>
+                  <Text
+                    style={{
+                      color: theme.pageTextSubdued,
+                      fontSize: '0.85em',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={secondaryParts.join(' · ')}
+                  >
+                    {secondaryParts.join(' · ')}
+                  </Text>
+                </View>
+                <FinancialText style={{ fontWeight: 600, flexShrink: 0 }}>
+                  {format(trans.amount, 'financial')}
+                </FinancialText>
+              </Button>
+            );
+          })}
       </View>
     </View>
   );

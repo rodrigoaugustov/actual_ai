@@ -1864,7 +1864,18 @@ const Transaction = memo(function Transaction({
                         }),
                       ]),
                     )
-                    .catch(() => undefined);
+                    .catch(() => {
+                      dispatch(
+                        addNotification({
+                          notification: {
+                            type: 'error',
+                            message: t(
+                              'The category was saved, but the AI suggestion could not be resolved. Try again from the pending categorizations page.',
+                            ),
+                          },
+                        }),
+                      );
+                    });
                 }
               }
             }}

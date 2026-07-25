@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { ButtonWithLoading } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Input } from '@actual-app/components/input';
 import { Select } from '@actual-app/components/select';
 import { Text } from '@actual-app/components/text';
@@ -22,6 +23,8 @@ import { Link } from '#components/common/Link';
 import { FinancialText } from '#components/FinancialText';
 import { FormField, FormLabel } from '#components/forms';
 import { useCurrentAccess } from '#hooks/useCurrentAccess';
+import { addNotification } from '#notifications/notificationsSlice';
+import { useDispatch } from '#redux';
 import { getSecretsError } from '#util/error';
 
 import { Setting } from './UI';
@@ -89,10 +92,11 @@ function ConfiguredBadge() {
 
 export function AiSettings() {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const { cloudFileId } = useCurrentAccess();
   const queryClient = useQueryClient();
 
-  const { data: savedConfig } = useQuery({
+  const { data: savedConfig, isLoading: isConfigLoading } = useQuery({
     queryKey: ['ai-config'],
     queryFn: () => send('ai/get-config'),
   });
@@ -103,12 +107,20 @@ export function AiSettings() {
       send('ai/get-usage-summary', { sinceMs: Date.now() - THIRTY_DAYS_MS }),
   });
 
-  const { data: secretsStatus } = useQuery({
+  const {
+    data: secretsStatus,
+    isError: isSecretsStatusError,
+    isLoading: isSecretsStatusLoading,
+  } = useQuery({
     queryKey: ['ai-secrets-status', cloudFileId],
     queryFn: () => send('ai/get-secrets-status', { fileId: cloudFileId }),
   });
 
-  const { data: pendingSuggestions = [] } = useQuery({
+  const {
+    data: pendingSuggestions = [],
+    isError: isPendingSuggestionsError,
+    isLoading: isPendingSuggestionsLoading,
+  } = useQuery({
     queryKey: ['ai-suggestions'],
     queryFn: () => send('ai/get-suggestions'),
   });
@@ -127,20 +139,47 @@ export function AiSettings() {
   }, [savedConfig, config]);
 
   if (!config) {
-    return null;
+    return (
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        {isConfigLoading ? (
+          <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+        ) : (
+          <Text style={{ color: theme.pageTextSubdued }}>
+            <Trans>AI settings are unavailable right now.</Trans>
+          </Text>
+        )}
+      </View>
+    );
   }
 
   const onSaveConfig = async () => {
+    if (isSavingConfig) {
+      return;
+    }
+
     setIsSavingConfig(true);
     try {
       await send('ai/update-config', config);
       await queryClient.invalidateQueries({ queryKey: ['ai-config'] });
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t('Failed to save AI settings.'),
+          },
+        }),
+      );
     } finally {
       setIsSavingConfig(false);
     }
   };
 
   const onSaveKeys = async () => {
+    if (isSavingKeys) {
+      return;
+    }
+
     setIsSavingKeys(true);
     setKeysError(null);
     try {
@@ -180,6 +219,15 @@ export function AiSettings() {
       await queryClient.invalidateQueries({
         queryKey: ['ai-secrets-status', cloudFileId],
       });
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t('Failed to save API keys.'),
+          },
+        }),
+      );
     } finally {
       setIsSavingKeys(false);
     }
@@ -188,7 +236,11 @@ export function AiSettings() {
   return (
     <Setting
       primaryAction={
-        <ButtonWithLoading isLoading={isSavingConfig} onPress={onSaveConfig}>
+        <ButtonWithLoading
+          isDisabled={isSavingConfig}
+          isLoading={isSavingConfig}
+          onPress={onSaveConfig}
+        >
           <Trans>Save AI settings</Trans>
         </ButtonWithLoading>
       }
@@ -224,13 +276,21 @@ export function AiSettings() {
             gap: 12,
           }}
         >
-          <Text>
-            {pendingSuggestions.length > 0
-              ? t('{{count}} AI categorization(s) awaiting your review.', {
-                  count: pendingSuggestions.length,
-                })
-              : t('No AI categorizations awaiting review right now.')}
-          </Text>
+          {isPendingSuggestionsLoading ? (
+            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+          ) : isPendingSuggestionsError ? (
+            <Text style={{ color: theme.errorText }}>
+              <Trans>Could not load pending AI categorizations.</Trans>
+            </Text>
+          ) : (
+            <Text>
+              {pendingSuggestions.length > 0
+                ? t('{{count}} AI categorization(s) awaiting your review.', {
+                    count: pendingSuggestions.length,
+                  })
+                : t('No AI categorizations awaiting review right now.')}
+            </Text>
+          )}
           <Link
             variant="button"
             buttonVariant="primary"
@@ -414,9 +474,13 @@ export function AiSettings() {
             <Input
               type="password"
               placeholder={
-                secretsStatus?.[secretName as keyof typeof secretsStatus]
-                  ? t('Configured — leave blank to keep it')
-                  : t('Not set')
+                isSecretsStatusLoading
+                  ? t('Loading…')
+                  : isSecretsStatusError
+                    ? t('Unavailable')
+                    : secretsStatus?.[secretName as keyof typeof secretsStatus]
+                      ? t('Configured — leave blank to keep it')
+                      : t('Not set')
               }
               value={apiKeys[provider] ?? ''}
               onChangeValue={value =>
@@ -436,9 +500,13 @@ export function AiSettings() {
           <Input
             value={ollamaBaseUrl}
             placeholder={
-              secretsStatus?.ai_ollama_baseUrl
-                ? t('Configured — leave blank to keep it')
-                : t('Not set')
+              isSecretsStatusLoading
+                ? t('Loading…')
+                : isSecretsStatusError
+                  ? t('Unavailable')
+                  : secretsStatus?.ai_ollama_baseUrl
+                    ? t('Configured — leave blank to keep it')
+                    : t('Not set')
             }
             onChangeValue={setOllamaBaseUrl}
           />
@@ -448,7 +516,11 @@ export function AiSettings() {
           <Text style={{ color: theme.errorText }}>{keysError}</Text>
         )}
 
-        <ButtonWithLoading isLoading={isSavingKeys} onPress={onSaveKeys}>
+        <ButtonWithLoading
+          isDisabled={isSavingKeys}
+          isLoading={isSavingKeys}
+          onPress={onSaveKeys}
+        >
           <Trans>Save API keys</Trans>
         </ButtonWithLoading>
       </View>
@@ -479,9 +551,7 @@ export function AiSettings() {
           </Link>
         </View>
         {isUsageLoading ? (
-          <Text style={{ color: theme.pageTextSubdued }}>
-            <Trans>Loading…</Trans>
-          </Text>
+          <AnimatedLoading width={20} color={theme.pageTextSubdued} />
         ) : usage ? (
           <>
             <FinancialText>{formatUsd(usage.totalCostUsd)}</FinancialText>

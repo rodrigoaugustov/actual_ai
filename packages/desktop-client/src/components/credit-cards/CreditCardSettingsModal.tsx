@@ -19,6 +19,8 @@ import {
   ModalHeader,
   ModalTitle,
 } from '#components/common/Modal';
+import { addNotification } from '#notifications/notificationsSlice';
+import { useDispatch } from '#redux';
 
 const NOT_SET = 0;
 
@@ -30,6 +32,7 @@ export function CreditCardSettingsModal({
   account,
 }: CreditCardSettingsModalProps) {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const [closingDay, setClosingDay] = useState<number>(
     account.closing_day ?? NOT_SET,
@@ -53,6 +56,10 @@ export function CreditCardSettingsModal({
   ];
 
   const onSave = async (close: () => void) => {
+    if (isSaving) {
+      return;
+    }
+
     setIsSaving(true);
     try {
       await send('credit-card/update-config', {
@@ -64,6 +71,17 @@ export function CreditCardSettingsModal({
         queryKey: accountQueries.lists(),
       });
       close();
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not save the credit card settings. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
     } finally {
       setIsSaving(false);
     }

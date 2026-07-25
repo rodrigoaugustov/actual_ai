@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -24,7 +25,9 @@ import {
 import { FinancialText } from '#components/FinancialText';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
+import { addNotification } from '#notifications/notificationsSlice';
 import { aqlQuery } from '#queries/aqlQuery';
+import { useDispatch } from '#redux';
 
 import { TransactionPickerList } from './TransactionPickerList';
 
@@ -69,6 +72,7 @@ export function ConfirmStatementPaymentModal({
   account,
 }: ConfirmStatementPaymentModalProps) {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const format = useFormat();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const queryClient = useQueryClient();
@@ -95,7 +99,19 @@ export function ConfirmStatementPaymentModal({
         setLoadedSuggestion(true);
       })
       .catch(() => {
-        if (!cancelled) setLoadedSuggestion(true);
+        if (!cancelled) {
+          setLoadedSuggestion(true);
+          dispatch(
+            addNotification({
+              notification: {
+                type: 'error',
+                message: t(
+                  'Could not suggest matching payment transactions. Search for them manually or mark the statement paid without reconciling.',
+                ),
+              },
+            }),
+          );
+        }
       });
     return () => {
       cancelled = true;
@@ -107,6 +123,18 @@ export function ConfirmStatementPaymentModal({
   const counterpartSummary = useTransactionSummary(counterpartTransactionId);
 
   const onConfirm = async (close: () => void) => {
+    if (
+      isSaving ||
+      cardTransactionId == null ||
+      counterpartTransactionId == null ||
+      cardSummary.isError ||
+      counterpartSummary.isError ||
+      cardSummary.data == null ||
+      counterpartSummary.data == null
+    ) {
+      return;
+    }
+
     setIsSaving(true);
     try {
       await send('credit-card/confirm-statement-payment', {
@@ -118,12 +146,27 @@ export function ConfirmStatementPaymentModal({
         queryKey: ['credit-card-statements', account.id],
       });
       close();
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not confirm the statement payment. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   const onMarkWithoutReconciling = async (close: () => void) => {
+    if (isSaving) {
+      return;
+    }
+
     setIsSaving(true);
     try {
       await send('credit-card/confirm-statement-payment', {
@@ -135,6 +178,17 @@ export function ConfirmStatementPaymentModal({
         queryKey: ['credit-card-statements', account.id],
       });
       close();
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not mark the statement as paid. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -142,10 +196,22 @@ export function ConfirmStatementPaymentModal({
 
   const renderSlot = (
     slot: Slot,
-    summary: { data?: TransactionSummary | null; isLoading: boolean },
+    summary: {
+      data?: TransactionSummary | null;
+      isError: boolean;
+      isLoading: boolean;
+    },
     onPick: (id: string) => void,
     onClear: () => void,
   ) => {
+    if (!loadedSuggestion || summary.isLoading) {
+      return (
+        <View style={{ alignItems: 'center', padding: 10 }}>
+          <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+        </View>
+      );
+    }
+
     if (editingSlot === slot) {
       return (
         <TransactionPickerList
@@ -156,6 +222,25 @@ export function ConfirmStatementPaymentModal({
             setEditingSlot(null);
           }}
         />
+      );
+    }
+
+    if (summary.isError) {
+      return (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: theme.errorText }}>
+            <Trans>Could not load transaction details.</Trans>
+          </Text>
+          <Button variant="bare" onPress={() => setEditingSlot(slot)}>
+            <Trans>Search</Trans>
+          </Button>
+        </View>
       );
     }
 
@@ -267,7 +352,19 @@ export function ConfirmStatementPaymentModal({
               </Button>
               <Button
                 variant="primary"
-                isDisabled={isSaving || !loadedSuggestion}
+                isDisabled={
+                  isSaving ||
+                  !loadedSuggestion ||
+                  cardSummary.isLoading ||
+                  counterpartSummary.isLoading ||
+                  editingSlot != null ||
+                  cardTransactionId == null ||
+                  counterpartTransactionId == null ||
+                  cardSummary.isError ||
+                  counterpartSummary.isError ||
+                  cardSummary.data == null ||
+                  counterpartSummary.data == null
+                }
                 onPress={() => onConfirm(() => state.close())}
                 style={{ marginLeft: 10 }}
               >

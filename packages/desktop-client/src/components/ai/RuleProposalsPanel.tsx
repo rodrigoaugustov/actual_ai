@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button, ButtonWithLoading } from '@actual-app/components/button';
+import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -77,12 +78,20 @@ export function RuleProposalsPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isMining, setIsMining] = useState(false);
-  const { data: proposals = [] } = useQuery({
+  const {
+    data: proposals = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: PROPOSALS_QUERY_KEY,
     queryFn: () => send('ai/get-rule-proposals'),
   });
 
   const onMineNow = async () => {
+    if (isMining) {
+      return;
+    }
+
     setIsMining(true);
     try {
       const result = await send('ai/mine-rules');
@@ -90,6 +99,21 @@ export function RuleProposalsPanel() {
       dispatch(
         addNotification({
           notification: mineRulesNotification(t, result, navigate),
+        }),
+      );
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Rule mining failed. Check the AI usage log for details.',
+            ),
+            button: {
+              title: t('View AI usage log'),
+              action: () => navigate('/ai-usage'),
+            },
+          },
         }),
       );
     } finally {
@@ -107,22 +131,39 @@ export function RuleProposalsPanel() {
         }}
       >
         <Text style={{ fontWeight: 600 }}>
-          <Trans>Rule proposals ({{ count: proposals.length }})</Trans>
+          {!isLoading && !isError ? (
+            <Trans>Rule proposals ({{ count: proposals.length }})</Trans>
+          ) : (
+            <Trans>Rule proposals</Trans>
+          )}
         </Text>
-        <ButtonWithLoading isLoading={isMining} onPress={onMineNow}>
+        <ButtonWithLoading
+          isDisabled={isMining}
+          isLoading={isMining}
+          onPress={onMineNow}
+        >
           <Trans>Mine rules now</Trans>
         </ButtonWithLoading>
       </View>
-      {proposals.length === 0 && (
+      {isLoading ? (
+        <View style={{ alignItems: 'center', padding: 20 }}>
+          <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+        </View>
+      ) : isError ? (
+        <Text style={{ color: theme.errorText }}>
+          <Trans>Could not load rule proposals.</Trans>
+        </Text>
+      ) : proposals.length === 0 ? (
         <Text style={{ color: theme.pageTextSubdued }}>
           {t(
             'No pending proposals. Mining looks at your categorized history for payees with a consistent category, and never applies a rule without your approval.',
           )}
         </Text>
+      ) : (
+        proposals.map(proposal => (
+          <ProposalRow key={proposal.id} proposal={proposal} />
+        ))
       )}
-      {proposals.map(proposal => (
-        <ProposalRow key={proposal.id} proposal={proposal} />
-      ))}
     </View>
   );
 }
@@ -139,6 +180,10 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
     queryClient.invalidateQueries({ queryKey: PROPOSALS_QUERY_KEY });
 
   const onResolve = async (action: 'approve' | 'reject') => {
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       await send('ai/resolve-rule-proposal', { id: proposal.id, action });
@@ -183,13 +228,14 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
         </Text>
       </View>
       <ButtonWithLoading
+        isDisabled={isLoading}
         isLoading={isLoading}
         variant="primary"
         onPress={() => onResolve('approve')}
       >
         <Trans>Approve</Trans>
       </ButtonWithLoading>
-      <Button onPress={() => void onResolve('reject')}>
+      <Button isDisabled={isLoading} onPress={() => void onResolve('reject')}>
         <Trans>Reject</Trans>
       </Button>
     </View>
