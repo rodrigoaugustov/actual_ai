@@ -16,6 +16,8 @@ import { Field, Row, TableHeader } from '#components/table';
 import { useCategoriesById } from '#hooks/useCategories';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
+import { addNotification } from '#notifications/notificationsSlice';
+import { useDispatch } from '#redux';
 
 const SUGGESTIONS_QUERY_KEY = ['ai-suggestions'];
 
@@ -56,6 +58,7 @@ export function SuggestionsInbox() {
 
 function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const format = useFormat();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const queryClient = useQueryClient();
@@ -66,6 +69,18 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: SUGGESTIONS_QUERY_KEY });
 
+  const onResolveFailed = () =>
+    dispatch(
+      addNotification({
+        notification: {
+          type: 'error',
+          message: t(
+            'Could not resolve this suggestion. Check your connection and try again.',
+          ),
+        },
+      }),
+    );
+
   const onAccept = async () => {
     setIsLoading(true);
     try {
@@ -74,6 +89,8 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
         action: 'accept',
       });
       await invalidate();
+    } catch {
+      onResolveFailed();
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +104,8 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
         action: 'reject',
       });
       await invalidate();
+    } catch {
+      onResolveFailed();
     } finally {
       setIsLoading(false);
     }

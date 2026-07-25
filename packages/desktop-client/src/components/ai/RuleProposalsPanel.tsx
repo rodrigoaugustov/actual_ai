@@ -128,6 +128,8 @@ export function RuleProposalsPanel() {
 }
 
 function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const { data } = useCategoriesById();
   const categoriesById = data?.list;
@@ -141,6 +143,17 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
     try {
       await send('ai/resolve-rule-proposal', { id: proposal.id, action });
       await invalidate();
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not resolve this rule proposal. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
     } finally {
       setIsLoading(false);
     }

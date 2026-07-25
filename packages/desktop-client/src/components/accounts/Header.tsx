@@ -160,6 +160,21 @@ function ClassifyUncategorizedButton({
           notification: classifyNowNotification(t, outcome, navigate),
         }),
       );
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'AI classification failed. Check the AI usage log for details.',
+            ),
+            button: {
+              title: t('View AI usage log'),
+              action: () => navigate('/ai-usage'),
+            },
+          },
+        }),
+      );
     } finally {
       setIsClassifying(false);
     }
