@@ -108,7 +108,11 @@ export function RuleHealthPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isAuditing, setIsAuditing] = useState(false);
-  const { data: rules = [], isLoading } = useQuery({
+  const {
+    data: rules = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: HEALTH_QUERY_KEY,
     queryFn: () => send('ai/get-rule-health'),
   });
@@ -180,6 +184,10 @@ export function RuleHealthPanel() {
         <View style={{ alignItems: 'center', padding: '12px 0' }}>
           <AnimatedLoading width={20} color={theme.pageTextSubdued} />
         </View>
+      ) : isError ? (
+        <Text style={{ color: theme.errorText, fontSize: '0.9em' }}>
+          <Trans>Could not load mined rule health.</Trans>
+        </Text>
       ) : rules.length === 0 ? (
         <Text style={{ color: theme.pageTextSubdued, fontSize: '0.9em' }}>
           <Trans>

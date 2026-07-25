@@ -2189,6 +2189,7 @@
   "Could not load AI usage.": "Não foi possível carregar o uso da IA.",
   "Could not load pending AI categorizations.": "Não foi possível carregar as categorizações pendentes da IA.",
   "Could not load rule proposals.": "Não foi possível carregar as propostas de regras.",
+  "Could not load mined rule health.": "Não foi possível carregar a qualidade das regras mineradas.",
   "Could not load this advisor data. Check your connection and try again.": "Não foi possível carregar estes dados do consultor. Verifique sua conexão e tente novamente.",
   "Could not resolve this rule proposal. Check your connection and try again.": "Não foi possível processar esta proposta de regra. Verifique sua conexão e tente novamente.",
   "Could not resolve this suggestion. Check your connection and try again.": "Não foi possível processar esta sugestão. Verifique sua conexão e tente novamente.",

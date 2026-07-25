@@ -9,7 +9,10 @@ import { createTestQueryClient, TestProviders } from '#mocks';
 
 import { MobileAiUsagePage } from './AiUsagePage';
 import { MobilePendingCategorizationsPage } from './PendingCategorizationsPage';
+import { RuleHealthPanel } from './RuleHealthPanel';
 import { SuggestionsInbox } from './SuggestionsInbox';
+
+const aiListFixture = vi.hoisted(() => ({ failRuleHealth: false }));
 
 vi.mock('#hooks/useCategories', () => ({
   useCategoriesById: () => ({
@@ -113,6 +116,9 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
           },
         ];
       case 'ai/get-rule-health':
+        if (aiListFixture.failRuleHealth) {
+          throw new Error('rule health unavailable');
+        }
         return [];
       case 'ai/resolve-suggestion':
       case 'ai/resolve-rule-proposal':
@@ -131,6 +137,10 @@ describe('mobile AI list pages', () => {
       </TestProviders>,
     );
   }
+
+  beforeEach(() => {
+    aiListFixture.failRuleHealth = false;
+  });
 
   it('renders AI usage as labeled cards instead of a wide table', async () => {
     renderPage(<MobileAiUsagePage />);
@@ -214,5 +224,15 @@ describe('mobile AI list pages', () => {
     expect(
       screen.getByText('Similar purchases were categorized as groceries.'),
     ).toBeVisible();
+  });
+
+  it('does not report an unavailable rule-health query as an empty state', async () => {
+    aiListFixture.failRuleHealth = true;
+    renderPage(<RuleHealthPanel />);
+
+    expect(
+      await screen.findByText('Could not load mined rule health.'),
+    ).toBeVisible();
+    expect(screen.queryByText('No mined rules yet.')).not.toBeInTheDocument();
   });
 });
