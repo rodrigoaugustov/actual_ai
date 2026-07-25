@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -72,6 +73,7 @@ export function ConfirmStatementPaymentModal({
   account,
 }: ConfirmStatementPaymentModalProps) {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const dispatch = useDispatch();
   const format = useFormat();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
@@ -229,15 +231,20 @@ export function ConfirmStatementPaymentModal({
       return (
         <View
           style={{
-            flexDirection: 'row',
+            flexDirection: isNarrowWidth ? 'column' : 'row',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: isNarrowWidth ? 'stretch' : 'center',
+            gap: 8,
           }}
         >
           <Text style={{ color: theme.errorText }}>
             <Trans>Could not load transaction details.</Trans>
           </Text>
-          <Button variant="bare" onPress={() => setEditingSlot(slot)}>
+          <Button
+            variant="bare"
+            style={isNarrowWidth ? { minHeight: 40 } : undefined}
+            onPress={() => setEditingSlot(slot)}
+          >
             <Trans>Search</Trans>
           </Button>
         </View>
@@ -248,9 +255,10 @@ export function ConfirmStatementPaymentModal({
       return (
         <View
           style={{
-            flexDirection: 'row',
+            flexDirection: isNarrowWidth ? 'column' : 'row',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: isNarrowWidth ? 'stretch' : 'center',
+            gap: 8,
           }}
         >
           <Text style={{ color: theme.pageTextSubdued }}>
@@ -260,7 +268,11 @@ export function ConfirmStatementPaymentModal({
               <Trans>No matching transaction in another account</Trans>
             )}
           </Text>
-          <Button variant="bare" onPress={() => setEditingSlot(slot)}>
+          <Button
+            variant="bare"
+            style={isNarrowWidth ? { minHeight: 40 } : undefined}
+            onPress={() => setEditingSlot(slot)}
+          >
             <Trans>Search</Trans>
           </Button>
         </View>
@@ -270,9 +282,9 @@ export function ConfirmStatementPaymentModal({
     return (
       <View
         style={{
-          flexDirection: 'row',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           gap: 8,
         }}
       >
@@ -291,12 +303,26 @@ export function ConfirmStatementPaymentModal({
             </FinancialText>
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          <Button variant="bare" onPress={() => setEditingSlot(slot)}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 4,
+            flexWrap: isNarrowWidth ? 'wrap' : undefined,
+          }}
+        >
+          <Button
+            variant="bare"
+            style={isNarrowWidth ? { minHeight: 40 } : undefined}
+            onPress={() => setEditingSlot(slot)}
+          >
             <Trans>Change</Trans>
           </Button>
           {slot === 'counterpart' && (
-            <Button variant="bare" onPress={onClear}>
+            <Button
+              variant="bare"
+              style={isNarrowWidth ? { minHeight: 40 } : undefined}
+              onPress={onClear}
+            >
               <Trans>Remove</Trans>
             </Button>
           )}
@@ -343,8 +369,14 @@ export function ConfirmStatementPaymentModal({
               )}
             </View>
 
-            <ModalButtons>
+            <ModalButtons
+              style={{
+                flexDirection: isNarrowWidth ? 'column' : 'row',
+                gap: 8,
+              }}
+            >
               <Button
+                style={isNarrowWidth ? { minHeight: 40 } : undefined}
                 onPress={() => onMarkWithoutReconciling(() => state.close())}
                 isDisabled={isSaving}
               >
@@ -366,7 +398,10 @@ export function ConfirmStatementPaymentModal({
                   counterpartSummary.data == null
                 }
                 onPress={() => onConfirm(() => state.close())}
-                style={{ marginLeft: 10 }}
+                style={{
+                  marginLeft: isNarrowWidth ? 0 : 10,
+                  minHeight: isNarrowWidth ? 40 : undefined,
+                }}
               >
                 <Trans>Confirm</Trans>
               </Button>

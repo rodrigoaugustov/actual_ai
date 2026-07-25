@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { ButtonWithLoading } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Input } from '@actual-app/components/input';
 import { Select } from '@actual-app/components/select';
@@ -93,6 +94,7 @@ function ConfiguredBadge() {
 
 export function AiSettings() {
   const { i18n, t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const locale = i18n.resolvedLanguage ?? 'en';
   const dispatch = useDispatch();
   const { cloudFileId } = useCurrentAccess();
@@ -249,8 +251,8 @@ export function AiSettings() {
     >
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           justifyContent: 'space-between',
           gap: 12,
         }}
@@ -272,8 +274,8 @@ export function AiSettings() {
       {config.enabled && (
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: isNarrowWidth ? 'column' : 'row',
+            alignItems: isNarrowWidth ? 'stretch' : 'center',
             justifyContent: 'space-between',
             gap: 12,
           }}
@@ -309,35 +311,43 @@ export function AiSettings() {
         <View
           key={tier}
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: isNarrowWidth ? 'column' : 'row',
+            alignItems: isNarrowWidth ? 'stretch' : 'center',
             gap: 8,
             width: '100%',
           }}
         >
-          <Text style={{ width: 260, color: theme.pageTextSubdued }}>
+          <Text
+            style={{
+              width: isNarrowWidth ? 'auto' : 260,
+              color: theme.pageTextSubdued,
+            }}
+          >
             {tierLabel(t, tier)}
           </Text>
-          <Select
-            aria-label={t('Provider for {{tier}}', { tier })}
-            options={PROVIDER_OPTIONS}
-            value={config.tiers[tier].provider}
-            onChange={value =>
-              setConfig({
-                ...config,
-                tiers: {
-                  ...config.tiers,
-                  [tier]: {
-                    ...config.tiers[tier],
-                    provider: value as AiProviderId,
+          <View style={{ width: isNarrowWidth ? '100%' : 'auto' }}>
+            <Select
+              aria-label={t('Provider for {{tier}}', { tier })}
+              options={PROVIDER_OPTIONS}
+              value={config.tiers[tier].provider}
+              onChange={value =>
+                setConfig({
+                  ...config,
+                  tiers: {
+                    ...config.tiers,
+                    [tier]: {
+                      ...config.tiers[tier],
+                      provider: value as AiProviderId,
+                    },
                   },
-                },
-              })
-            }
-          />
+                })
+              }
+            />
+          </View>
           <Input
             value={config.tiers[tier].model}
             placeholder={t('model id')}
+            style={{ width: isNarrowWidth ? '100%' : undefined }}
             onChangeValue={value =>
               setConfig({
                 ...config,
@@ -353,8 +363,8 @@ export function AiSettings() {
 
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           justifyContent: 'space-between',
           gap: 12,
           width: '100%',
@@ -389,8 +399,8 @@ export function AiSettings() {
 
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           justifyContent: 'space-between',
           gap: 12,
         }}
@@ -413,8 +423,8 @@ export function AiSettings() {
 
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           justifyContent: 'space-between',
           gap: 12,
         }}
@@ -536,9 +546,10 @@ export function AiSettings() {
       >
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
+            flexDirection: isNarrowWidth ? 'column' : 'row',
+            alignItems: isNarrowWidth ? 'stretch' : 'center',
             justifyContent: 'space-between',
+            gap: 8,
           }}
         >
           <Text style={{ fontWeight: 600 }}>

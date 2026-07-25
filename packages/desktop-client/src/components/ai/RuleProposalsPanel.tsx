@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button, ButtonWithLoading } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -76,6 +77,7 @@ const PROPOSALS_QUERY_KEY = ['ai-rule-proposals'];
 
 export function RuleProposalsPanel() {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -127,9 +129,10 @@ export function RuleProposalsPanel() {
     <View style={{ width: '100%', gap: 8 }}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           justifyContent: 'space-between',
+          gap: 8,
         }}
       >
         <Text style={{ fontWeight: 600 }}>
@@ -172,6 +175,7 @@ export function RuleProposalsPanel() {
 
 function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const { data } = useCategoriesById();
@@ -212,8 +216,8 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: isNarrowWidth ? 'column' : 'row',
+        alignItems: isNarrowWidth ? 'stretch' : 'center',
         gap: 8,
         width: '100%',
         padding: '6px 0',
@@ -230,6 +234,7 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
         </Text>
       </View>
       <ButtonWithLoading
+        style={isNarrowWidth ? { minHeight: 40 } : undefined}
         isDisabled={isLoading}
         isLoading={isLoading}
         variant="primary"
@@ -237,7 +242,11 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
       >
         <Trans>Approve</Trans>
       </ButtonWithLoading>
-      <Button isDisabled={isLoading} onPress={() => void onResolve('reject')}>
+      <Button
+        style={isNarrowWidth ? { minHeight: 40 } : undefined}
+        isDisabled={isLoading}
+        onPress={() => void onResolve('reject')}
+      >
         <Trans>Reject</Trans>
       </Button>
     </View>

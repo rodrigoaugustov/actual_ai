@@ -150,6 +150,7 @@ export function TransactionPickerList({
                   cursor: 'pointer',
                   borderBottom: '1px solid ' + theme.tableBorder,
                   flexShrink: 0,
+                  minHeight: 40,
                 }}
                 onPress={() => onSelect(trans.id)}
               >

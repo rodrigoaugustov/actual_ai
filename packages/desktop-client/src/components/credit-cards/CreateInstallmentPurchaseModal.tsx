@@ -198,15 +198,15 @@ export function CreateInstallmentPurchaseModal({
                 </View>
               )}
 
-              <ModalButtons>
-                <Button onPress={() => state.close()}>
+              <ModalButtons style={{ gap: 8 }}>
+                <Button style={{ minHeight: 40 }} onPress={() => state.close()}>
                   <Trans>Cancel</Trans>
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
                   isDisabled={isSaving || !isValid}
-                  style={{ marginLeft: 10 }}
+                  style={{ minHeight: 40 }}
                 >
                   <Trans>Create</Trans>
                 </Button>

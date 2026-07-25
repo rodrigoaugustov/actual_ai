@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button, ButtonWithLoading } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import {
   SvgArrowThinLeft,
@@ -12,6 +13,7 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
+import type { ObjectExpression } from '@actual-app/core/shared/query';
 import type {
   AccountEntity,
   StatementWithDerived,
@@ -32,7 +34,7 @@ type StatementsPanelProps = {
   account: AccountEntity;
   onApplyFilter: (condition: {
     customName: string;
-    queryFilter: Record<string, unknown>;
+    queryFilter: ObjectExpression;
   }) => void;
 };
 
@@ -41,6 +43,7 @@ export function StatementsPanel({
   onApplyFilter,
 }: StatementsPanelProps) {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const format = useFormat();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const queryClient = useQueryClient();
@@ -194,15 +197,16 @@ export function StatementsPanel({
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: isNarrowWidth ? 'column' : 'row',
+        alignItems: isNarrowWidth ? 'stretch' : 'center',
         gap: 6,
-        padding: '5px 15px',
+        padding: isNarrowWidth ? '8px 10px' : '5px 15px',
       }}
       data-testid="statements-panel"
     >
       <Button
         variant="bare"
+        style={isNarrowWidth ? { minHeight: 40 } : undefined}
         onPress={() =>
           dispatch(
             pushModal({
@@ -217,7 +221,7 @@ export function StatementsPanel({
         <Trans>New installment purchase</Trans>
       </Button>
 
-      {visible.length > 0 && (
+      {!isNarrowWidth && visible.length > 0 && (
         <Button
           variant="bare"
           aria-label={t('Show earlier statements')}
@@ -247,6 +251,7 @@ export function StatementsPanel({
           gap: 10,
           overflowX: 'auto',
           scrollBehavior: 'smooth',
+          width: isNarrowWidth ? '100%' : undefined,
         }}
       >
         {visible.map(statement => (
@@ -307,7 +312,10 @@ export function StatementsPanel({
               {statement.status !== 'open' && (
                 <ButtonWithLoading
                   variant="bare"
-                  style={{ fontSize: '0.8em' }}
+                  style={{
+                    fontSize: '0.8em',
+                    minHeight: isNarrowWidth ? 40 : undefined,
+                  }}
                   isLoading={updatingStatementId === statement.id}
                   isDisabled={updatingStatementId != null}
                   onPress={() => onTogglePaid(statement)}
@@ -324,7 +332,7 @@ export function StatementsPanel({
         ))}
       </View>
 
-      {visible.length > 0 && (
+      {!isNarrowWidth && visible.length > 0 && (
         <Button
           variant="bare"
           aria-label={t('Show later statements')}

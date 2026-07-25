@@ -5,11 +5,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
+import { Button } from '@actual-app/components/button';
+import { Text } from '@actual-app/components/text';
+import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
-import type { Query } from '@actual-app/core/shared/query';
+import type { ObjectExpression, Query } from '@actual-app/core/shared/query';
 import { isPreviewId } from '@actual-app/core/shared/transactions';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type {
@@ -23,6 +26,7 @@ import {
 } from '#accounts';
 import { markAccountRead } from '#accounts/accountsSlice';
 import * as reconciliation from '#accounts/reconciliation';
+import { StatementsPanel } from '#components/credit-cards/StatementsPanel';
 import { ReconcilingBanner } from '#components/mobile/accounts/ReconcilingBanner';
 import { TransactionListWithBalances } from '#components/mobile/transactions/TransactionListWithBalances';
 import { useAccountPreviewTransactions } from '#hooks/useAccountPreviewTransactions';
@@ -96,6 +100,9 @@ function TransactionListWithPreviews({
   const [transactionsQuery, setTransactionsQuery] = useState<Query>(
     baseTransactionsQuery(),
   );
+  const [activeStatementName, setActiveStatementName] = useState<string | null>(
+    null,
+  );
 
   const { isSearching, search } = useTransactionsSearch({
     updateQuery: setTransactionsQuery,
@@ -107,6 +114,7 @@ function TransactionListWithPreviews({
 
   const onSearch = useCallback(
     (searchText: string) => {
+      setActiveStatementName(null);
       searchTextRef.current = searchText;
       search(searchText);
     },
@@ -114,11 +122,32 @@ function TransactionListWithPreviews({
   );
 
   useEffect(() => {
+    setActiveStatementName(null);
     setTransactionsQuery(baseTransactionsQuery());
     if (searchTextRef.current !== '') {
       search(searchTextRef.current);
     }
   }, [baseTransactionsQuery, search]);
+
+  const onApplyStatementFilter = useCallback(
+    ({
+      customName,
+      queryFilter,
+    }: {
+      customName: string;
+      queryFilter: ObjectExpression;
+    }) => {
+      searchTextRef.current = '';
+      setActiveStatementName(customName);
+      setTransactionsQuery(baseTransactionsQuery().filter(queryFilter));
+    },
+    [baseTransactionsQuery],
+  );
+
+  const onClearStatementFilter = useCallback(() => {
+    setActiveStatementName(null);
+    setTransactionsQuery(baseTransactionsQuery());
+  }, [baseTransactionsQuery]);
 
   const shouldCalculateRunningBalances =
     showRunningBalances === 'true' && !!account?.id && !isSearching;
@@ -314,6 +343,32 @@ function TransactionListWithPreviews({
           onDone={onDoneReconciling}
           onCreateTransaction={onCreateReconciliationTransaction}
         />
+      )}
+      {account.closing_day != null && account.due_day != null && (
+        <StatementsPanel
+          account={account}
+          onApplyFilter={onApplyStatementFilter}
+        />
+      )}
+      {activeStatementName && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            padding: '0 10px 8px',
+          }}
+        >
+          <Text>{activeStatementName}</Text>
+          <Button
+            variant="bare"
+            style={{ minHeight: 40 }}
+            onPress={onClearStatementFilter}
+          >
+            <Trans>Clear filter</Trans>
+          </Button>
+        </View>
       )}
       <TransactionListWithBalances
         isLoading={

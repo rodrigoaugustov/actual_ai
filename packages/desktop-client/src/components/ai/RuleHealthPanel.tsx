@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { ButtonWithLoading } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -102,6 +103,7 @@ function isReviewCandidate(rule: AiRuleMetaEntity): boolean {
 
 export function RuleHealthPanel() {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -157,9 +159,10 @@ export function RuleHealthPanel() {
     <View style={{ width: '100%', gap: 8 }}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
           justifyContent: 'space-between',
+          gap: 8,
         }}
       >
         <Text style={{ fontWeight: 600 }}>
@@ -195,8 +198,8 @@ export function RuleHealthPanel() {
             <View
               key={rule.id}
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
+                flexDirection: isNarrowWidth ? 'column' : 'row',
+                alignItems: isNarrowWidth ? 'stretch' : 'center',
                 gap: 8,
                 width: '100%',
                 padding: '6px 0',

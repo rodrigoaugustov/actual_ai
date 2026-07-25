@@ -149,15 +149,15 @@ export function CreditCardSettingsModal({
               </Text>
             )}
 
-            <ModalButtons>
-              <Button onPress={() => state.close()}>
+            <ModalButtons style={{ gap: 8 }}>
+              <Button style={{ minHeight: 40 }} onPress={() => state.close()}>
                 <Trans>Cancel</Trans>
               </Button>
               <Button
                 variant="primary"
                 isDisabled={isSaving || !isValid}
                 onPress={() => onSave(() => state.close())}
-                style={{ marginLeft: 10 }}
+                style={{ minHeight: 40 }}
               >
                 <Trans>Save</Trans>
               </Button>
