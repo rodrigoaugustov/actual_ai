@@ -2319,5 +2319,9 @@
   "This will delete all {{count}} installments in this purchase. Continue?_one": "Isso excluirá a parcela desta compra. Deseja continuar?",
   "This will delete all {{count}} installments in this purchase. Continue?_other": "Isso excluirá todas as {{count}} parcelas desta compra. Deseja continuar?",
   "Installment purchase deleted.": "Compra parcelada excluída.",
-  "Could not undo the installment purchase. Check your connection and try again.": "Não foi possível desfazer a compra parcelada. Verifique sua conexão e tente novamente."
+  "Could not undo the installment purchase. Check your connection and try again.": "Não foi possível desfazer a compra parcelada. Verifique sua conexão e tente novamente.",
+  "Conversations": "Conversas",
+  "Choose a conversation": "Escolha uma conversa",
+  "Advisor message": "Mensagem para o consultor",
+  "New": "Nova"
 }

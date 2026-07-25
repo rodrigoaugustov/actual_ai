@@ -3,6 +3,7 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
+import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { Input } from '@actual-app/components/input';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -20,7 +21,11 @@ import type { AiAdvisorEvent } from '@actual-app/core/types/server-events';
 import { css } from '@emotion/css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Page } from '#components/Page';
+import { FloatingActionBar } from '#components/mobile/FloatingActionBar';
+import { MobileBackButton } from '#components/mobile/MobileBackButton';
+import { TapField } from '#components/mobile/MobileForms';
+import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
+import { MobilePageHeader, Page } from '#components/Page';
 import { pushModal } from '#modals/modalsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
@@ -577,7 +582,11 @@ function Plan({
   );
 }
 
-export function AdvisorPage() {
+type AdvisorPageProps = {
+  isMobile?: boolean;
+};
+
+export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const client = useQueryClient();
@@ -592,6 +601,8 @@ export function AdvisorPage() {
   const [runId, setRunId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isCreatingInitial, setIsCreatingInitial] = useState(false);
+  const [isMobileConversationList, setIsMobileConversationList] =
+    useState(false);
   const createdInitial = useRef(false);
   const runFailed = useRef(false);
   const messageListRef = useRef<HTMLDivElement>(null);
@@ -832,19 +843,310 @@ export function AdvisorPage() {
     void client.invalidateQueries({ queryKey: [key] });
   };
 
+  const tabs: Array<[Tab, string]> = [
+    ['conversation', t('Conversation')],
+    ['profile', t('Profile & memory')],
+    ['goals', t('Goals')],
+    ['documents', t('Documents')],
+    ['plan', t('Plan')],
+  ];
+  const selectedConversation = conversations.data?.find(
+    item => item.id === conversationId,
+  );
+
+  if (isMobile && isMobileConversationList) {
+    return (
+      <Page
+        header={
+          <MobilePageHeader
+            title={t('Conversations')}
+            leftContent={
+              <MobileBackButton
+                onPress={() => setIsMobileConversationList(false)}
+              />
+            }
+            rightContent={
+              <Button
+                variant="bare"
+                isDisabled={isCreatingInitial || conversationMutation.isPending}
+                onPress={() => {
+                  void createConversation().then(() => {
+                    setIsMobileConversationList(false);
+                  });
+                }}
+              >
+                <Trans>New</Trans>
+              </Button>
+            }
+          />
+        }
+        padding={0}
+      >
+        <View
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            gap: 8,
+            padding: 10,
+            paddingBottom: MOBILE_NAV_HEIGHT,
+          }}
+        >
+          {conversations.isLoading ? (
+            <LoadingIndicator />
+          ) : conversations.isError ? (
+            <LoadingError />
+          ) : (
+            (conversations.data ?? []).map(item => (
+              <View
+                key={item.id}
+                style={{
+                  ...panel,
+                  padding: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <Button
+                  variant={item.id === conversationId ? 'bare' : 'normal'}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: 40,
+                    justifyContent: 'flex-start',
+                  }}
+                  onPress={() => {
+                    setConversationId(item.id);
+                    setIsMobileConversationList(false);
+                  }}
+                >
+                  {item.title}
+                </Button>
+                <Button
+                  variant="bare"
+                  style={{
+                    minHeight: 40,
+                    color: theme.errorTextMenu,
+                  }}
+                  isDisabled={conversationMutation.isPending}
+                  onPress={() => confirmDeleteConversation(item)}
+                >
+                  <Trans>Delete</Trans>
+                </Button>
+              </View>
+            ))
+          )}
+        </View>
+      </Page>
+    );
+  }
+
+  if (isMobile) {
+    const mobilePanel =
+      tab === 'profile' ? (
+        <Profile
+          memories={memory.data ?? []}
+          refresh={refresh('advisor-memory')}
+          isLoading={memory.isLoading}
+          isError={memory.isError}
+        />
+      ) : tab === 'goals' ? (
+        <Goals
+          goals={goals.data ?? []}
+          refresh={refresh('advisor-goals')}
+          isLoading={goals.isLoading}
+          isError={goals.isError}
+        />
+      ) : tab === 'documents' ? (
+        <Documents
+          documents={documents.data ?? []}
+          refresh={refresh('advisor-documents')}
+          isLoading={documents.isLoading}
+          isError={documents.isError}
+        />
+      ) : tab === 'plan' ? (
+        <Plan
+          advice={advice.data ?? []}
+          refresh={refresh('advisor-advice')}
+          isLoading={advice.isLoading}
+          isError={advice.isError}
+        />
+      ) : null;
+
+    return (
+      <Page
+        header={<MobilePageHeader title={t('Financial advisor')} />}
+        padding={0}
+      >
+        <View style={{ flex: 1, minHeight: 0 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexShrink: 0,
+              gap: 6,
+              overflowX: 'auto',
+              padding: 8,
+              borderBottomWidth: 1,
+              borderBottomStyle: 'solid',
+              borderBottomColor: theme.tableBorder,
+            }}
+          >
+            {tabs.map(([value, label]) => (
+              <Button
+                key={value}
+                variant={tab === value ? 'primary' : 'normal'}
+                style={{ minHeight: 40, flexShrink: 0 }}
+                onPress={() => setTab(value)}
+              >
+                {label}
+              </Button>
+            ))}
+          </View>
+          {tab === 'conversation' ? (
+            <View style={{ flex: 1, minHeight: 0 }}>
+              <View style={{ flexShrink: 0, padding: 8 }}>
+                <TapField
+                  value={selectedConversation?.title ?? ''}
+                  placeholder={t('Choose a conversation')}
+                  rightContent={
+                    <SvgCheveronRight
+                      style={{ width: 16, height: 16, flexShrink: 0 }}
+                    />
+                  }
+                  onPress={() => setIsMobileConversationList(true)}
+                />
+              </View>
+              <View
+                ref={messageListRef}
+                aria-live="polite"
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  gap: 10,
+                  padding: 8,
+                  paddingBottom: MOBILE_NAV_HEIGHT + 92,
+                }}
+              >
+                {conversationId != null && messages.isLoading ? (
+                  <LoadingIndicator />
+                ) : messages.isError ? (
+                  <LoadingError />
+                ) : (
+                  (messages.data ?? []).map(item => (
+                    <AdvisorMessage key={item.id} message={item} />
+                  ))
+                )}
+                {(streamed || liveTrace.length > 0) && (
+                  <AdvisorMessage
+                    isStreaming={runId != null}
+                    message={{
+                      id: 'stream',
+                      conversationId: conversationId ?? '',
+                      role: 'assistant',
+                      content: streamed,
+                      parts: liveTrace,
+                      runId: null,
+                      createdAt: Date.now(),
+                    }}
+                  />
+                )}
+                {error && (
+                  <Text style={{ color: theme.errorText }}>{error}</Text>
+                )}
+                <Text
+                  style={{
+                    color: theme.pageTextSubdued,
+                    fontSize: 11,
+                  }}
+                >
+                  <Trans>
+                    Financial data is read-only. Personal memories and plans
+                    require your confirmation.
+                  </Trans>
+                </Text>
+              </View>
+              <FloatingActionBar
+                style={{
+                  bottom: MOBILE_NAV_HEIGHT + 8,
+                  left: 0,
+                  width: 'calc(100vw - 20px)',
+                  height: 'auto',
+                  minHeight: 60,
+                  margin: '0 10px',
+                  padding: 6,
+                  flexDirection: 'row',
+                  alignItems: 'flex-end',
+                  gap: 6,
+                }}
+              >
+                <textarea
+                  rows={1}
+                  aria-label={t('Advisor message')}
+                  className={css({
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: 40,
+                    maxHeight: 88,
+                    resize: 'none',
+                    padding: 8,
+                    color: theme.pageText,
+                    backgroundColor: theme.tableBackground,
+                    border: `1px solid ${theme.buttonNormalBorder}`,
+                    borderRadius: 6,
+                  })}
+                  value={draft}
+                  onChange={event => setDraft(event.target.value)}
+                  placeholder={t('Talk about a decision, concern or goal…')}
+                />
+                {runId ? (
+                  <Button
+                    style={{ minHeight: 40 }}
+                    isDisabled={cancelMutation.isPending}
+                    onPress={() => cancel(runId)}
+                  >
+                    <Trans>Stop</Trans>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    style={{ minHeight: 40 }}
+                    isDisabled={
+                      !conversationId ||
+                      !draft.trim() ||
+                      submitMutation.isPending
+                    }
+                    onPress={submit}
+                  >
+                    <Trans>Send</Trans>
+                  </Button>
+                )}
+              </FloatingActionBar>
+            </View>
+          ) : (
+            <View
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                padding: 10,
+                paddingBottom: MOBILE_NAV_HEIGHT,
+              }}
+            >
+              {mobilePanel}
+            </View>
+          )}
+        </View>
+      </Page>
+    );
+  }
+
   return (
     <Page header={t('Financial advisor')}>
       <View style={{ flex: 1, minHeight: 0, gap: 12 }}>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          {(
-            [
-              ['conversation', t('Conversation')],
-              ['profile', t('Profile & memory')],
-              ['goals', t('Goals')],
-              ['documents', t('Documents')],
-              ['plan', t('Plan')],
-            ] as Array<[Tab, string]>
-          ).map(([value, label]) => (
+          {tabs.map(([value, label]) => (
             <Button
               key={value}
               variant={tab === value ? 'primary' : 'normal'}
@@ -1042,4 +1344,8 @@ export function AdvisorPage() {
       </View>
     </Page>
   );
+}
+
+export function MobileAdvisorPage() {
+  return <AdvisorPage isMobile />;
 }
