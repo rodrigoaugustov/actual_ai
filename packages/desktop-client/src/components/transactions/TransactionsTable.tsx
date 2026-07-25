@@ -86,6 +86,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format as formatDate, parseISO } from 'date-fns';
 
 import { getAccountsById } from '#accounts/accountsSlice';
+import { AiOriginBadge } from '#components/ai/AiOriginBadge';
 import { AccountAutocomplete } from '#components/autocomplete/AccountAutocomplete';
 import { CategoryAutocomplete } from '#components/autocomplete/CategoryAutocomplete';
 import { PayeeAutocomplete } from '#components/autocomplete/PayeeAutocomplete';
@@ -1802,15 +1803,7 @@ const Transaction = memo(function Transaction({
             value={categoryId}
             formatter={value => {
               if (value) {
-                const categoryName =
-                  getCategoriesById(categoryGroups)[value]?.name ?? '';
-                // Temporary observability aid — see aiSuggestionsByTransactionId
-                // in TransactionsTable: marks categories AI touched, versus
-                // rules/manual entry (which aren't tracked anywhere today).
-                return aiSuggestion?.status === 'auto_applied' ||
-                  aiSuggestion?.status === 'accepted'
-                  ? `✨ ${categoryName}`
-                  : categoryName;
+                return getCategoriesById(categoryGroups)[value]?.name ?? '';
               }
               if (!transaction.id) return '';
               if (
@@ -1828,6 +1821,32 @@ const Transaction = memo(function Transaction({
               }
               return t('Categorize');
             }}
+            unexposedContent={({ value, formatter }) => (
+              <View
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                {aiSuggestion &&
+                  aiSuggestion.status !== 'rejected' &&
+                  !isPreview && <AiOriginBadge status={aiSuggestion.status} />}
+                <Text
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {formatter ? formatter(value ?? '') : value}
+                </Text>
+              </View>
+            )}
             exposed={focusedField === 'category'}
             onExpose={name => !isPreview && onEdit(id, name)}
             valueStyle={
@@ -2928,7 +2947,7 @@ export const TransactionTable = forwardRef(
     // background classification pass reports results (see sync-events.ts).
     const { data: aiSuggestionsIndex } = useQuery({
       queryKey: ['ai-suggestions-index'],
-      queryFn: () => send('ai/get-suggestions-index'),
+      queryFn: async () => (await send('ai/get-suggestions-index')) ?? [],
     });
     const aiSuggestionsByTransactionId = useMemo(() => {
       const map = new Map<string, AiSuggestionIndexEntry>();

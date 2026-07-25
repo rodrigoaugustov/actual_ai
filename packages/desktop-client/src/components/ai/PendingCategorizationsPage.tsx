@@ -12,6 +12,8 @@ import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { MobilePageHeader, Page } from '#components/Page';
 
+import { RuleHealthPanel } from './RuleHealthPanel';
+import { RuleProposalsPanel } from './RuleProposalsPanel';
 import { SuggestionsInbox } from './SuggestionsInbox';
 
 function PendingCountBanner() {
@@ -102,6 +104,21 @@ export function PendingCategorizationsPage({
             </Trans>
           </Text>
           <SuggestionsInbox isMobile={isMobile} />
+          <View style={{ marginTop: 18, gap: 12 }}>
+            <View>
+              <Text style={{ fontSize: 16, fontWeight: 600 }}>
+                <Trans>Automation and rule health</Trans>
+              </Text>
+              <Text style={{ color: theme.pageTextSubdued }}>
+                <Trans>
+                  Review proposed automations and inspect rules that may need
+                  attention.
+                </Trans>
+              </Text>
+            </View>
+            <RuleProposalsPanel />
+            <RuleHealthPanel />
+          </View>
         </View>
       </Page>
     </ErrorBoundary>

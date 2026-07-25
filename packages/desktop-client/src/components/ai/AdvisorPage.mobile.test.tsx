@@ -1,13 +1,12 @@
+import { MemoryRouter, useLocation } from 'react-router';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { useNavigate } from '#hooks/useNavigate';
 import { createTestQueryClient, TestProviders } from '#mocks';
 
 import { MobileAdvisorPage } from './AdvisorPage';
-
-vi.mock('#hooks/useNavigate', () => ({
-  useNavigate: () => vi.fn(),
-}));
 
 vi.mock('@actual-app/core/platform/client/connection', () => ({
   listen: vi.fn(() => vi.fn()),
@@ -35,11 +34,31 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
 }));
 
 describe('MobileAdvisorPage', () => {
-  function renderPage() {
+  function RouterProbe() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    return (
+      <>
+        <output data-testid="advisor-location">
+          {location.pathname}
+          {location.search}
+        </output>
+        <button type="button" onClick={() => navigate(-1)}>
+          History back
+        </button>
+      </>
+    );
+  }
+
+  function renderPage(initialEntry = '/advisor') {
     return render(
-      <TestProviders queryClient={createTestQueryClient()}>
-        <MobileAdvisorPage />
-      </TestProviders>,
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <TestProviders queryClient={createTestQueryClient()}>
+          <MobileAdvisorPage />
+          <RouterProbe />
+        </TestProviders>
+      </MemoryRouter>,
     );
   }
 
@@ -77,9 +96,39 @@ describe('MobileAdvisorPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole('button', { name: 'Profile & memory' }));
+    await user.click(screen.getByRole('tab', { name: 'Profile & memory' }));
 
     expect(screen.getByText('Pending confirmations')).toBeVisible();
     expect(screen.getByText('Add a profile fact')).toBeVisible();
+  });
+
+  it('opens a deep-linked section with semantic tabs', async () => {
+    renderPage('/advisor?section=goals&conversation=conversation-1');
+
+    expect(screen.getByRole('tab', { name: 'Goals' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tabpanel', { name: 'Goals' })).toBeVisible();
+    expect(screen.getByText('New goal')).toBeVisible();
+  });
+
+  it('writes section changes to history and restores them on back', async () => {
+    const user = userEvent.setup();
+    renderPage('/advisor?conversation=conversation-1');
+
+    await user.click(screen.getByRole('tab', { name: 'Goals' }));
+    expect(screen.getByTestId('advisor-location')).toHaveTextContent(
+      'section=goals',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'History back' }));
+
+    expect(
+      await screen.findByRole('tab', { name: 'Conversation' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(
+      screen.getByRole('textbox', { name: 'Advisor message' }),
+    ).toBeVisible();
   });
 });

@@ -9,6 +9,8 @@ import { createTestQueryClient, TestProviders } from '#mocks';
 
 import { StatementsPanel } from './StatementsPanel';
 
+const aiSettingsFixture = vi.hoisted(() => ({ isEnabled: false }));
+
 vi.mock('@actual-app/components/hooks/useResponsive', () => ({
   useResponsive: () => ({
     isNarrowWidth: true,
@@ -31,7 +33,7 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
     switch (method) {
       case 'ai/get-config':
         return {
-          enabled: false,
+          enabled: aiSettingsFixture.isEnabled,
           tiers: {
             fast: { provider: 'openai', model: 'gpt-fast' },
             standard: { provider: 'anthropic', model: 'claude-standard' },
@@ -105,6 +107,10 @@ describe('mobile AI settings and credit-card surfaces', () => {
     );
   }
 
+  beforeEach(() => {
+    aiSettingsFixture.isEnabled = false;
+  });
+
   it('stacks AI tier controls at narrow widths', async () => {
     renderPage(<AiSettings />);
 
@@ -114,6 +120,26 @@ describe('mobile AI settings and credit-card surfaces', () => {
     expect(
       screen.getByRole('button', { name: 'Save AI settings' }),
     ).toBeVisible();
+  });
+
+  it('keeps configuration before the link to AI operations', async () => {
+    aiSettingsFixture.isEnabled = true;
+    renderPage(<AiSettings />);
+
+    await screen.findByDisplayValue('gpt-fast');
+    const saveApiKeys = screen.getByRole('button', {
+      name: 'Save API keys',
+    });
+    const openOperations = screen.getByRole('button', {
+      name: 'Open AI operations',
+    });
+
+    expect(
+      saveApiKeys.compareDocumentPosition(openOperations) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.queryByText(/^Rule proposals/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Mined rule health')).not.toBeInTheDocument();
   });
 
   it('keeps statements and the installment action reachable on mobile', async () => {

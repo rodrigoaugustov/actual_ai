@@ -19,8 +19,6 @@ import type {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { aiAgentLabel } from '#components/ai/labels';
-import { RuleHealthPanel } from '#components/ai/RuleHealthPanel';
-import { RuleProposalsPanel } from '#components/ai/RuleProposalsPanel';
 import { Link } from '#components/common/Link';
 import { FinancialText } from '#components/FinancialText';
 import { FormField, FormLabel } from '#components/forms';
@@ -40,7 +38,7 @@ function tierLabel(t: (key: string) => string, tier: AiTier): string {
     case 'standard':
       return t('Standard (classification, rule mining)');
     case 'frontier':
-      return t('Frontier (advisor, wizard)');
+      return t('Frontier (advisor, complex planning)');
     default:
       return tier;
   }
@@ -271,42 +269,6 @@ export function AiSettings() {
         />
       </View>
 
-      {config.enabled && (
-        <View
-          style={{
-            flexDirection: isNarrowWidth ? 'column' : 'row',
-            alignItems: isNarrowWidth ? 'stretch' : 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          {isPendingSuggestionsLoading ? (
-            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
-          ) : isPendingSuggestionsError ? (
-            <Text style={{ color: theme.errorText }}>
-              <Trans>Could not load pending AI categorizations.</Trans>
-            </Text>
-          ) : (
-            <Text>
-              {pendingSuggestions.length > 0
-                ? t('{{count}} AI categorization(s) awaiting your review.', {
-                    count: pendingSuggestions.length,
-                  })
-                : t('No AI categorizations awaiting review right now.')}
-            </Text>
-          )}
-          <Link
-            variant="button"
-            buttonVariant="primary"
-            to="/ai-pending-categorizations"
-          >
-            <Trans>Review categorizations</Trans>
-          </Link>
-        </View>
-      )}
-      {config.enabled && <RuleProposalsPanel />}
-      {config.enabled && <RuleHealthPanel />}
-
       {TIERS.map(tier => (
         <View
           key={tier}
@@ -536,6 +498,43 @@ export function AiSettings() {
           <Trans>Save API keys</Trans>
         </ButtonWithLoading>
       </View>
+
+      {config.enabled && (
+        <View
+          style={{
+            width: '100%',
+            borderTop: '1px solid ' + theme.pillBorderDark,
+            paddingTop: 10,
+            flexDirection: isNarrowWidth ? 'column' : 'row',
+            alignItems: isNarrowWidth ? 'stretch' : 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          {isPendingSuggestionsLoading ? (
+            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
+          ) : isPendingSuggestionsError ? (
+            <Text style={{ color: theme.errorText }}>
+              <Trans>Could not load pending AI categorizations.</Trans>
+            </Text>
+          ) : (
+            <Text>
+              {pendingSuggestions.length > 0
+                ? t('{{count}} AI categorization(s) awaiting your review.', {
+                    count: pendingSuggestions.length,
+                  })
+                : t('No AI categorizations awaiting review right now.')}
+            </Text>
+          )}
+          <Link
+            variant="button"
+            buttonVariant="primary"
+            to="/ai-pending-categorizations"
+          >
+            <Trans>Open AI operations</Trans>
+          </Link>
+        </View>
+      )}
 
       <View
         style={{

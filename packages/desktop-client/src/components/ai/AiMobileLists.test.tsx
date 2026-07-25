@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
 
 import { send } from '@actual-app/core/platform/client/connection';
 import { render, screen } from '@testing-library/react';
@@ -57,6 +58,9 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
             date: '2026-07-24',
           },
         ];
+      case 'ai/get-rule-proposals':
+      case 'ai/get-rule-health':
+        return [];
       case 'ai/resolve-suggestion':
         return undefined;
       default:
@@ -69,7 +73,7 @@ describe('mobile AI list pages', () => {
   function renderPage(page: ReactNode) {
     return render(
       <TestProviders queryClient={createTestQueryClient()}>
-        {page}
+        <MemoryRouter>{page}</MemoryRouter>
       </TestProviders>,
     );
   }
@@ -108,6 +112,9 @@ describe('mobile AI list pages', () => {
     expect(
       screen.getByText('Similar purchases were categorized as groceries.'),
     ).toBeVisible();
+    expect(screen.getByText('Automation and rule health')).toBeVisible();
+    expect(screen.getByText(/^Rule proposals/)).toBeVisible();
+    expect(screen.getByText('Mined rule health')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Accept' }));
 

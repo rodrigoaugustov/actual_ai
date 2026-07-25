@@ -15,6 +15,7 @@ import {
 import { integerToCurrency } from '@actual-app/core/shared/util';
 import type {
   AccountEntity,
+  AiSuggestionIndexEntry,
   CategoryEntity,
   CategoryGroupEntity,
   PayeeEntity,
@@ -105,6 +106,7 @@ vi.mock('../../hooks/useCategories', () => ({
 
 const usualGroup = categoryGroups[1];
 let schedules: ScheduleEntity[] = [];
+let aiSuggestionsIndex: AiSuggestionIndexEntry[] = [];
 
 function generateTransactions(
   count: number,
@@ -256,6 +258,7 @@ function initBasicServer() {
       list: categories,
     }),
     'tags-get': async () => tags,
+    'ai/get-suggestions-index': async () => aiSuggestionsIndex,
     'tags-create': async (tag: Omit<TagEntity, 'id'>) => ({
       id: 'new-tag',
       ...tag,
@@ -265,6 +268,7 @@ function initBasicServer() {
 
 beforeEach(() => {
   schedules = [];
+  aiSuggestionsIndex = [];
   initBasicServer();
 });
 
@@ -515,6 +519,30 @@ describe('Transactions', () => {
       '3/12',
     );
     expect(screen.getByText('Laptop')).toBeVisible();
+  });
+
+  test('shows a typed origin badge instead of an ambiguous AI emoji', async () => {
+    const transactions = generateTransactions(2);
+    const categorizedTransaction = transactions[1];
+    if (!categorizedTransaction.category) {
+      throw new Error('Expected a categorized transaction fixture');
+    }
+    aiSuggestionsIndex = [
+      {
+        id: 'suggestion-1',
+        transactionId: categorizedTransaction.id,
+        categoryId: categorizedTransaction.category,
+        status: 'auto_applied',
+      },
+    ];
+
+    renderTransactions({
+      transactions,
+      isAdding: false,
+    });
+
+    expect(await screen.findByText('AI auto-applied')).toBeVisible();
+    expect(screen.queryByText(/✨/)).not.toBeInTheDocument();
   });
 
   test('transactions table shows the correct data', () => {

@@ -26,6 +26,7 @@ import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { TapField } from '#components/mobile/MobileForms';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { MobilePageHeader, Page } from '#components/Page';
+import { useUrlParam } from '#hooks/useUrlParam';
 import { pushModal } from '#modals/modalsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
@@ -39,12 +40,82 @@ import {
 } from './labels';
 
 type Tab = 'conversation' | 'profile' | 'goals' | 'documents' | 'plan';
+const TAB_VALUES: readonly Tab[] = [
+  'conversation',
+  'profile',
+  'goals',
+  'documents',
+  'plan',
+];
+
+function isTab(value: string | null): value is Tab {
+  return value != null && TAB_VALUES.includes(value as Tab);
+}
+
 const panel = {
   border: `1px solid ${theme.pillBorderDark}`,
   borderRadius: 6,
   padding: 12,
   gap: 8,
 };
+
+function AdvisorTabButton({
+  value,
+  label,
+  isSelected,
+  isMobile = false,
+  onSelect,
+}: {
+  value: Tab;
+  label: string;
+  isSelected: boolean;
+  isMobile?: boolean;
+  onSelect: (value: Tab) => void;
+}) {
+  return (
+    <button
+      id={`advisor-tab-${value}`}
+      type="button"
+      role="tab"
+      aria-selected={isSelected}
+      aria-controls={`advisor-panel-${value}`}
+      className={css({
+        minHeight: isMobile ? 40 : 32,
+        flexShrink: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '5px 10px',
+        borderRadius: 4,
+        border: `1px solid ${
+          isSelected ? theme.buttonPrimaryBorder : theme.buttonNormalBorder
+        }`,
+        color: isSelected ? theme.buttonPrimaryText : theme.buttonNormalText,
+        backgroundColor: isSelected
+          ? theme.buttonPrimaryBackground
+          : theme.buttonNormalBackground,
+        cursor: 'pointer',
+        font: 'inherit',
+        whiteSpace: 'nowrap',
+        ':hover': {
+          color: isSelected
+            ? theme.buttonPrimaryTextHover
+            : theme.buttonNormalTextHover,
+          backgroundColor: isSelected
+            ? theme.buttonPrimaryBackgroundHover
+            : theme.buttonNormalBackgroundHover,
+        },
+        ':focus-visible': {
+          outline: `2px solid ${theme.pageTextLink}`,
+          outlineOffset: 2,
+        },
+      })}
+      onClick={() => onSelect(value)}
+    >
+      {label}
+    </button>
+  );
+}
 
 function useAdvisorMutation() {
   const { t } = useTranslation();
@@ -593,8 +664,15 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
   const conversationMutation = useAdvisorMutation();
   const submitMutation = useAdvisorMutation();
   const cancelMutation = useAdvisorMutation();
-  const [tab, setTab] = useState<Tab>('conversation');
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [sectionParam, setSectionParam] = useUrlParam('section');
+  const [conversationId, setConversationParam] = useUrlParam('conversation');
+  const tab = isTab(sectionParam) ? sectionParam : 'conversation';
+  const setTab = (value: Tab) => {
+    setSectionParam(value === 'conversation' ? null : value);
+  };
+  const setConversationId = (value: string | null) => {
+    setConversationParam(value);
+  };
   const [draft, setDraft] = useState('');
   const [streamed, setStreamed] = useState('');
   const [liveTrace, setLiveTrace] = useState<AiTracePart[]>([]);
@@ -636,10 +714,24 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
   });
 
   useEffect(() => {
-    if (!conversationId && conversations.data?.[0]) {
-      setConversationId(conversations.data[0].id);
+    if (!conversations.isSuccess) {
+      return;
     }
-  }, [conversationId, conversations.data]);
+
+    const isValidConversation = conversations.data.some(
+      item => item.id === conversationId,
+    );
+    if (!isValidConversation) {
+      setConversationParam(conversations.data[0]?.id ?? null, {
+        replace: true,
+      });
+    }
+  }, [
+    conversationId,
+    conversations.data,
+    conversations.isSuccess,
+    setConversationParam,
+  ]);
   useEffect(() => {
     if (
       conversations.isSuccess &&
@@ -651,7 +743,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
       void (async () => {
         try {
           const item = await send('ai/advisor/create-conversation', {});
-          setConversationId(item.id);
+          setConversationParam(item.id, { replace: true });
           await client.invalidateQueries({
             queryKey: ['advisor-conversations'],
           });
@@ -677,6 +769,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
     conversations.data?.length,
     conversations.isSuccess,
     dispatch,
+    setConversationParam,
     t,
   ]);
   useEffect(
@@ -980,6 +1073,8 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
       >
         <View style={{ flex: 1, minHeight: 0 }}>
           <View
+            role="tablist"
+            aria-label={t('Advisor sections')}
             style={{
               flexDirection: 'row',
               flexShrink: 0,
@@ -992,18 +1087,23 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
             }}
           >
             {tabs.map(([value, label]) => (
-              <Button
+              <AdvisorTabButton
                 key={value}
-                variant={tab === value ? 'primary' : 'normal'}
-                style={{ minHeight: 40, flexShrink: 0 }}
-                onPress={() => setTab(value)}
-              >
-                {label}
-              </Button>
+                value={value}
+                label={label}
+                isSelected={tab === value}
+                isMobile
+                onSelect={setTab}
+              />
             ))}
           </View>
           {tab === 'conversation' ? (
-            <View style={{ flex: 1, minHeight: 0 }}>
+            <View
+              id="advisor-panel-conversation"
+              role="tabpanel"
+              aria-labelledby="advisor-tab-conversation"
+              style={{ flex: 1, minHeight: 0 }}
+            >
               <View style={{ flexShrink: 0, padding: 8 }}>
                 <TapField
                   value={selectedConversation?.title ?? ''}
@@ -1126,6 +1226,9 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
             </View>
           ) : (
             <View
+              id={`advisor-panel-${tab}`}
+              role="tabpanel"
+              aria-labelledby={`advisor-tab-${tab}`}
               style={{
                 flex: 1,
                 minHeight: 0,
@@ -1145,19 +1248,26 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
   return (
     <Page header={t('Financial advisor')}>
       <View style={{ flex: 1, minHeight: 0, gap: 12 }}>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <View
+          role="tablist"
+          aria-label={t('Advisor sections')}
+          style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}
+        >
           {tabs.map(([value, label]) => (
-            <Button
+            <AdvisorTabButton
               key={value}
-              variant={tab === value ? 'primary' : 'normal'}
-              onPress={() => setTab(value)}
-            >
-              {label}
-            </Button>
+              value={value}
+              label={label}
+              isSelected={tab === value}
+              onSelect={setTab}
+            />
           ))}
         </View>
         {tab === 'conversation' && (
           <View
+            id="advisor-panel-conversation"
+            role="tabpanel"
+            aria-labelledby="advisor-tab-conversation"
             style={{ flex: 1, minHeight: 0, flexDirection: 'row', gap: 12 }}
           >
             <View
@@ -1310,36 +1420,60 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
           </View>
         )}
         {tab === 'profile' && (
-          <Profile
-            memories={memory.data ?? []}
-            refresh={refresh('advisor-memory')}
-            isLoading={memory.isLoading}
-            isError={memory.isError}
-          />
+          <View
+            id="advisor-panel-profile"
+            role="tabpanel"
+            aria-labelledby="advisor-tab-profile"
+          >
+            <Profile
+              memories={memory.data ?? []}
+              refresh={refresh('advisor-memory')}
+              isLoading={memory.isLoading}
+              isError={memory.isError}
+            />
+          </View>
         )}
         {tab === 'goals' && (
-          <Goals
-            goals={goals.data ?? []}
-            refresh={refresh('advisor-goals')}
-            isLoading={goals.isLoading}
-            isError={goals.isError}
-          />
+          <View
+            id="advisor-panel-goals"
+            role="tabpanel"
+            aria-labelledby="advisor-tab-goals"
+          >
+            <Goals
+              goals={goals.data ?? []}
+              refresh={refresh('advisor-goals')}
+              isLoading={goals.isLoading}
+              isError={goals.isError}
+            />
+          </View>
         )}
         {tab === 'documents' && (
-          <Documents
-            documents={documents.data ?? []}
-            refresh={refresh('advisor-documents')}
-            isLoading={documents.isLoading}
-            isError={documents.isError}
-          />
+          <View
+            id="advisor-panel-documents"
+            role="tabpanel"
+            aria-labelledby="advisor-tab-documents"
+          >
+            <Documents
+              documents={documents.data ?? []}
+              refresh={refresh('advisor-documents')}
+              isLoading={documents.isLoading}
+              isError={documents.isError}
+            />
+          </View>
         )}
         {tab === 'plan' && (
-          <Plan
-            advice={advice.data ?? []}
-            refresh={refresh('advisor-advice')}
-            isLoading={advice.isLoading}
-            isError={advice.isError}
-          />
+          <View
+            id="advisor-panel-plan"
+            role="tabpanel"
+            aria-labelledby="advisor-tab-plan"
+          >
+            <Plan
+              advice={advice.data ?? []}
+              refresh={refresh('advisor-advice')}
+              isLoading={advice.isLoading}
+              isError={advice.isError}
+            />
+          </View>
         )}
       </View>
     </Page>
