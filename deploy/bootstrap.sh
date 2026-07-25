@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# One-shot host setup for a fresh Oracle Ampere A1 instance (Ubuntu 24.04 arm64).
+# One-shot host setup for a fresh Ubuntu 24.04 instance (Oracle Ampere A1 /
+# arm64, or GCP e2-micro / amd64 — both are supported and this detects which).
 #
 #   sudo ./bootstrap.sh
 #
@@ -24,7 +25,12 @@ if ! command -v docker >/dev/null; then
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
     | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  # arch is resolved from the host, not hardcoded: this script now runs on
+  # both arm64 (Oracle Ampere) and amd64 (GCP e2-micro) hosts. A hardcoded
+  # arm64 here is exactly what broke the first amd64 run — apt tried to
+  # install docker-ce:arm64 on a host with no arm64 architecture configured,
+  # failing on unmet dependencies (libc6:arm64, libseccomp2:arm64, ...).
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
     >/etc/apt/sources.list.d/docker.list
   apt-get update --quiet
   apt-get install --yes --quiet \

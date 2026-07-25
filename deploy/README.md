@@ -19,29 +19,41 @@ Consequência prática: **os jobs de IA só rodam com o app aberto**. O servidor
 categoriza nada às 3h da manhã.
 
 ```
-GitHub Actions (ubuntu-24.04-arm)  ──push──►  ghcr.io/rodrigoaugustov/actual-ai
-                                                        │
-                                        systemd timer ──┘ pull a cada 5 min
-                                                        ▼
-Oracle Ampere A1 ── docker network (nenhuma porta publicada)
+GitHub Actions (arm64 + amd64)  ──push──►  ghcr.io/rodrigoaugustov/actual-ai
+                                                     │  (manifest multi-arch)
+                                     systemd timer ──┘ pull a cada 5 min
+                                                     ▼
+GCP e2-micro OU Oracle Ampere A1 ── docker network (nenhuma porta publicada)
                       actual:5006  ◄──  cloudflared ──► Cloudflare edge
                       /srv/actual/data                        │
                                           https://financas.caderninho-digital.com
 ```
 
+O host em uso hoje é o **GCP e2-micro** (ver `deploy/provision-gcp.sh`); a
+Oracle segue como alternativa documentada. O `:master` no GHCR é um manifest
+multi-arch — o Docker do host resolve sozinho qual imagem baixar.
+
 ---
 
 ## Setup inicial
 
-### 1. Instância Oracle
+Passo a passo completo (incluindo escolha de host, GCP ou Oracle) está em
+[`docs/DEPLOY.md`](../docs/DEPLOY.md). Resumo abaixo — para reexecutar ou
+recriar do zero, prefira o guia completo, que evolui com mais frequência.
 
-`VM.Standard.A1.Flex`, **Ubuntu 24.04 arm64**, 2 OCPU / 12 GB, boot volume 100 GB.
+### 1. Instância
 
-Não é preciso mexer em Security List nem em `iptables`: o `cloudflared` só abre
-conexão de saída. Essa é a principal razão de ter escolhido tunnel em vez de um
-reverse proxy com portas abertas — as regras de `iptables` que as imagens Ubuntu
-da Oracle trazem sobrevivem a um `ufw allow` e são a forma mais comum de esse
-deploy falhar.
+Não é preciso mexer em Security List nem em `iptables` em nenhum dos dois
+provedores: o `cloudflared` só abre conexão de saída. Essa é a principal razão
+de ter escolhido tunnel em vez de um reverse proxy com portas abertas.
+
+- **GCP:** `deploy/provision-gcp.sh` — `e2-micro`, Ubuntu 24.04 amd64, disco
+  `pd-standard` 30 GB (limite exato do Always Free).
+- **Oracle:** `deploy/provision-oracle.sh` — `VM.Standard.A1.Flex`, Ubuntu
+  24.04 arm64, 2 OCPU / 12 GB, boot volume 100 GB. As regras de `iptables` que
+  as imagens Ubuntu da Oracle trazem sobrevivem a um `ufw allow` e são a forma
+  mais comum de esse caminho falhar — mas como nada precisa de porta de
+  entrada, isso é irrelevante aqui.
 
 ### 2. Cloudflare Tunnel
 
@@ -96,8 +108,9 @@ nova sobe com IA não-funcional até esse passo.
 ### 6. Monitor
 
 UptimeRobot (free) em `https://financas.caderninho-digital.com/health`, a cada
-5 min. Além do alerta, gera tráfego — a Oracle recicla instâncias Always Free
-ociosas.
+5 min. Se o host for Oracle, o tráfego também evita reciclagem de instâncias
+Always Free ociosas — no GCP isso não se aplica, o e2-micro não é recuperado
+por inatividade.
 
 ---
 
@@ -105,10 +118,11 @@ ociosas.
 
 ### Deploy
 
-`git push` no `master`. A CI builda a imagem arm64, testa se ela sobe, e publica
-no GHCR. O timer do host pega em até 5 minutos, tira um snapshot, sobe a versão
-nova e verifica `/health`. Se não ficar saudável em 120s, volta sozinho para a
-anterior e te avisa no celular.
+`git push` no `master`. A CI builda a imagem multi-arch (`amd64` + `arm64`,
+nativamente, um runner de cada), testa se cada uma sobe, e publica um único
+manifest no GHCR. O timer do host pega em até 5 minutos, tira um snapshot, sobe
+a versão nova e verifica `/health`. Se não ficar saudável em 120s, volta
+sozinho para a anterior e te avisa no celular.
 
 ```bash
 systemctl status actual-update.timer     # quando foi a última checagem
@@ -209,5 +223,6 @@ então na prática passa — mas se aparecer erro 524, é isso.
 4. **Segredos em texto claro.** A tabela `secrets` do `account.sqlite` guarda a
    chave da Anthropic e as credenciais Pluggy sem criptografia. É por isso que o
    backup é cifrado antes de sair do host.
-5. **Reciclagem da Oracle.** Instâncias Always Free ociosas podem ser recuperadas
-   pela Oracle; o monitor do passo 6 mitiga.
+5. **Reciclagem da Oracle** (só se esse for o host escolhido). Instâncias
+   Always Free ociosas podem ser recuperadas pela Oracle; o monitor do passo 6
+   mitiga. Não se aplica ao e2-micro do GCP.
