@@ -13,6 +13,8 @@ export const DEFAULT_AI_CONFIG: AiConfig = {
   confidenceThreshold: 0.8,
   redactPii: true,
   shareSensitiveMemoryWithProvider: false,
+  webSearchEnabled: false,
+  maxWebSearchesPerBatch: 3,
   maxCostPerDayUsd: 1,
 };
 

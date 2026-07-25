@@ -24,6 +24,7 @@ export const SecretName = {
   ai_google_key: 'ai_google_key',
   ai_openrouter_key: 'ai_openrouter_key',
   ai_ollama_baseUrl: 'ai_ollama_baseUrl',
+  ai_brave_search_key: 'ai_brave_search_key',
 };
 
 function getSecretKey(name, fileId) {

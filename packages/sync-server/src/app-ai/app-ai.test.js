@@ -21,6 +21,7 @@ describe('app-ai proxy', () => {
     secretsService.set(SecretName.ai_google_key, null);
     secretsService.set(SecretName.ai_openrouter_key, null);
     secretsService.set(SecretName.ai_ollama_baseUrl, null);
+    secretsService.set(SecretName.ai_brave_search_key, null);
   });
 
   afterEach(() => {
@@ -169,5 +170,76 @@ describe('app-ai proxy', () => {
 
     expect(res.status).toBe(502);
     expect(res.body.reason).toBe('upstream-unreachable');
+  });
+
+  it('requires a server-side Brave key for merchant web search', async () => {
+    const res = await call('/web-search', { query: 'DuoGourmet Brasil' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.reason).toBe('not-configured');
+  });
+
+  it('searches only the fixed Brave host and projects safe result fields', async () => {
+    secretsService.set(SecretName.ai_brave_search_key, 'brave-real-key');
+    mockUpstream(
+      200,
+      { 'content-type': 'application/json' },
+      JSON.stringify({
+        web: {
+          results: [
+            {
+              title: 'Duo Gourmet',
+              url: 'https://duogourmet.com.br/',
+              description: 'A Brazilian dining club.',
+              extra: 'must not be forwarded',
+            },
+            {
+              title: 'Unsafe',
+              url: 'file:///etc/passwd',
+              description: 'Unsafe URL.',
+            },
+          ],
+        },
+      }),
+    );
+
+    const res = await call('/web-search', {
+      query: 'DuoGourmet owner@example.com 123456789 Brasil',
+      locale: 'pt-BR',
+      count: 5,
+      url: 'https://attacker.example',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      results: [
+        {
+          title: 'Duo Gourmet',
+          url: 'https://duogourmet.com.br/',
+          snippet: 'A Brazilian dining club.',
+        },
+      ],
+    });
+    const [url, options] = global.fetch.mock.calls[0];
+    const target = new URL(url);
+    expect(target.origin).toBe('https://api.search.brave.com');
+    expect(target.pathname).toBe('/res/v1/web/search');
+    expect(target.searchParams.get('q')).toBe(
+      'DuoGourmet [email] [number] Brasil',
+    );
+    expect(target.searchParams.get('country')).toBe('BR');
+    expect(target.searchParams.get('search_lang')).toBe('pt');
+    expect(options.headers['x-subscription-token']).toBe('brave-real-key');
+  });
+
+  it('rejects empty web-search queries before contacting the provider', async () => {
+    secretsService.set(SecretName.ai_brave_search_key, 'key');
+    global.fetch = vi.fn();
+
+    const res = await call('/web-search', { query: '  ' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.reason).toBe('invalid-query');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,7 @@ const SECRET_NAMES = [
   'ai_google_key',
   'ai_openrouter_key',
   'ai_ollama_baseUrl',
+  'ai_brave_search_key',
 ] as const;
 
 export type ConfiguredSecrets = Record<(typeof SECRET_NAMES)[number], boolean>;

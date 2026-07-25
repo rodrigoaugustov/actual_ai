@@ -21,6 +21,11 @@ export type AiConfig = {
   /** Sensitive confirmed profile memories stay local unless the user
    * explicitly opts in to include them in advisor prompts. */
   shareSensitiveMemoryWithProvider?: boolean;
+  /** Allows ambiguous merchant descriptions to be sent to the configured
+   * web-search service through the authenticated sync-server proxy. */
+  webSearchEnabled?: boolean;
+  /** Maximum merchant clusters researched during one classifier batch. */
+  maxWebSearchesPerBatch?: number;
   maxCostPerRunUsd?: number;
   maxCostPerDayUsd?: number;
 };
@@ -85,6 +90,32 @@ export type AiFeedbackEntity = {
   suggestionId: string | null;
   runId: string | null;
   createdAt: number;
+};
+
+export type AiCategoryProfileEntity = {
+  id: string;
+  categoryId: string;
+  description: string;
+  updatedAt: number;
+  tombstone?: boolean;
+};
+
+export type AiWebSearchSource = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
+export type AiMerchantEnrichmentEntity = {
+  id: string;
+  normalizedQuery: string;
+  locale: string;
+  summary: string;
+  sources: AiWebSearchSource[];
+  expiresAt: number;
+  createdAt: number;
+  updatedAt: number;
+  tombstone?: boolean;
 };
 
 export type AiRuleMetaStatus = 'proposed' | 'approved' | 'rejected';

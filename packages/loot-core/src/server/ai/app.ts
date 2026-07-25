@@ -3,6 +3,7 @@ import { mutator } from '#server/mutators';
 import { undoable } from '#server/undo';
 import type {
   AiAdviceRecordEntity,
+  AiCategoryProfileEntity,
   AiConfig,
   AiConversationEntity,
   AiDocumentEntity,
@@ -45,6 +46,10 @@ import {
   updateGoal,
 } from './advisor-memory';
 import { auditApprovedRules } from './auditor';
+import {
+  listCategoryProfiles,
+  upsertCategoryProfile,
+} from './category-profiles';
 import { classifyTransactionsById } from './classify';
 import { getAiConfig, setAiConfig } from './config';
 import {
@@ -66,6 +71,8 @@ import {
 export type AiHandlers = {
   'ai/get-config': typeof getConfig;
   'ai/update-config': typeof updateConfig;
+  'ai/get-category-profiles': typeof getCategoryProfilesHandler;
+  'ai/update-category-profile': typeof updateCategoryProfileHandler;
   'ai/get-usage-summary': typeof getUsageSummaryHandler;
   'ai/get-runs': typeof getRunsHandler;
   'ai/get-suggestions': typeof getSuggestionsHandler;
@@ -106,6 +113,11 @@ export type AiHandlers = {
 export const app = createApp<AiHandlers>();
 app.method('ai/get-config', getConfig);
 app.method('ai/update-config', mutator(undoable(updateConfig)));
+app.method('ai/get-category-profiles', getCategoryProfilesHandler);
+app.method(
+  'ai/update-category-profile',
+  mutator(undoable(updateCategoryProfileHandler)),
+);
 app.method('ai/get-usage-summary', getUsageSummaryHandler);
 app.method('ai/get-runs', getRunsHandler);
 app.method('ai/get-suggestions', getSuggestionsHandler);
@@ -166,6 +178,19 @@ export async function getConfig(): Promise<AiConfig> {
 
 export async function updateConfig(config: AiConfig): Promise<void> {
   await setAiConfig(config);
+}
+
+export async function getCategoryProfilesHandler(): Promise<
+  AiCategoryProfileEntity[]
+> {
+  return listCategoryProfiles();
+}
+
+export async function updateCategoryProfileHandler(params: {
+  categoryId: string;
+  description: string;
+}): Promise<AiCategoryProfileEntity | null> {
+  return upsertCategoryProfile(params);
 }
 
 export async function getUsageSummaryHandler({

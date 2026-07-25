@@ -25,10 +25,12 @@ export { classifierAgent, buildClassifierPrompt } from './agents/classifier';
 export type {
   ClassifierCandidate,
   ClassifierCategory,
+  ClassifierEvidenceEntry,
   ClassifierHistoryEntry,
   ClassifierInput,
   ClassifierOutput,
   ClassifierRejectionEntry,
+  ClassifierResearchContext,
 } from './agents/classifier';
 export { classifierOutputSchema } from './agents/classifier';
 

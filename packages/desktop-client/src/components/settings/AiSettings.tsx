@@ -18,6 +18,7 @@ import type {
 } from '@actual-app/core/types/models';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { AiCategoryDictionary } from '#components/ai/AiCategoryDictionary';
 import { aiAgentLabel } from '#components/ai/labels';
 import { Link } from '#components/common/Link';
 import { FinancialText } from '#components/FinancialText';
@@ -58,6 +59,7 @@ const PROVIDER_SECRET_NAMES: Partial<Record<AiProviderId, string>> = {
   google: 'ai_google_key',
   openrouter: 'ai_openrouter_key',
 };
+const BRAVE_SEARCH_SECRET_NAME = 'ai_brave_search_key';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -207,6 +209,19 @@ export function AiSettings() {
         }
       }
 
+      if (apiKeys.braveSearch) {
+        const result =
+          (await send('secret-set', {
+            name: BRAVE_SEARCH_SECRET_NAME,
+            value: apiKeys.braveSearch,
+            fileId: cloudFileId,
+          })) || {};
+        if (result.error) {
+          setKeysError(getSecretsError(result.error, result.reason));
+          return;
+        }
+      }
+
       setApiKeys({});
       setOllamaBaseUrl('');
       await queryClient.invalidateQueries({
@@ -259,6 +274,48 @@ export function AiSettings() {
           onToggle={() => setConfig({ ...config, enabled: !config.enabled })}
         />
       </View>
+
+      <View
+        style={{
+          flexDirection: isNarrowWidth ? 'column' : 'row',
+          alignItems: isNarrowWidth ? 'stretch' : 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <Text>
+          <Trans>
+            <strong>Research unclear merchants on the web</strong> — when local
+            history is insufficient, send a redacted merchant query through the
+            sync-server to Brave Search. Off by default.
+          </Trans>
+        </Text>
+        <Toggle
+          id="ai-web-search"
+          isOn={config.webSearchEnabled ?? false}
+          onToggle={() =>
+            setConfig({
+              ...config,
+              webSearchEnabled: !(config.webSearchEnabled ?? false),
+            })
+          }
+        />
+      </View>
+
+      {config.webSearchEnabled && (
+        <FormField style={{ width: '100%' }}>
+          <FormLabel title={t('Maximum web searches per classifier batch')} />
+          <Input
+            value={String(config.maxWebSearchesPerBatch ?? 3)}
+            onChangeValue={value => {
+              const parsed = Number(value);
+              if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 5) {
+                setConfig({ ...config, maxWebSearchesPerBatch: parsed });
+              }
+            }}
+          />
+        </FormField>
+      )}
 
       {TIERS.map(tier => (
         <View
@@ -477,6 +534,29 @@ export function AiSettings() {
           />
         </FormField>
 
+        <FormField style={{ marginBottom: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <FormLabel title={t('Brave Search API key')} />
+            {secretsStatus?.ai_brave_search_key && <ConfiguredBadge />}
+          </View>
+          <Input
+            type="password"
+            value={apiKeys.braveSearch ?? ''}
+            placeholder={
+              isSecretsStatusLoading
+                ? t('Loading…')
+                : isSecretsStatusError
+                  ? t('Unavailable')
+                  : secretsStatus?.ai_brave_search_key
+                    ? t('Configured — leave blank to keep it')
+                    : t('Not set')
+            }
+            onChangeValue={value =>
+              setApiKeys({ ...apiKeys, braveSearch: value })
+            }
+          />
+        </FormField>
+
         {keysError && (
           <Text style={{ color: theme.errorText }}>{keysError}</Text>
         )}
@@ -489,6 +569,8 @@ export function AiSettings() {
           <Trans>Save API keys</Trans>
         </ButtonWithLoading>
       </View>
+
+      <AiCategoryDictionary />
 
       <View
         style={{

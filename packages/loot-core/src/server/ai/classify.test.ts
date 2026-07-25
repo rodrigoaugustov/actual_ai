@@ -10,6 +10,7 @@ import { recordFeedback } from './feedback';
 import { getPendingSuggestions } from './suggestions';
 
 const runWorkflowMock = vi.fn();
+const researchMerchantMock = vi.fn();
 
 vi.mock('@actual-app/ai', async () => {
   const actual = await vi.importActual<typeof AiCore>('@actual-app/ai');
@@ -18,9 +19,13 @@ vi.mock('@actual-app/ai', async () => {
     runWorkflow: (...args: unknown[]) => runWorkflowMock(...args),
   };
 });
+vi.mock('./merchant-enrichment', () => ({
+  researchMerchant: (...args: unknown[]) => researchMerchantMock(...args),
+}));
 
 beforeEach(() => {
   runWorkflowMock.mockReset();
+  researchMerchantMock.mockReset();
 });
 beforeEach(global.emptyDatabase());
 
@@ -321,5 +326,187 @@ describe('classifyPendingTransactions', () => {
       'ai-classification-started',
       { accountId, count: TOTAL },
     );
+  });
+
+  it('does not auto-apply contradictory categories for the same merchant cluster', async () => {
+    await db.insertAccount({ id: 'acct-duo', name: 'Checking' });
+    await db.insertCategoryGroup({ id: 'expenses', name: 'Expenses' });
+    await db.insertCategory({
+      id: 'restaurants',
+      name: 'Restaurants',
+      cat_group: 'expenses',
+    });
+    await db.insertCategory({
+      id: 'other',
+      name: 'Other',
+      cat_group: 'expenses',
+    });
+    await db.insertPayee({ id: 'duo', name: 'DuoGourmet' });
+    for (const [index, amount] of [-5000, -7000].entries()) {
+      await db.insertTransaction({
+        id: `duo-${index}`,
+        account: 'acct-duo',
+        payee: 'duo',
+        imported_payee: `DUOGOURMET ${1000 + index}`,
+        amount,
+        date: '2026-07-20',
+      });
+    }
+    await setAiConfig({
+      ...DEFAULT_AI_CONFIG,
+      enabled: true,
+      confidenceThreshold: 0.8,
+    });
+    mockWorkflowOutput({
+      items: [
+        {
+          id: 'duo-0',
+          categoryId: 'restaurants',
+          confidence: 0.95,
+          rationale: 'Dining service',
+        },
+        {
+          id: 'duo-1',
+          categoryId: 'other',
+          confidence: 0.95,
+          rationale: 'Unclear merchant',
+        },
+      ],
+    });
+
+    const outcome = await classifyPendingTransactions('acct-duo');
+
+    expect(outcome).toEqual({
+      status: 'ok',
+      autoApplied: 0,
+      pendingReview: 2,
+    });
+    expect(await getPendingSuggestions()).toHaveLength(2);
+    expect(
+      await db.all<{ category: string | null }>(
+        `SELECT category FROM transactions WHERE id LIKE 'duo-%'`,
+      ),
+    ).toEqual([{ category: null }, { category: null }]);
+  });
+
+  it('ignores invented transaction and category ids', async () => {
+    const { accountId, transactionId } = await prepareAccountWithTransaction({
+      accountId: 'acct-guarded',
+      transactionId: 'guarded',
+    });
+    await setAiConfig({ ...DEFAULT_AI_CONFIG, enabled: true });
+    mockWorkflowOutput({
+      items: [
+        {
+          id: transactionId,
+          categoryId: 'invented-category',
+          confidence: 1,
+          rationale: 'Invented',
+        },
+        {
+          id: 'invented-transaction',
+          categoryId: 'groceries',
+          confidence: 1,
+          rationale: 'Invented',
+        },
+      ],
+    });
+
+    expect(await classifyPendingTransactions(accountId)).toEqual({
+      status: 'ok',
+      autoApplied: 0,
+      pendingReview: 0,
+    });
+    expect(await getPendingSuggestions()).toEqual([]);
+  });
+
+  it('researches only ambiguous clusters and reclassifies them with web context', async () => {
+    const { accountId, transactionId } = await prepareAccountWithTransaction({
+      accountId: 'acct-research',
+      payeeName: 'Unknown Duo',
+      transactionId: 'research-me',
+    });
+    await setAiConfig({
+      ...DEFAULT_AI_CONFIG,
+      enabled: true,
+      webSearchEnabled: true,
+      maxWebSearchesPerBatch: 1,
+    });
+    researchMerchantMock.mockResolvedValue({
+      merchantClusterId: 'payee:unknownduo',
+      query: 'Unknown Duo empresa estabelecimento Brasil',
+      summary: 'A supermarket.',
+      sources: [
+        {
+          title: 'Unknown Duo',
+          url: 'https://example.com',
+          snippet: 'A supermarket chain.',
+        },
+      ],
+    });
+    runWorkflowMock
+      .mockResolvedValueOnce({
+        output: {
+          items: [
+            {
+              id: transactionId,
+              categoryId: null,
+              confidence: 0.1,
+              rationale: 'Merchant is unclear',
+              needsWebResearch: true,
+              researchQuery: 'Unknown Duo',
+            },
+          ],
+        },
+        run: {
+          agent: 'classifier',
+          tier: 'standard',
+          provider: 'anthropic',
+          model: 'test-model',
+          inputTokens: 10,
+          outputTokens: 10,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          costUsd: 0.001,
+          durationMs: 10,
+          status: 'ok',
+        },
+      })
+      .mockResolvedValueOnce({
+        output: {
+          items: [
+            {
+              id: transactionId,
+              categoryId: 'groceries',
+              confidence: 0.95,
+              rationale: 'Web evidence identifies a supermarket',
+            },
+          ],
+        },
+        run: {
+          agent: 'classifier',
+          tier: 'standard',
+          provider: 'anthropic',
+          model: 'test-model',
+          inputTokens: 10,
+          outputTokens: 10,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          costUsd: 0.001,
+          durationMs: 10,
+          status: 'ok',
+        },
+      });
+
+    expect(await classifyPendingTransactions(accountId)).toEqual({
+      status: 'ok',
+      autoApplied: 1,
+      pendingReview: 0,
+    });
+    expect(researchMerchantMock).toHaveBeenCalledTimes(1);
+    expect(runWorkflowMock).toHaveBeenCalledTimes(2);
+    expect(runWorkflowMock.mock.calls[1]?.[1]).toMatchObject({
+      research: [{ merchantClusterId: 'payee:unknownduo' }],
+    });
   });
 });

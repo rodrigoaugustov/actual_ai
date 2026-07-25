@@ -127,6 +127,33 @@ explica fontes e premissas, registra custo e não altera o domínio financeiro.
 Implementação, smoke test e aceite operacional com orçamento sincronizado e
 Ollama local concluídos em 24/07/2026.
 
+## Fase 5 — Classifier 2.0
+
+Semântica editável, contexto relevante e consistência do classificador, com
+pesquisa web restrita para estabelecimentos ambíguos. A especificação está em
+[PHASE-5-SPEC.md](./PHASE-5-SPEC.md), o plano em
+[PHASE-5-PLAN.md](./PHASE-5-PLAN.md) e as decisões em
+[ADR-004](./ADR-004-CLASSIFIER-CONTEXT-AND-WEB-RESEARCH.md). O resultado está
+registrado em [PHASE-5-RESULT.md](./PHASE-5-RESULT.md).
+
+Entregáveis:
+
+- [x] Dicionário local-first de descrições por categoria e CRUD responsivo.
+- [x] Prompt com taxonomia semântica completa e prefixo cacheável.
+- [x] Retrieval de feedback/sugestões relacionadas, incluindo evidência
+      positiva e negativa.
+- [x] `imported_payee`, clustering intralote, validação de IDs e gate de
+      conflitos.
+- [x] Pesquisa Brave opt-in pelo proxy da VM, com PII, allowlist, limites,
+      cache e segunda passagem estruturada.
+
+Critério de saída: lançamentos equivalentes do mesmo estabelecimento não são
+autoaplicados em categorias contraditórias; descrições e feedback humano
+orientam a decisão; pesquisa web ocorre somente por escalada e sem ampliar a
+superfície de proxy. Implementação, regressões, build Linux e smoke operacional
+concluídos em 25/07/2026; ganho de cache e precisão longitudinal serão medidos
+em uso real.
+
 ## Riscos e mitigação
 
 | Risco                                         | Mitigação                                                                                                                                                              |

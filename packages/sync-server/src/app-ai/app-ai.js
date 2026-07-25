@@ -15,16 +15,176 @@ const app = express();
 export { app as handlers };
 
 app.use(requestLoggerMiddleware);
-// The AI SDK sends whatever content-type the target provider expects
-// (almost always application/json); we forward the exact bytes upstream
-// rather than re-parsing and re-serializing JSON, so a raw buffer is what
-// we want here regardless of content-type.
-app.use(express.raw({ type: () => true, limit: '20mb' }));
 app.use(validateSessionMiddleware);
 
 function canAccessFile(fileId, userId) {
   return isAdmin(userId) || UserService.countUserAccess(fileId, userId) > 0;
 }
+
+const BRAVE_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
+const SEARCH_RATE_WINDOW_MS = 60_000;
+const SEARCH_RATE_LIMIT = 30;
+const searchRateWindows = new Map();
+
+function sanitizeSearchQuery(query) {
+  return query
+    .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, '[cnpj]')
+    .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, '[cpf]')
+    .replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+      '[pix-key]',
+    )
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[email]')
+    .replace(/\b\d(?:[ -]?\d){5,}\b/g, '[number]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+}
+
+function consumeSearchRateLimit(key) {
+  const now = Date.now();
+  const current = searchRateWindows.get(key);
+  if (!current || now - current.startedAt >= SEARCH_RATE_WINDOW_MS) {
+    searchRateWindows.set(key, { startedAt: now, count: 1 });
+    return true;
+  }
+  if (current.count >= SEARCH_RATE_LIMIT) return false;
+  current.count++;
+  return true;
+}
+
+function projectSearchResult(result) {
+  if (!result || typeof result !== 'object') return null;
+  const title = typeof result.title === 'string' ? result.title : '';
+  const url = typeof result.url === 'string' ? result.url : '';
+  const snippet =
+    typeof result.description === 'string' ? result.description : '';
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) return null;
+  return {
+    title: title.slice(0, 300),
+    url: parsedUrl.toString().slice(0, 2000),
+    snippet: snippet.slice(0, 1000),
+  };
+}
+
+app.post('/web-search', express.json({ limit: '16kb' }), async (req, res) => {
+  const fileId = req.get('X-Actual-File-Id');
+  if (fileId) {
+    if (!isValidFileId(fileId)) {
+      res.status(400).send({
+        status: 'error',
+        reason: 'invalid-file-id',
+      });
+      return;
+    }
+    if (!canAccessFile(fileId, res.locals.user_id)) {
+      res.status(403).send({
+        status: 'error',
+        reason: 'file-access-denied',
+      });
+      return;
+    }
+  }
+
+  const rawQuery =
+    req.body && typeof req.body.query === 'string' ? req.body.query : '';
+  const query = sanitizeSearchQuery(rawQuery);
+  const count =
+    req.body && Number.isInteger(req.body.count)
+      ? Math.min(Math.max(req.body.count, 1), 5)
+      : 3;
+  const locale =
+    req.body && typeof req.body.locale === 'string'
+      ? req.body.locale.slice(0, 20)
+      : 'pt-BR';
+  if (query.length < 3) {
+    res.status(400).send({
+      status: 'error',
+      reason: 'invalid-query',
+    });
+    return;
+  }
+
+  const rateLimitKey = `${res.locals.user_id}:${fileId ?? 'global'}`;
+  if (!consumeSearchRateLimit(rateLimitKey)) {
+    res.status(429).send({
+      status: 'error',
+      reason: 'rate-limit-exceeded',
+    });
+    return;
+  }
+
+  const apiKey = secretsService.get(
+    SecretName.ai_brave_search_key,
+    fileId ?? null,
+  );
+  if (!apiKey) {
+    res.status(400).send({
+      status: 'error',
+      reason: 'not-configured',
+      details: 'Brave Search API key is not configured',
+    });
+    return;
+  }
+
+  const language = locale.toLowerCase().startsWith('pt') ? 'pt' : 'en';
+  const country = locale.toLowerCase().endsWith('-br') ? 'BR' : 'US';
+  const targetUrl = new URL(BRAVE_SEARCH_URL);
+  targetUrl.searchParams.set('q', query);
+  targetUrl.searchParams.set('count', String(count));
+  targetUrl.searchParams.set('country', country);
+  targetUrl.searchParams.set('search_lang', language);
+
+  try {
+    const upstreamRes = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        'x-subscription-token': apiKey,
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!upstreamRes.ok) {
+      res.status(502).send({
+        status: 'error',
+        reason: 'search-provider-error',
+      });
+      return;
+    }
+    const responseText = await upstreamRes.text();
+    if (responseText.length > 200_000) {
+      res.status(502).send({
+        status: 'error',
+        reason: 'search-response-too-large',
+      });
+      return;
+    }
+    const payload = JSON.parse(responseText);
+    const rawResults = Array.isArray(payload?.web?.results)
+      ? payload.web.results
+      : [];
+    const results = rawResults
+      .slice(0, count)
+      .map(projectSearchResult)
+      .filter(Boolean);
+    res.send({ results });
+  } catch {
+    res.status(502).send({
+      status: 'error',
+      reason: 'search-provider-unreachable',
+    });
+  }
+});
+
+// Provider requests need their exact, unparsed bytes. Keep this after JSON
+// endpoints such as /web-search.
+app.use(express.raw({ type: () => true, limit: '20mb' }));
 
 // Real provider hosts. Ollama has no fixed host — it's whatever the user
 // configured (see ai_ollama_baseUrl below) — so it isn't listed here.

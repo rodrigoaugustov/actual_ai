@@ -46,6 +46,10 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
         return { totalCostUsd: 0, byAgent: {} };
       case 'ai/get-secrets-status':
         return {};
+      case 'ai/get-category-profiles':
+        return [];
+      case 'get-categories':
+        return { grouped: [], list: [] };
       case 'ai/get-suggestions':
         return [];
       case 'credit-card/get-statements':

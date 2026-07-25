@@ -127,6 +127,26 @@ export type DbAiFeedback = {
   tombstone: 1 | 0;
 };
 
+export type DbAiCategoryProfile = {
+  id: string;
+  category_id: string;
+  description: string;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
+export type DbAiMerchantEnrichment = {
+  id: string;
+  normalized_query: string;
+  locale: string;
+  summary: string;
+  sources_json: string;
+  expires_at: number;
+  created_at: number;
+  updated_at: number;
+  tombstone: 1 | 0;
+};
+
 export type DbAiRuleHit = {
   id: string;
   rule_meta_id: string;

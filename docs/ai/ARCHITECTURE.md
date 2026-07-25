@@ -179,13 +179,15 @@ Segue o padrão do módulo `credit-cards/` (app com handlers, registrado em
 
 ### Migrações (aditivas, padrão do fork)
 
-| Tabela           | Papel                                                                                                                                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ai_runs`        | Log de execuções: agente, modelo, tokens, custo estimado, duração, status. Fonte da telemetria de custo e da auditoria ("por que a IA fez X?").                                                         |
-| `ai_suggestions` | Sidecar por transação: categoria sugerida, confiança, rationale curto, status (`pending` / `accepted` / `rejected` / `auto_applied`), run de origem. Não polui `transactions`; o register junta por id. |
-| `ai_rule_meta`   | Sidecar por regra: rationale legível, transações-amostra usadas na mineração, run de origem, e estatísticas de precisão (hits, confirmados, corrigidos). Evita alterar a tabela `rules` do upstream.    |
-| `ai_feedback`    | Golden set persistente das decisões humanas: aceite, correção, rejeição, classificação manual e override de autoaplicação.                                                                              |
-| `ai_rule_hits`   | Hits reais das regras mineradas, com estado de amostragem e resultado da auditoria.                                                                                                                     |
+| Tabela                    | Papel                                                                                                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ai_runs`                 | Log de execuções: agente, modelo, tokens, custo estimado, duração, status. Fonte da telemetria de custo e da auditoria ("por que a IA fez X?").                                                         |
+| `ai_suggestions`          | Sidecar por transação: categoria sugerida, confiança, rationale curto, status (`pending` / `accepted` / `rejected` / `auto_applied`), run de origem. Não polui `transactions`; o register junta por id. |
+| `ai_rule_meta`            | Sidecar por regra: rationale legível, transações-amostra usadas na mineração, run de origem, e estatísticas de precisão (hits, confirmados, corrigidos). Evita alterar a tabela `rules` do upstream.    |
+| `ai_feedback`             | Golden set persistente das decisões humanas: aceite, correção, rejeição, classificação manual e override de autoaplicação.                                                                              |
+| `ai_rule_hits`            | Hits reais das regras mineradas, com estado de amostragem e resultado da auditoria.                                                                                                                     |
+| `ai_category_profiles`    | Descrição semântica editável ligada à categoria nativa; entra na taxonomia estável do classificador.                                                                                                    |
+| `ai_merchant_enrichments` | Cache local-first e temporário de pesquisa de estabelecimentos, com fontes projetadas e expiração.                                                                                                      |
 
 Todas com `tombstone`, sincronizadas pelo CRDT como qualquer tabela (mesmo
 mecanismo validado com `statements`). Lockstep habitual: `db/types`,
@@ -216,6 +218,10 @@ Sub-app Express no padrão do `app-pluggyai`:
 - **Chaves** — novos `SecretName` no secrets service existente
   (`ai_openai_key`, `ai_anthropic_key`, `ai_google_key`, `ai_openrouter_key`,
   `ai_ollama_url`), com suporte per-budget igual às credenciais Pluggy.
+- **`/ai/web-search`** — endpoint JSON autenticado para pesquisa Brave. Recebe
+  somente consulta/localidade/limite, sanitiza PII, aplica rate limit e timeout,
+  injeta `ai_brave_search_key` e projeta apenas título, URL HTTP(S) e snippet.
+  Não aceita host, caminho upstream ou URL de página fornecidos pelo cliente.
 
 ## Orquestração dos agentes de classificação
 

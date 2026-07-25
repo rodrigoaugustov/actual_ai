@@ -32,7 +32,7 @@ describe('getConfiguredSecrets', () => {
 
     await getConfiguredSecrets('file-1');
 
-    expect(get).toHaveBeenCalledTimes(5);
+    expect(get).toHaveBeenCalledTimes(6);
     for (const call of vi.mocked(get).mock.calls) {
       expect(call[1]).toMatchObject({
         headers: { 'X-Actual-File-Id': 'file-1' },

@@ -15,6 +15,11 @@ import { batchUpdateTransactions } from '#server/transactions';
 import { q } from '#shared/query';
 import type { ClassifyOutcome } from '#types/models/ai';
 
+import { getCategoryDescriptions } from './category-profiles';
+import {
+  buildMerchantClusterId,
+  getRelevantClassifierEvidence,
+} from './classifier-context';
 import { getAiConfig } from './config';
 import {
   getFeedbackExamples,
@@ -22,6 +27,7 @@ import {
   getRejectedExamples,
 } from './feedback';
 import { buildProviderConfigForTier } from './fetch-client';
+import { researchMerchant } from './merchant-enrichment';
 import { getSpendTodayUsd, recordRun } from './runs';
 import { createSuggestion } from './suggestions';
 
@@ -40,6 +46,7 @@ type PendingTransaction = {
   date: string;
   notes: string | null;
   payeeName: string | null;
+  importedPayee: string | null;
 };
 
 const PENDING_TRANSACTION_FIELDS = [
@@ -49,6 +56,7 @@ const PENDING_TRANSACTION_FIELDS = [
   'date',
   'notes',
   { payeeName: 'payee.name' },
+  { importedPayee: 'imported_payee' },
 ] as const;
 
 async function fetchPendingTransactions(
@@ -91,12 +99,41 @@ async function fetchTransactionsByIds(
 }
 
 async function fetchCategories() {
-  const { data } = await aqlQuery(
-    q('categories')
-      .filter({ hidden: false })
-      .select(['id', 'name', { groupName: 'group.name' }]),
-  );
-  return data as Array<{ id: string; name: string; groupName: string | null }>;
+  const [{ data }, descriptions] = await Promise.all([
+    aqlQuery(
+      q('categories')
+        .filter({ hidden: false })
+        .select([
+          'id',
+          'name',
+          'sort_order',
+          { groupName: 'group.name' },
+          { groupSortOrder: 'group.sort_order' },
+        ]),
+    ),
+    getCategoryDescriptions(),
+  ]);
+  return (
+    data as Array<{
+      id: string;
+      name: string;
+      sort_order: number | null;
+      groupName: string | null;
+      groupSortOrder: number | null;
+    }>
+  )
+    .sort(
+      (left, right) =>
+        (left.groupSortOrder ?? 0) - (right.groupSortOrder ?? 0) ||
+        (left.sort_order ?? 0) - (right.sort_order ?? 0) ||
+        left.id.localeCompare(right.id),
+    )
+    .map(category => ({
+      id: category.id,
+      name: category.name,
+      groupName: category.groupName,
+      description: descriptions.get(category.id),
+    }));
 }
 
 async function fetchHistory() {
@@ -136,7 +173,12 @@ type BatchResult =
 
 async function classifyBatch(
   pending: PendingTransaction[],
-  categories: Array<{ id: string; name: string; groupName: string | null }>,
+  categories: Array<{
+    id: string;
+    name: string;
+    groupName: string | null;
+    description?: string;
+  }>,
   config: ReturnType<typeof getAiConfig>,
   learnedCategories: Awaited<ReturnType<typeof getLearnedCategories>>,
 ): Promise<BatchResult> {
@@ -158,9 +200,29 @@ async function classifyBatch(
 
   let output: ClassifierOutput | null = null;
   let runId: string | undefined;
+  const runIdsByTransaction = new Map<string, string>();
   if (toClassify.length > 0) {
-    const history = await fetchHistory();
-    const rejections = await getRejectedExamples(HISTORY_LIMIT);
+    const history = (await fetchHistory()).map(item => ({
+      ...item,
+      payeeName: config.redactPii ? redactPii(item.payeeName) : item.payeeName,
+    }));
+    const rejections = (await getRejectedExamples(HISTORY_LIMIT)).map(item => ({
+      ...item,
+      payeeName: config.redactPii ? redactPii(item.payeeName) : item.payeeName,
+    }));
+    const evidence = (
+      await getRelevantClassifierEvidence(
+        toClassify,
+        config.confidenceThreshold,
+      )
+    ).map(item => ({
+      ...item,
+      payeeName: config.redactPii ? redactPii(item.payeeName) : item.payeeName,
+      importedPayee:
+        config.redactPii && item.importedPayee
+          ? redactPii(item.importedPayee)
+          : item.importedPayee,
+    }));
     const providerConfig = await buildProviderConfigForTier(
       classifierAgent.tier,
     );
@@ -172,11 +234,17 @@ async function classifyBatch(
         : (t.payeeName ?? ''),
       amountCents: t.amount,
       date: t.date,
+      importedPayee: t.importedPayee
+        ? config.redactPii
+          ? redactPii(t.importedPayee)
+          : t.importedPayee
+        : undefined,
       notes: t.notes
         ? config.redactPii
           ? redactPii(t.notes)
           : t.notes
         : undefined,
+      merchantClusterId: buildMerchantClusterId(t),
     }));
 
     try {
@@ -187,15 +255,138 @@ async function classifyBatch(
             id: c.id,
             name: c.name,
             group: c.groupName ?? undefined,
+            description: c.description,
           })),
           history,
           rejections,
+          evidence,
           transactions: candidates,
         },
         { config: providerConfig },
       );
       runId = await recordRun(result.run);
-      output = result.output;
+      for (const candidate of candidates) {
+        runIdsByTransaction.set(candidate.id, runId);
+      }
+      output = validateAndReconcileOutput(
+        result.output,
+        candidates,
+        categories,
+        config.confidenceThreshold,
+      );
+      if (config.webSearchEnabled) {
+        const researchClusterIds = [
+          ...new Set(
+            output.items
+              .filter(
+                item =>
+                  item.needsWebResearch ||
+                  item.categoryId == null ||
+                  item.confidence < config.confidenceThreshold,
+              )
+              .map(item =>
+                candidates.find(candidate => candidate.id === item.id),
+              )
+              .flatMap(candidate =>
+                candidate?.merchantClusterId
+                  ? [candidate.merchantClusterId]
+                  : [],
+              ),
+          ),
+        ].slice(
+          0,
+          Math.min(Math.max(config.maxWebSearchesPerBatch ?? 3, 0), 5),
+        );
+        const research = (
+          await Promise.all(
+            researchClusterIds.map(async merchantClusterId => {
+              const candidate = candidates.find(
+                item => item.merchantClusterId === merchantClusterId,
+              );
+              if (!candidate) return null;
+              const query = redactPii(
+                [
+                  candidate.payeeName,
+                  candidate.importedPayee,
+                  candidate.notes?.slice(0, 120),
+                  'empresa estabelecimento Brasil',
+                ]
+                  .filter(Boolean)
+                  .join(' '),
+              ).slice(0, 200);
+              try {
+                return await researchMerchant({
+                  merchantClusterId,
+                  query,
+                });
+              } catch {
+                logger.warn(
+                  'Optional merchant web research failed; keeping local classification.',
+                );
+                return null;
+              }
+            }),
+          )
+        ).filter(item => item != null);
+        if (research.length > 0) {
+          const researchedClusters = new Set(
+            research.map(item => item.merchantClusterId),
+          );
+          const researchedCandidates = candidates.filter(candidate =>
+            researchedClusters.has(candidate.merchantClusterId ?? ''),
+          );
+          try {
+            assertCanStartRun(
+              { maxCostPerDayUsd: config.maxCostPerDayUsd },
+              await getSpendTodayUsd(),
+            );
+            const researchedResult = await runWorkflow(
+              classifierAgent,
+              {
+                categories: categories.map(c => ({
+                  id: c.id,
+                  name: c.name,
+                  group: c.groupName ?? undefined,
+                  description: c.description,
+                })),
+                history,
+                rejections,
+                evidence: evidence.filter(item =>
+                  researchedClusters.has(item.merchantClusterId),
+                ),
+                research,
+                transactions: researchedCandidates,
+              },
+              { config: providerConfig },
+            );
+            const researchedRunId = await recordRun(researchedResult.run);
+            const researchedOutput = validateAndReconcileOutput(
+              researchedResult.output,
+              researchedCandidates,
+              categories,
+              config.confidenceThreshold,
+            );
+            const replacementIds = new Set(
+              researchedOutput.items.map(item => item.id),
+            );
+            output = {
+              items: output.items
+                .filter(item => !replacementIds.has(item.id))
+                .concat(researchedOutput.items),
+            };
+            for (const item of researchedOutput.items) {
+              runIdsByTransaction.set(item.id, researchedRunId);
+            }
+          } catch (error) {
+            if (error instanceof WorkflowError) {
+              await recordRun(error.run);
+            }
+            logger.warn(
+              'Optional researched classification failed; keeping local classification.',
+            );
+          }
+        }
+      }
     } catch (error) {
       if (error instanceof WorkflowError) {
         await recordRun(error.run);
@@ -233,7 +424,7 @@ async function classifyBatch(
         confidence: item.confidence,
         rationale: item.rationale,
         threshold: config.confidenceThreshold,
-        runId,
+        runId: runIdsByTransaction.get(item.id) ?? runId,
       });
       if (applied === 'auto_applied') autoApplied++;
       else if (applied === 'pending') pendingReview++;
@@ -241,6 +432,85 @@ async function classifyBatch(
   }
 
   return { status: 'ok', autoApplied, pendingReview };
+}
+
+function validateAndReconcileOutput(
+  output: ClassifierOutput,
+  candidates: ClassifierCandidate[],
+  categories: Array<{ id: string }>,
+  confidenceThreshold: number,
+): ClassifierOutput {
+  const candidatesById = new Map(
+    candidates.map(candidate => [candidate.id, candidate]),
+  );
+  const validCategoryIds = new Set(categories.map(category => category.id));
+  const uniqueItems = new Map<string, ClassifierOutput['items'][number]>();
+  for (const item of output.items) {
+    if (!candidatesById.has(item.id)) {
+      logger.warn('Ignoring classifier output for an unknown transaction id.');
+      continue;
+    }
+    if (item.categoryId && !validCategoryIds.has(item.categoryId)) {
+      logger.warn('Ignoring classifier output with an unknown category id.');
+      continue;
+    }
+    const previous = uniqueItems.get(item.id);
+    if (!previous || item.confidence > previous.confidence) {
+      uniqueItems.set(item.id, item);
+    }
+  }
+
+  const itemsByCluster = new Map<
+    string,
+    Array<ClassifierOutput['items'][number]>
+  >();
+  for (const item of uniqueItems.values()) {
+    const candidate = candidatesById.get(item.id);
+    if (!candidate) continue;
+    const clusterId = candidate.merchantClusterId ?? candidate.id;
+    const cluster = itemsByCluster.get(clusterId) ?? [];
+    cluster.push(item);
+    itemsByCluster.set(clusterId, cluster);
+  }
+
+  for (const cluster of itemsByCluster.values()) {
+    const categoriesInCluster = new Map<string, number>();
+    for (const item of cluster) {
+      if (!item.categoryId) continue;
+      categoriesInCluster.set(
+        item.categoryId,
+        (categoriesInCluster.get(item.categoryId) ?? 0) + item.confidence,
+      );
+    }
+    if (categoriesInCluster.size <= 1) continue;
+    const ranked = [...categoriesInCluster].sort(
+      (left, right) => right[1] - left[1],
+    );
+    const [topCategoryId, topScore] = ranked[0] ?? [];
+    const secondScore = ranked[1]?.[1] ?? 0;
+    if (topCategoryId && topScore >= secondScore * 1.25) {
+      for (const item of cluster) {
+        if (!item.categoryId || item.categoryId === topCategoryId) continue;
+        uniqueItems.set(item.id, {
+          ...item,
+          categoryId: topCategoryId,
+          rationale: `Merchant-cluster consensus: ${item.rationale}`,
+        });
+      }
+    } else {
+      for (const item of cluster) {
+        uniqueItems.set(item.id, {
+          ...item,
+          confidence: Math.min(
+            item.confidence,
+            Math.max(confidenceThreshold / 2, confidenceThreshold - 0.01),
+          ),
+          rationale: `Conflicting merchant-cluster evidence; human review required. ${item.rationale}`,
+        });
+      }
+    }
+  }
+  return { items: [...uniqueItems.values()] };
 }
 
 /** Shared by both entry points below: reports the total up front (before a
@@ -375,6 +645,25 @@ export async function classifyTransactionForReview(
 
   const categories = await fetchCategories();
   const providerConfig = await buildProviderConfigForTier(classifierAgent.tier);
+  const candidate: ClassifierCandidate = {
+    id: transaction.id,
+    payeeName: config.redactPii
+      ? redactPii(transaction.payeeName ?? '')
+      : (transaction.payeeName ?? ''),
+    amountCents: transaction.amount,
+    date: transaction.date,
+    importedPayee: transaction.importedPayee
+      ? config.redactPii
+        ? redactPii(transaction.importedPayee)
+        : transaction.importedPayee
+      : undefined,
+    notes: transaction.notes
+      ? config.redactPii
+        ? redactPii(transaction.notes)
+        : transaction.notes
+      : undefined,
+    merchantClusterId: buildMerchantClusterId(transaction),
+  };
   const result = await runWorkflow(
     classifierAgent,
     {
@@ -382,29 +671,47 @@ export async function classifyTransactionForReview(
         id: category.id,
         name: category.name,
         group: category.groupName ?? undefined,
+        description: category.description,
       })),
-      history: await fetchHistory(),
-      rejections: await getRejectedExamples(HISTORY_LIMIT),
-      transactions: [
-        {
-          id: transaction.id,
-          payeeName: config.redactPii
-            ? redactPii(transaction.payeeName ?? '')
-            : (transaction.payeeName ?? ''),
-          amountCents: transaction.amount,
-          date: transaction.date,
-          notes: transaction.notes
-            ? config.redactPii
-              ? redactPii(transaction.notes)
-              : transaction.notes
-            : undefined,
-        },
-      ],
+      history: (await fetchHistory()).map(item => ({
+        ...item,
+        payeeName: config.redactPii
+          ? redactPii(item.payeeName)
+          : item.payeeName,
+      })),
+      rejections: (await getRejectedExamples(HISTORY_LIMIT)).map(item => ({
+        ...item,
+        payeeName: config.redactPii
+          ? redactPii(item.payeeName)
+          : item.payeeName,
+      })),
+      evidence: (
+        await getRelevantClassifierEvidence(
+          [transaction],
+          config.confidenceThreshold,
+        )
+      ).map(item => ({
+        ...item,
+        payeeName: config.redactPii
+          ? redactPii(item.payeeName)
+          : item.payeeName,
+        importedPayee:
+          config.redactPii && item.importedPayee
+            ? redactPii(item.importedPayee)
+            : item.importedPayee,
+      })),
+      transactions: [candidate],
     },
     { config: providerConfig },
   );
   const runId = await recordRun(result.run);
-  const suggestion = result.output.items.find(
+  const validatedOutput = validateAndReconcileOutput(
+    result.output,
+    [candidate],
+    categories,
+    config.confidenceThreshold,
+  );
+  const suggestion = validatedOutput.items.find(
     item => item.id === transaction.id,
   );
   if (
