@@ -8,6 +8,7 @@ import {
   SvgCheveronRight,
   SvgCog,
   SvgCreditCard,
+  SvgInboxFull,
   SvgReports,
   SvgStoreFront,
   SvgTag,
@@ -54,6 +55,11 @@ export function PrimaryButtons() {
         title={t('Financial advisor')}
         Icon={SvgChatBubbleDots}
         to="/advisor"
+      />
+      <Item
+        title={t('AI operations')}
+        Icon={SvgInboxFull}
+        to="/ai-pending-categorizations"
       />
       <Item title={t('Reports')} Icon={SvgReports} to="/reports" />
       <Item title={t('Schedules')} Icon={SvgCalendar3} to="/schedules" />

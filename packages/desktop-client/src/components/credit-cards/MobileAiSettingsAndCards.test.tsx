@@ -122,22 +122,15 @@ describe('mobile AI settings and credit-card surfaces', () => {
     ).toBeVisible();
   });
 
-  it('keeps configuration before the link to AI operations', async () => {
+  it('keeps operational AI reviews outside configuration', async () => {
     aiSettingsFixture.isEnabled = true;
     renderPage(<AiSettings />);
 
     await screen.findByDisplayValue('gpt-fast');
-    const saveApiKeys = screen.getByRole('button', {
-      name: 'Save API keys',
-    });
-    const openOperations = screen.getByRole('button', {
-      name: 'Open AI operations',
-    });
-
+    expect(screen.getByRole('button', { name: 'Save API keys' })).toBeVisible();
     expect(
-      saveApiKeys.compareDocumentPosition(openOperations) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      screen.queryByRole('button', { name: 'Open AI operations' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/^Rule proposals/)).not.toBeInTheDocument();
     expect(screen.queryByText('Mined rule health')).not.toBeInTheDocument();
   });

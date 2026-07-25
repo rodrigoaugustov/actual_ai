@@ -14,18 +14,54 @@ por este fork são mantidas localmente.
 
 ## Aceite por requisito
 
-| Requisito                    | Resultado                                                                                                                                                                                                                                                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1.1 — becos sem saída        | `RuleHealthPanel`, `StatementsPanel` e `SuggestionsInbox` têm estados vazios explícitos e preservam suas ações primárias.                                                                                                                                                                                                |
-| 1.2 — acesso ao uso de IA    | `/ai-usage` permanece alcançável nas configurações mesmo sem resumo; notificações de falha oferecem acesso direto ao registro.                                                                                                                                                                                           |
-| 1.3 — cartão no mobile       | Configuração de fechamento e vencimento está no menu mobile, limitada a contas de crédito, e o painel exige os dois campos de forma consistente.                                                                                                                                                                         |
-| 1.4 — falhas e carregamento  | Ações assíncronas de IA e cartões notificam falhas, têm proteção contra submissão concorrente e estados de carregamento. Consultas distinguem carregamento, erro e vazio; há teste específico para falha da qualidade das regras.                                                                                        |
-| 1.5 — ações destrutivas      | Exclusões do consultor, desfazer parcelamento, desmarcar fatura paga e trocar regime pedem confirmação. O regime usa seleção explícita das duas opções.                                                                                                                                                                  |
-| 1.6 — idioma e preferências  | Superfícies do fork foram traduzidas para pt-BR, enums e agentes têm rótulos, datas respeitam o formato configurado e valores usam formatação financeira apropriada.                                                                                                                                                     |
-| 1.7 — parcelas               | O registro lê os campos estruturados de parcela, mostra indicador próprio e permite desfazer a compra parcelada com confirmação e tratamento de erro.                                                                                                                                                                    |
-| 2.1 — infraestrutura mobile  | Rotas de pendências, uso e consultor têm variantes estreitas, navegação mobile e folga para a barra inferior.                                                                                                                                                                                                            |
-| 2.2 — telas mobile           | Consultor dedicado, listas em cartões, configurações empilhadas, seis superfícies de cartão alcançáveis e ações de IA no registro mobile foram entregues.                                                                                                                                                                |
-| 3 — consistência e polimento | Configuração vem antes de operações; propostas e auditoria estão no hub operacional; origem de IA usa badge tipado; abas do consultor são semânticas e persistidas na URL; propostas mostram amostras e aceitam lote; campos persistidos de conselho e revisão são exibidos; os itens menores do plano foram corrigidos. |
+| Requisito                    | Resultado                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1 — becos sem saída        | `RuleHealthPanel`, `StatementsPanel` e `SuggestionsInbox` têm estados vazios explícitos e preservam suas ações primárias.                                                                                                                                                                                                                                                         |
+| 1.2 — acesso ao uso de IA    | `/ai-usage` permanece alcançável nas configurações mesmo sem resumo; notificações de falha oferecem acesso direto ao registro.                                                                                                                                                                                                                                                    |
+| 1.3 — cartão no mobile       | Configuração de fechamento e vencimento está no menu mobile, limitada a contas de crédito, e o painel exige os dois campos de forma consistente.                                                                                                                                                                                                                                  |
+| 1.4 — falhas e carregamento  | Ações assíncronas de IA e cartões notificam falhas, têm proteção contra submissão concorrente e estados de carregamento. Consultas distinguem carregamento, erro e vazio; há teste específico para falha da qualidade das regras.                                                                                                                                                 |
+| 1.5 — ações destrutivas      | Exclusões do consultor, desfazer parcelamento, desmarcar fatura paga e trocar regime pedem confirmação. O regime usa seleção explícita das duas opções.                                                                                                                                                                                                                           |
+| 1.6 — idioma e preferências  | Superfícies do fork foram traduzidas para pt-BR, enums e agentes têm rótulos, datas respeitam o formato configurado e valores usam formatação financeira apropriada.                                                                                                                                                                                                              |
+| 1.7 — parcelas               | O registro lê os campos estruturados de parcela, mostra indicador próprio e permite desfazer a compra parcelada com confirmação e tratamento de erro.                                                                                                                                                                                                                             |
+| 2.1 — infraestrutura mobile  | Rotas de pendências, uso e consultor têm variantes estreitas, navegação mobile e folga para a barra inferior.                                                                                                                                                                                                                                                                     |
+| 2.2 — telas mobile           | Consultor dedicado, listas em cartões, configurações empilhadas, seis superfícies de cartão alcançáveis e ações de IA no registro mobile foram entregues.                                                                                                                                                                                                                         |
+| 3 — consistência e polimento | Configuração e operações têm superfícies distintas; propostas e auditoria estão no hub operacional, agora acessível pela navegação principal; origem de IA usa badge tipado; abas do consultor são semânticas e persistidas na URL; propostas mostram amostras e aceitam lote; campos persistidos de conselho e revisão são exibidos; os itens menores do plano foram corrigidos. |
+
+## Correções pós-aceite
+
+O retorno visual posterior ao aceite revelou seis problemas de integração
+responsiva, corrigidos no mesmo marco:
+
+1. O aviso de categorizações pendentes passou a ser exibido também no mobile,
+   em fluxo normal e com acesso direto à revisão.
+2. A barra mobile passou a calcular sua altura pelo número real de linhas. Um
+   controle explícito de expansão tornou `Configurações` alcançável sem
+   depender exclusivamente do gesto de arrastar.
+3. `Operações de IA` passou a ser item principal no desktop e item de primeiro
+   nível na navegação mobile. O atalho operacional foi removido das
+   configurações.
+4. O Plano do consultor deixou de usar listas HTML que colapsavam dentro dos
+   cartões flex; detalhes, textos longos e ações agora têm altura intrínseca e
+   comportamento responsivo.
+5. As linhas web de categorizações pendentes deixaram de impor 32 px a células
+   multilinha. A página inteira ganhou rolagem delimitada e a versão mobile
+   preserva cartões e ações de toque.
+6. A tela mobile de transações sem categoria passou a oferecer
+   `Classificar todas com IA`, reutilizando a mesma ação e o mesmo tratamento de
+   sucesso/erro do registro web.
+
+Validação adicional:
+
+- 23 testes direcionados aprovados em sete arquivos.
+- Typecheck estrito do workspace web aprovado.
+- Oxfmt e oxlint aprovados nos 19 arquivos do escopo. O check global continua
+  encontrando a normalização de fim de linha preexistente em 392 arquivos no
+  checkout Windows; nenhum desses arquivos foi mantido na alteração.
+- Build de navegador aprovado com
+  `yarn lage build:browser --to=@actual-app/web`.
+- Navegador real validado em 390×844 e 1280×900. O menu mobile foi expandido
+  pelo novo controle e abriu `Configurações`; o hub operacional foi acessado
+  pela navegação principal nas duas larguras.
 
 ## Validação
 

@@ -1,8 +1,10 @@
 import React, { useCallback, useState } from 'react';
 
+import { View } from '@actual-app/components/view';
 import { isPreviewId } from '@actual-app/core/shared/transactions';
 import type { TransactionEntity } from '@actual-app/core/types/models';
 
+import { ClassifyTransactionsWithAiButton } from '#components/ai/ClassifyTransactionsWithAiButton';
 import { TransactionListWithBalances } from '#components/mobile/transactions/TransactionListWithBalances';
 import { SchedulesProvider } from '#hooks/useCachedSchedules';
 import { useDateFormat } from '#hooks/useDateFormat';
@@ -53,6 +55,14 @@ export function UncategorizedTransactions() {
 
   return (
     <SchedulesProvider>
+      {!isTransactionsLoading && transactions.length > 0 && (
+        <View style={{ flexShrink: 0, padding: '10px 10px 0' }}>
+          <ClassifyTransactionsWithAiButton
+            transactions={transactions}
+            style={{ width: '100%', minHeight: 40 }}
+          />
+        </View>
+      )}
       <TransactionListWithBalances
         isLoading={isTransactionsLoading}
         transactions={transactions}

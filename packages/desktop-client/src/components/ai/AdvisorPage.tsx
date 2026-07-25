@@ -630,11 +630,13 @@ function Plan({
   refresh,
   isLoading,
   isError,
+  isMobile = false,
 }: {
   advice: AiAdviceRecordEntity[];
   refresh: () => void;
   isLoading: boolean;
   isError: boolean;
+  isMobile?: boolean;
 }) {
   const { t } = useTranslation();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
@@ -664,9 +666,22 @@ function Plan({
             </Text>
           )}
           {advice.map(item => (
-            <View key={item.id} style={panel}>
-              <Text style={{ fontWeight: 600 }}>{item.title}</Text>
-              <Text>{item.recommendation}</Text>
+            <View
+              key={item.id}
+              style={{ ...panel, width: '100%', flexShrink: 0 }}
+            >
+              <Text
+                style={{
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {item.title}
+              </Text>
+              <Text style={{ lineHeight: 1.4, overflowWrap: 'anywhere' }}>
+                {item.recommendation}
+              </Text>
               <Text style={{ color: theme.pageTextSubdued }}>
                 {adviceStatusLabel(item.status, t)}
               </Text>
@@ -710,8 +725,17 @@ function Plan({
                 })}
               />
               {item.status === 'proposed' && (
-                <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View
+                  style={{
+                    flexDirection: isMobile ? 'column' : 'row',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}
+                >
                   <Button
+                    style={
+                      isMobile ? { width: '100%', minHeight: 40 } : undefined
+                    }
                     variant="primary"
                     isDisabled={mutation.isPending}
                     onPress={() => update(item.id, 'accepted')}
@@ -719,6 +743,9 @@ function Plan({
                     <Trans>Accept plan</Trans>
                   </Button>
                   <Button
+                    style={
+                      isMobile ? { width: '100%', minHeight: 40 } : undefined
+                    }
                     isDisabled={mutation.isPending}
                     onPress={() => update(item.id, 'rejected')}
                   >
@@ -728,6 +755,9 @@ function Plan({
               )}
               {item.status === 'accepted' && (
                 <Button
+                  style={
+                    isMobile ? { width: '100%', minHeight: 40 } : undefined
+                  }
                   isDisabled={mutation.isPending}
                   onPress={() => update(item.id, 'completed')}
                 >
@@ -756,11 +786,33 @@ function AdviceDetailList({
   return (
     <View style={{ gap: 3 }}>
       <Text style={{ fontWeight: 600 }}>{label}</Text>
-      <ul className={css({ margin: 0, paddingLeft: 20 })}>
+      <View role="list" style={{ gap: 4 }}>
         {items.map((item, index) => (
-          <li key={`${index}-${item}`}>{item}</li>
+          <View
+            key={`${index}-${item}`}
+            role="listitem"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 7,
+            }}
+          >
+            <Text aria-hidden="true" style={{ flexShrink: 0, lineHeight: 1.4 }}>
+              •
+            </Text>
+            <Text
+              style={{
+                flex: 1,
+                minWidth: 0,
+                lineHeight: 1.4,
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {item}
+            </Text>
+          </View>
         ))}
-      </ul>
+      </View>
     </View>
   );
 }
@@ -1175,6 +1227,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
           refresh={refresh('advisor-advice')}
           isLoading={advice.isLoading}
           isError={advice.isError}
+          isMobile
         />
       ) : null;
 
@@ -1536,6 +1589,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
             id="advisor-panel-profile"
             role="tabpanel"
             aria-labelledby="advisor-tab-profile"
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
           >
             <Profile
               memories={memory.data ?? []}
@@ -1550,6 +1604,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
             id="advisor-panel-goals"
             role="tabpanel"
             aria-labelledby="advisor-tab-goals"
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
           >
             <Goals
               goals={goals.data ?? []}
@@ -1564,6 +1619,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
             id="advisor-panel-documents"
             role="tabpanel"
             aria-labelledby="advisor-tab-documents"
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
           >
             <Documents
               documents={documents.data ?? []}
@@ -1578,6 +1634,7 @@ export function AdvisorPage({ isMobile = false }: AdvisorPageProps = {}) {
             id="advisor-panel-plan"
             role="tabpanel"
             aria-labelledby="advisor-tab-plan"
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
           >
             <Plan
               advice={advice.data ?? []}

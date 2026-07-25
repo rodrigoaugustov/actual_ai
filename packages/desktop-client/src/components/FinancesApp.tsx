@@ -23,6 +23,7 @@ import { useDispatch, useSelector } from '#redux';
 
 import { UserAccessPage } from './admin/UserAccess/UserAccessPage';
 import { UserDirectoryPage } from './admin/UserDirectory/UserDirectoryPage';
+import { PendingAiReviewNotice } from './ai/PendingAiReviewNotice';
 import { BankSyncStatus } from './BankSyncStatus';
 import { CommandBar } from './CommandBar';
 import { ContextMenu } from './ContextMenu';
@@ -244,6 +245,10 @@ export function FinancesApp() {
                 <Notifications />
                 <BankSyncStatus />
                 {isNarrowWidth && <MobilePageHeaderSlot />}
+                {isNarrowWidth &&
+                  !location.pathname.startsWith(
+                    '/ai-pending-categorizations',
+                  ) && <PendingAiReviewNotice isMobile />}
 
                 <Routes>
                   <Route

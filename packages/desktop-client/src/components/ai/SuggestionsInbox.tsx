@@ -92,22 +92,24 @@ export function SuggestionsInbox({
   // Notes/Category are all flex there too) so the two screens read the same;
   // the AI-only columns (Confidence, actions) are the trailing fixed ones.
   return (
-    <View style={{ width: '100%' }}>
-      <TableHeader
-        headers={[
-          { name: t('Date'), width: 110 },
-          { name: t('Account'), width: 'flex' },
-          { name: t('Payee'), width: 'flex' },
-          { name: t('Notes'), width: 'flex' },
-          { name: t('Suggested category'), width: 'flex' },
-          { name: t('Amount'), width: 90, style: { textAlign: 'right' } },
-          { name: t('Confidence'), width: 110 },
-          { name: '', width: 150 },
-        ]}
-      />
-      {suggestions.map(suggestion => (
-        <SuggestionRow key={suggestion.id} suggestion={suggestion} />
-      ))}
+    <View style={{ width: '100%', overflowX: 'auto' }}>
+      <View style={{ minWidth: 1050 }}>
+        <TableHeader
+          headers={[
+            { name: t('Date'), width: 110 },
+            { name: t('Account'), width: 'flex' },
+            { name: t('Payee'), width: 'flex' },
+            { name: t('Notes'), width: 'flex' },
+            { name: t('Suggested category'), width: 'flex' },
+            { name: t('Amount'), width: 90, style: { textAlign: 'right' } },
+            { name: t('Confidence'), width: 110 },
+            { name: '', width: 150 },
+          ]}
+        />
+        {suggestions.map(suggestion => (
+          <SuggestionRow key={suggestion.id} suggestion={suggestion} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -296,7 +298,14 @@ function SuggestionRow({
   }
 
   return (
-    <Row style={{ borderBottom: '1px solid ' + theme.tableBorder }}>
+    <Row
+      style={{
+        height: 'auto',
+        minHeight: 58,
+        flex: '0 0 auto',
+        borderBottom: '1px solid ' + theme.tableBorder,
+      }}
+    >
       <Field width={110}>
         {monthUtils.format(suggestion.date, dateFormat)}
       </Field>

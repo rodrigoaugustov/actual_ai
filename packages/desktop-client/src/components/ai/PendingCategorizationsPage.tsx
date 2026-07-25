@@ -83,17 +83,13 @@ export function PendingCategorizationsPage({
         padding={isMobile ? 0 : undefined}
       >
         <View
-          style={
-            isMobile
-              ? {
-                  flex: 1,
-                  minHeight: 0,
-                  overflowY: 'auto',
-                  padding: 12,
-                  paddingBottom: MOBILE_NAV_HEIGHT,
-                }
-              : undefined
-          }
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            padding: isMobile ? 12 : 0,
+            paddingBottom: isMobile ? MOBILE_NAV_HEIGHT : 12,
+          }}
         >
           <PendingCountBanner />
           <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>

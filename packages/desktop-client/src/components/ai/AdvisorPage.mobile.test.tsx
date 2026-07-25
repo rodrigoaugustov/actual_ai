@@ -209,5 +209,11 @@ describe('MobileAdvisorPage', () => {
     expect(
       screen.getByText(/Average monthly surplus is positive/),
     ).toBeVisible();
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(document.querySelector('#advisor-panel-plan li')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Accept plan' })).toHaveStyle({
+      width: '100%',
+      minHeight: '40px',
+    });
   });
 });

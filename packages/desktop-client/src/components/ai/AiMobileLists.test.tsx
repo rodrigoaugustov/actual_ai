@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { createTestQueryClient, TestProviders } from '#mocks';
 
 import { MobileAiUsagePage } from './AiUsagePage';
+import { PendingAiReviewNotice } from './PendingAiReviewNotice';
 import { MobilePendingCategorizationsPage } from './PendingCategorizationsPage';
 import { RuleHealthPanel } from './RuleHealthPanel';
 import { SuggestionsInbox } from './SuggestionsInbox';
@@ -208,11 +209,26 @@ describe('mobile AI list pages', () => {
     });
   });
 
+  it('shows a compact pending-review notice on mobile', async () => {
+    renderPage(<PendingAiReviewNotice isMobile />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: '1 AI categorizations pending review',
+      }),
+    ).toBeVisible();
+  });
+
   it('makes the AI rationale reachable without a hover tooltip', async () => {
     const user = userEvent.setup();
     renderPage(<SuggestionsInbox />);
 
-    expect(await screen.findByText('Groceries')).toBeVisible();
+    const category = await screen.findByText('Groceries');
+    expect(category).toBeVisible();
+    expect(category.closest('[data-testid="row"]')).toHaveStyle({
+      height: 'auto',
+      minHeight: '58px',
+    });
     expect(
       screen.queryByText('Similar purchases were categorized as groceries.'),
     ).not.toBeInTheDocument();

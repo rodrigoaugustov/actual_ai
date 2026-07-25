@@ -118,15 +118,6 @@ export function AiSettings() {
     queryFn: () => send('ai/get-secrets-status', { fileId: cloudFileId }),
   });
 
-  const {
-    data: pendingSuggestions = [],
-    isError: isPendingSuggestionsError,
-    isLoading: isPendingSuggestionsLoading,
-  } = useQuery({
-    queryKey: ['ai-suggestions'],
-    queryFn: () => send('ai/get-suggestions'),
-  });
-
   const [config, setConfig] = useState<AiConfig | null>(null);
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState('');
@@ -498,43 +489,6 @@ export function AiSettings() {
           <Trans>Save API keys</Trans>
         </ButtonWithLoading>
       </View>
-
-      {config.enabled && (
-        <View
-          style={{
-            width: '100%',
-            borderTop: '1px solid ' + theme.pillBorderDark,
-            paddingTop: 10,
-            flexDirection: isNarrowWidth ? 'column' : 'row',
-            alignItems: isNarrowWidth ? 'stretch' : 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          {isPendingSuggestionsLoading ? (
-            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
-          ) : isPendingSuggestionsError ? (
-            <Text style={{ color: theme.errorText }}>
-              <Trans>Could not load pending AI categorizations.</Trans>
-            </Text>
-          ) : (
-            <Text>
-              {pendingSuggestions.length > 0
-                ? t('{{count}} AI categorization(s) awaiting your review.', {
-                    count: pendingSuggestions.length,
-                  })
-                : t('No AI categorizations awaiting review right now.')}
-            </Text>
-          )}
-          <Link
-            variant="button"
-            buttonVariant="primary"
-            to="/ai-pending-categorizations"
-          >
-            <Trans>Open AI operations</Trans>
-          </Link>
-        </View>
-      )}
 
       <View
         style={{

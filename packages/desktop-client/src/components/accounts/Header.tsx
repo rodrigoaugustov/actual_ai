@@ -4,7 +4,7 @@ import { Dialog, DialogTrigger } from 'react-aria-components';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button, ButtonWithLoading } from '@actual-app/components/button';
+import { Button } from '@actual-app/components/button';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import {
   SvgAdd,
@@ -26,19 +26,17 @@ import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
-import { send } from '@actual-app/core/platform/client/connection';
 import { tsToRelativeTime } from '@actual-app/core/shared/util';
 import type {
   AccountEntity,
-  ClassifyOutcome,
   RuleConditionEntity,
   TransactionEntity,
   TransactionFilterEntity,
 } from '@actual-app/core/types/models';
-import { useQueryClient } from '@tanstack/react-query';
 import { format as formatDate } from 'date-fns';
 
 import { isAccountFailedSync } from '#accounts/syncStatus';
+import { ClassifyTransactionsWithAiButton } from '#components/ai/ClassifyTransactionsWithAiButton';
 import { AnimatedRefresh } from '#components/AnimatedRefresh';
 import { Search } from '#components/common/Search';
 import { FilterButton } from '#components/filters/FiltersMenu';
@@ -49,76 +47,16 @@ import { SelectedTransactionsButton } from '#components/transactions/SelectedTra
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useLocalPref } from '#hooks/useLocalPref';
-import { useNavigate } from '#hooks/useNavigate';
 import { useSelectedItems } from '#hooks/useSelected';
 import { useSplitsExpanded } from '#hooks/useSplitsExpanded';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
-import { addNotification } from '#notifications/notificationsSlice';
-import { useDispatch } from '#redux';
 
 import type { TableRef } from './Account';
 import { Balances } from './Balance';
 import { BalanceHistoryGraph } from './BalanceHistoryGraph';
 import { MonthFilterButton } from './MonthFilterButton';
 import { ReconcileMenu, ReconcilingMessage } from './Reconcile';
-
-function classifyNowNotification(
-  t: (key: string, options?: Record<string, unknown>) => string,
-  outcome: ClassifyOutcome,
-  navigate: (path: string) => void,
-) {
-  switch (outcome.status) {
-    case 'disabled':
-      return {
-        type: 'warning' as const,
-        message: t('AI features are disabled — enable them in Settings first.'),
-      };
-    case 'budget-exceeded':
-      return {
-        type: 'warning' as const,
-        message: t("Skipped: today's AI spend limit has already been reached."),
-      };
-    case 'no-pending':
-      return {
-        type: 'message' as const,
-        message: t(
-          'Nothing to classify — all selected transactions are already categorized.',
-        ),
-      };
-    case 'run-failed':
-      return {
-        type: 'error' as const,
-        message: t(
-          'AI classification failed. Check the AI usage log for details.',
-        ),
-        button: {
-          title: t('View AI usage log'),
-          action: () => navigate('/ai-usage'),
-        },
-      };
-    case 'ok':
-      return {
-        type: 'message' as const,
-        message:
-          outcome.autoApplied + outcome.pendingReview > 0
-            ? t(
-                '{{autoApplied}} categorized, {{pendingReview}} awaiting review.',
-                {
-                  autoApplied: outcome.autoApplied,
-                  pendingReview: outcome.pendingReview,
-                },
-              )
-            : t('AI had no confident suggestions for these transactions.'),
-      };
-    default: {
-      const exhaustive: never = outcome;
-      throw new Error(
-        `Unknown classify outcome: ${JSON.stringify(exhaustive)}`,
-      );
-    }
-  }
-}
 
 /** Manual trigger for the classifier, shown only on the cross-account
  * "Uncategorized" view (see AccountHeader below). Classifies whatever is
@@ -130,64 +68,13 @@ function ClassifyUncategorizedButton({
 }: {
   transactions: TransactionEntity[];
 }) {
-  const { t } = useTranslation();
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const selectedItems = useSelectedItems();
-  const [isClassifying, setIsClassifying] = useState(false);
-
-  const selectedIds = [...selectedItems];
-  const idsToClassify =
-    selectedIds.length > 0 ? selectedIds : transactions.map(t => t.id);
-
-  if (idsToClassify.length === 0) {
-    return null;
-  }
-
-  const onClassify = async () => {
-    setIsClassifying(true);
-    try {
-      const outcome = await send('ai/classify-now', {
-        transactionIds: idsToClassify,
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['ai-suggestions-index'] }),
-        queryClient.invalidateQueries({ queryKey: ['ai-suggestions'] }),
-      ]);
-      dispatch(
-        addNotification({
-          notification: classifyNowNotification(t, outcome, navigate),
-        }),
-      );
-    } catch {
-      dispatch(
-        addNotification({
-          notification: {
-            type: 'error',
-            message: t(
-              'AI classification failed. Check the AI usage log for details.',
-            ),
-            button: {
-              title: t('View AI usage log'),
-              action: () => navigate('/ai-usage'),
-            },
-          },
-        }),
-      );
-    } finally {
-      setIsClassifying(false);
-    }
-  };
 
   return (
-    <ButtonWithLoading isLoading={isClassifying} onPress={onClassify}>
-      {selectedIds.length > 0
-        ? t('Classify {{count}} selected with AI', {
-            count: selectedIds.length,
-          })
-        : t('Classify all with AI')}
-    </ButtonWithLoading>
+    <ClassifyTransactionsWithAiButton
+      transactions={transactions}
+      selectedIds={[...selectedItems]}
+    />
   );
 }
 
