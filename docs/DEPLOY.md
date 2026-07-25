@@ -214,14 +214,21 @@ servidor e apague a cópia local.
 
 ### Chave de criptografia (manual, na sua máquina)
 
+Gere em `$HOME`, **nunca dentro do repositório** — um arquivo chamado
+`*-backup-key.txt` só é protegido por `deploy/.gitignore` por precaução; a
+proteção real é ele nunca existir numa pasta rastreada pelo git:
+
 ```bash
+cd ~
 age-keygen -o actual-backup-key.txt
 ```
 
-Guarde o arquivo no gerenciador de senhas. **Só a linha `public key:` vai para
-o servidor** (`AGE_RECIPIENT`) — assim o host escreve backups mas não consegue
-ler os antigos. O arquivo cifrado contém a chave da Anthropic e as credenciais
-Pluggy em texto claro, por isso a criptografia não é opcional.
+A saída imprime `Public key: age1...` — essa linha (sem o resto) é o
+`AGE_RECIPIENT` que vai no `.env` do servidor. O arquivo em si (a chave
+**privada**) vai só para o gerenciador de senhas — assim o host escreve
+backups mas não consegue ler os antigos. O arquivo cifrado contém a chave da
+Anthropic e as credenciais Pluggy em texto claro, por isso a criptografia não
+é opcional.
 
 ### Chaves S3 do R2 (manual — não há API)
 

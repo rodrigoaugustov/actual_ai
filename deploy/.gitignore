@@ -4,3 +4,14 @@
 .blocked
 .update.lock
 .env.generated
+
+# Belt and suspenders for the age private key. The root .gitignore's
+# `Actual-*` rule happened to also catch a file literally named
+# actual-backup-key.txt, but only by coincidence of that name starting with
+# "actual" — an unrelated pattern meant to exclude Electron build artifacts is
+# not a real guarantee, and would not have caught e.g. financas-key.txt. The
+# real fix is generating the key outside the repo in the first place (see
+# docs/DEPLOY.md stage 7, which now does $HOME, not this directory); this rule
+# is just a deliberate backstop in case that ever happens again.
+*-backup-key.txt
+*.age.key
