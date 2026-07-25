@@ -153,7 +153,14 @@ else
   cf POST "/accounts/$ACCOUNT_ID/r2/buckets" \
     "$(jq -n --arg n "$R2_BUCKET" '{name: $n}')" >/dev/null \
     && echo "    created" \
-    || echo "    ! could not create — needs the Workers R2 Storage:Edit scope"
+    || echo "    ! could not create — see the error above. Most likely cause:
+      R2 has never been activated on this account (error code 10042, 'Please
+      enable R2 through the Cloudflare Dashboard') — a one-time, account-level
+      step that no API token scope can grant. Fix: dash.cloudflare.com >
+      Storage & databases > R2 > Overview > complete the checkout flow (this
+      may ask for a payment method even to stay on the free tier, same as
+      Oracle/GCP). Re-run this script afterward; it skips everything already
+      created and only retries the bucket."
 fi
 
 say "Tunnel token"
