@@ -17,6 +17,10 @@ export { BankSync } from '#components/banksync';
 
 export { UserDirectoryPage } from '#components/admin/UserDirectory/UserDirectoryPage';
 
+export { AdvisorPage as Advisor } from '#components/ai/AdvisorPage';
+export { AiUsagePage as AiUsage } from '#components/ai/AiUsagePage';
+export { PendingCategorizationsPage as AiPendingCategorizations } from '#components/ai/PendingCategorizationsPage';
+
 // Account component is currently used for uncategorized transactions view.
 // Need to separate this to it's own component in the future.
 export { Account as Category } from '#components/accounts/Account';

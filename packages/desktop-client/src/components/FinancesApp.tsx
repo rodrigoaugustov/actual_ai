@@ -23,9 +23,6 @@ import { useDispatch, useSelector } from '#redux';
 
 import { UserAccessPage } from './admin/UserAccess/UserAccessPage';
 import { UserDirectoryPage } from './admin/UserDirectory/UserDirectoryPage';
-import { AdvisorPage } from './ai/AdvisorPage';
-import { AiUsagePage } from './ai/AiUsagePage';
-import { PendingCategorizationsPage } from './ai/PendingCategorizationsPage';
 import { BankSyncStatus } from './BankSyncStatus';
 import { CommandBar } from './CommandBar';
 import { ContextMenu } from './ContextMenu';
@@ -376,10 +373,18 @@ export function FinancesApp() {
                   <Route path="/tags" element={<ManageTagsPage />} />
                   <Route
                     path="/ai-pending-categorizations"
-                    element={<PendingCategorizationsPage />}
+                    element={
+                      <NarrowAlternate name="AiPendingCategorizations" />
+                    }
                   />
-                  <Route path="/ai-usage" element={<AiUsagePage />} />
-                  <Route path="/advisor" element={<AdvisorPage />} />
+                  <Route
+                    path="/ai-usage"
+                    element={<NarrowAlternate name="AiUsage" />}
+                  />
+                  <Route
+                    path="/advisor"
+                    element={<NarrowAlternate name="Advisor" />}
+                  />
                   <Route path="/settings" element={<Settings />} />
 
                   <Route
@@ -476,6 +481,11 @@ export function FinancesApp() {
                 <Route path="/payees" element={<MobileNavTabs />} />
                 <Route path="/schedules" element={<MobileNavTabs />} />
                 <Route path="/advisor" element={<MobileNavTabs />} />
+                <Route path="/ai-usage" element={<MobileNavTabs />} />
+                <Route
+                  path="/ai-pending-categorizations"
+                  element={<MobileNavTabs />}
+                />
                 <Route path="*" element={null} />
               </Routes>
             </MobilePageHeaderProvider>
