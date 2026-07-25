@@ -1,6 +1,7 @@
 import * as asyncStorage from '#platform/server/asyncStorage';
 import * as fs from '#platform/server/fs';
 import { createApp } from '#server/app';
+import { resetBudgetRegimeCache } from '#server/credit-cards/regime';
 import * as db from '#server/db';
 import { PostError } from '#server/errors';
 import { resetFormulaPreferencesCache } from '#server/formulas/bootstrap';
@@ -62,6 +63,9 @@ async function saveSyncedPrefs({
 
   if (FORMULA_FORMAT_SYNCED_PREFS.has(id)) {
     resetFormulaPreferencesCache();
+  }
+  if (id === 'budgetRegime') {
+    resetBudgetRegimeCache();
   }
 }
 

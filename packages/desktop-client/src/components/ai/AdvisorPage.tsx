@@ -21,6 +21,7 @@ import { css } from '@emotion/css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Page } from '#components/Page';
+import { pushModal } from '#modals/modalsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
@@ -112,6 +113,7 @@ function Profile({
   const [kind, setKind] = useState('');
   const [value, setValue] = useState('');
   const [isSensitive, setIsSensitive] = useState(false);
+  const dispatch = useDispatch();
   const mutation = useAdvisorMutation();
   const candidates = memories.filter(item => item.status === 'candidate');
   const confirmed = memories.filter(item => item.status === 'confirmed');
@@ -141,6 +143,21 @@ function Profile({
       await send('ai/advisor/delete-memory', { id });
       refresh();
     });
+  };
+  const confirmRemove = (id: string) => {
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'confirm-delete',
+          options: {
+            message: t('Delete this memory from your advisor profile?'),
+            onConfirm: () => {
+              void remove(id);
+            },
+          },
+        },
+      }),
+    );
   };
   return (
     <View style={{ gap: 16 }}>
@@ -253,8 +270,9 @@ function Profile({
               </Text>
               <Button
                 variant="bare"
+                style={{ color: theme.errorTextMenu }}
                 isDisabled={mutation.isPending}
-                onPress={() => remove(item.id)}
+                onPress={() => confirmRemove(item.id)}
               >
                 <Trans>Delete</Trans>
               </Button>
@@ -280,6 +298,7 @@ function Goals({
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const dispatch = useDispatch();
   const mutation = useAdvisorMutation();
   const add = async () => {
     if (!title.trim() || !description.trim()) return;
@@ -298,6 +317,23 @@ function Goals({
       await send('ai/advisor/delete-goal', { id });
       refresh();
     });
+  };
+  const confirmRemove = (goal: AiGoalEntity) => {
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'confirm-delete',
+          options: {
+            message: t('Delete the goal "{{title}}"?', {
+              title: goal.title,
+            }),
+            onConfirm: () => {
+              void remove(goal.id);
+            },
+          },
+        },
+      }),
+    );
   };
   return (
     <View style={{ gap: 12 }}>
@@ -329,8 +365,9 @@ function Goals({
             </Text>
             <Button
               variant="bare"
+              style={{ color: theme.errorTextMenu }}
               isDisabled={mutation.isPending}
-              onPress={() => remove(goal.id)}
+              onPress={() => confirmRemove(goal)}
             >
               <Trans>Delete</Trans>
             </Button>
@@ -355,6 +392,7 @@ function Documents({
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const dispatch = useDispatch();
   const mutation = useAdvisorMutation();
   const add = async () => {
     if (!title.trim() || !content.trim()) return;
@@ -374,6 +412,23 @@ function Documents({
       await send('ai/advisor/delete-document', { id });
       refresh();
     });
+  };
+  const confirmRemove = (document: AiDocumentEntity) => {
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'confirm-delete',
+          options: {
+            message: t('Delete the document "{{title}}"?', {
+              title: document.title,
+            }),
+            onConfirm: () => {
+              void remove(document.id);
+            },
+          },
+        },
+      }),
+    );
   };
   return (
     <View style={{ gap: 12 }}>
@@ -419,8 +474,9 @@ function Documents({
             <Text>{document.content.slice(0, 300)}</Text>
             <Button
               variant="bare"
+              style={{ color: theme.errorTextMenu }}
               isDisabled={mutation.isPending}
-              onPress={() => remove(document.id)}
+              onPress={() => confirmRemove(document)}
             >
               <Trans>Delete</Trans>
             </Button>
@@ -683,6 +739,24 @@ export function AdvisorPage() {
       });
     });
   };
+  const confirmDeleteConversation = (conversation: AiConversationEntity) => {
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'confirm-delete',
+          options: {
+            message: t(
+              'Delete "{{title}}" and its entire conversation history?',
+              { title: conversation.title },
+            ),
+            onConfirm: () => {
+              void deleteConversation(conversation.id);
+            },
+          },
+        },
+      }),
+    );
+  };
   const submit = async () => {
     if (!conversationId || !draft.trim() || runId || submitMutation.isPending) {
       return;
@@ -800,8 +874,9 @@ export function AdvisorPage() {
                     </Button>
                     <Button
                       variant="bare"
+                      style={{ color: theme.errorTextMenu }}
                       isDisabled={conversationMutation.isPending}
-                      onPress={() => deleteConversation(item.id)}
+                      onPress={() => confirmDeleteConversation(item)}
                     >
                       <Trans>Delete</Trans>
                     </Button>

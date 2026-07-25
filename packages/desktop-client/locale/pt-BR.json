@@ -2148,5 +2148,18 @@
   "This step could not be completed": "Não foi possível concluir esta etapa",
   "Completed": "Concluído",
   "Mark as sensitive": "Marcar como sensível",
-  "<0>Share sensitive advisor memories</0> — include confirmed profile facts marked as sensitive in requests to the AI provider. Off by default; those facts remain stored locally and synchronized with your budget.": "<0>Compartilhar memórias sensíveis do consultor</0> — inclui nas solicitações ao provedor de IA os fatos confirmados do perfil marcados como sensíveis. Desativado por padrão; esses fatos continuam armazenados localmente e sincronizados com seu orçamento."
+  "<0>Share sensitive advisor memories</0> — include confirmed profile facts marked as sensitive in requests to the AI provider. Off by default; those facts remain stored locally and synchronized with your budget.": "<0>Compartilhar memórias sensíveis do consultor</0> — inclui nas solicitações ao provedor de IA os fatos confirmados do perfil marcados como sensíveis. Desativado por padrão; esses fatos continuam armazenados localmente e sincronizados com seu orçamento.",
+  "Budget regime": "Regime de orçamento",
+  "Change budget regime?": "Alterar o regime de orçamento?",
+  "Change regime": "Alterar regime",
+  "Could not change the budget regime. Check your connection and try again.": "Não foi possível alterar o regime de orçamento. Verifique sua conexão e tente novamente.",
+  "Delete \"{{title}}\" and its entire conversation history?": "Excluir \"{{title}}\" e todo o histórico da conversa?",
+  "Delete the document \"{{title}}\"?": "Excluir o documento \"{{title}}\"?",
+  "Delete the goal \"{{title}}\"?": "Excluir o objetivo \"{{title}}\"?",
+  "Delete this memory from your advisor profile?": "Excluir esta memória do perfil do consultor?",
+  "Purchase date": "Data da compra",
+  "Statement due date": "Data de vencimento da fatura",
+  "This will remove its paid status and any payment link without deleting transactions.": "Isso removerá o status de paga e qualquer vínculo de pagamento sem excluir transações.",
+  "Unmark statement as paid?": "Desmarcar a fatura como paga?",
+  "Your budget will be recalculated using the selected credit card regime.": "Seu orçamento será recalculado usando o regime de cartão de crédito selecionado."
 }

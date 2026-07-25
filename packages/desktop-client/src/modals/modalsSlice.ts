@@ -615,6 +615,8 @@ export type Modal =
       name: 'confirm-delete';
       options: {
         message: string;
+        title?: string;
+        confirmLabel?: string;
         onConfirm: () => void;
       };
     }

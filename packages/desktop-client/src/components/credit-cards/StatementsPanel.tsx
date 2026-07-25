@@ -47,6 +47,7 @@ export function StatementsPanel({
   const dispatch = useDispatch();
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const updatingStatementRef = useRef<string | null>(null);
   const [updatingStatementId, setUpdatingStatementId] = useState<string | null>(
     null,
   );
@@ -126,32 +127,58 @@ export function StatementsPanel({
     });
   };
 
-  const onTogglePaid = async (statement: StatementWithDerived) => {
-    if (updatingStatementId != null) {
+  const onUnmarkPaid = async (statement: StatementWithDerived) => {
+    if (updatingStatementRef.current != null) {
+      return;
+    }
+
+    updatingStatementRef.current = statement.id;
+    setUpdatingStatementId(statement.id);
+    try {
+      await send('credit-card/unmark-statement-paid', { id: statement.id });
+      await queryClient.invalidateQueries({
+        queryKey: ['credit-card-statements', account.id],
+      });
+    } catch {
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not unmark this statement as paid. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
+    } finally {
+      updatingStatementRef.current = null;
+      setUpdatingStatementId(null);
+    }
+  };
+
+  const onTogglePaid = (statement: StatementWithDerived) => {
+    if (updatingStatementRef.current != null) {
       return;
     }
 
     if (statement.status === 'paid') {
-      setUpdatingStatementId(statement.id);
-      try {
-        await send('credit-card/unmark-statement-paid', { id: statement.id });
-        await queryClient.invalidateQueries({
-          queryKey: ['credit-card-statements', account.id],
-        });
-      } catch {
-        dispatch(
-          addNotification({
-            notification: {
-              type: 'error',
+      dispatch(
+        pushModal({
+          modal: {
+            name: 'confirm-delete',
+            options: {
+              title: t('Unmark statement as paid?'),
               message: t(
-                'Could not unmark this statement as paid. Check your connection and try again.',
+                'This will remove its paid status and any payment link without deleting transactions.',
               ),
+              confirmLabel: t('Unmark paid'),
+              onConfirm: () => {
+                void onUnmarkPaid(statement);
+              },
             },
-          }),
-        );
-      } finally {
-        setUpdatingStatementId(null);
-      }
+          },
+        }),
+      );
     } else {
       dispatch(
         pushModal({

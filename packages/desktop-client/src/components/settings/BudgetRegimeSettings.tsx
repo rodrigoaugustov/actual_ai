@@ -1,45 +1,128 @@
-import { useState } from 'react';
-import { Trans } from 'react-i18next';
+import { useRef, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { ButtonWithLoading } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { send } from '@actual-app/core/platform/client/connection';
 
 import { useSyncedPref } from '#hooks/useSyncedPref';
+import { pushModal } from '#modals/modalsSlice';
+import { addNotification } from '#notifications/notificationsSlice';
+import { saveSyncedPrefs } from '#prefs/prefsSlice';
+import { useDispatch } from '#redux';
 
-import { Setting } from './UI';
+import { Column, Setting } from './UI';
+
+type BudgetRegime = 'purchase' | 'payment';
 
 export function BudgetRegimeSettings() {
-  const [budgetRegime = 'purchase', setBudgetRegime] =
-    useSyncedPref('budgetRegime');
-  const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
+  const [storedBudgetRegime] = useSyncedPref('budgetRegime');
+  const budgetRegime: BudgetRegime =
+    storedBudgetRegime === 'payment' ? 'payment' : 'purchase';
+  const pendingRef = useRef<BudgetRegime | null>(null);
+  const [pendingRegime, setPendingRegime] = useState<BudgetRegime | null>(null);
 
-  async function onSwitchRegime() {
-    setIsLoading(true);
-    try {
-      setBudgetRegime(budgetRegime === 'purchase' ? 'payment' : 'purchase');
-
-      // The pref-change rebuild runs fire-and-forget inside a
-      // synchronous DB transaction on the server (same constraint as
-      // the budget-type switch), so explicitly reset and await here
-      // rather than relying on that background rebuild to have
-      // settled before this resolves
-      await send('reset-budget-cache');
-    } finally {
-      setIsLoading(false);
+  async function changeRegime(nextRegime: BudgetRegime) {
+    if (pendingRef.current != null || nextRegime === budgetRegime) {
+      return;
     }
+
+    const previousRegime = budgetRegime;
+    pendingRef.current = nextRegime;
+    setPendingRegime(nextRegime);
+    try {
+      await dispatch(
+        saveSyncedPrefs({ prefs: { budgetRegime: nextRegime } }),
+      ).unwrap();
+      await send('reset-budget-cache');
+    } catch {
+      try {
+        await dispatch(
+          saveSyncedPrefs({ prefs: { budgetRegime: previousRegime } }),
+        ).unwrap();
+        await send('reset-budget-cache');
+      } catch {
+        // Keep the original failure notification. A later retry or budget
+        // reload will reconcile the preference and calculated budget cache.
+      }
+      dispatch(
+        addNotification({
+          notification: {
+            type: 'error',
+            message: t(
+              'Could not change the budget regime. Check your connection and try again.',
+            ),
+          },
+        }),
+      );
+    } finally {
+      pendingRef.current = null;
+      setPendingRegime(null);
+    }
+  }
+
+  function requestRegimeChange(nextRegime: BudgetRegime) {
+    if (pendingRef.current != null || nextRegime === budgetRegime) {
+      return;
+    }
+
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'confirm-delete',
+          options: {
+            title: t('Change budget regime?'),
+            message: t(
+              'Your budget will be recalculated using the selected credit card regime.',
+            ),
+            confirmLabel: t('Change regime'),
+            onConfirm: () => {
+              void changeRegime(nextRegime);
+            },
+          },
+        },
+      }),
+    );
   }
 
   return (
     <Setting
       primaryAction={
-        <ButtonWithLoading onPress={onSwitchRegime} isLoading={isLoading}>
-          {budgetRegime === 'payment' ? (
-            <Trans>Switch to purchase date budgeting</Trans>
-          ) : (
-            <Trans>Switch to statement due date budgeting</Trans>
-          )}
-        </ButtonWithLoading>
+        <Column title={t('Budget regime')}>
+          <fieldset
+            aria-label={t('Budget regime')}
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 8,
+              border: 0,
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            <ButtonWithLoading
+              aria-pressed={budgetRegime === 'purchase'}
+              variant={budgetRegime === 'purchase' ? 'primary' : 'normal'}
+              isLoading={pendingRegime === 'purchase'}
+              isDisabled={pendingRegime != null}
+              onPress={() => requestRegimeChange('purchase')}
+            >
+              <Trans>Purchase date</Trans>
+            </ButtonWithLoading>
+            <ButtonWithLoading
+              aria-pressed={budgetRegime === 'payment'}
+              variant={budgetRegime === 'payment' ? 'primary' : 'normal'}
+              isLoading={pendingRegime === 'payment'}
+              isDisabled={pendingRegime != null}
+              onPress={() => requestRegimeChange('payment')}
+            >
+              <Trans>Statement due date</Trans>
+            </ButtonWithLoading>
+          </fieldset>
+        </Column>
       }
     >
       <Text>
