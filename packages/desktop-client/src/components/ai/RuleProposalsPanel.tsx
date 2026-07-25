@@ -19,6 +19,8 @@ import type { Notification } from '#notifications/notificationsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
+import { ruleOperatorLabel } from './labels';
+
 function mineRulesNotification(
   t: (key: string, options?: Record<string, unknown>) => string,
   result: MineRulesOutcome,
@@ -220,8 +222,8 @@ function ProposalRow({ proposal }: { proposal: AiRuleMetaEntity }) {
     >
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ fontWeight: 600 }}>
-          {proposal.payeeName} — {proposal.op} "{proposal.value}" →{' '}
-          {categoryName}
+          {proposal.payeeName} — {ruleOperatorLabel(proposal.op, t)} "
+          {proposal.value}" → {categoryName}
         </Text>
         <Text style={{ color: theme.pageTextSubdued, fontSize: '0.85em' }}>
           {proposal.rationale}

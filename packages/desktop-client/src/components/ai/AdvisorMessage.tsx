@@ -1,4 +1,4 @@
-import { Trans } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 
 import { Text } from '@actual-app/components/text';
@@ -11,7 +11,7 @@ import remarkGfm from 'remark-gfm';
 
 import { markdownBaseStyles, remarkBreaks } from '#util/markdown';
 
-import { AdvisorTrace } from './AdvisorTrace';
+import { AdvisorTrace, toolLabel } from './AdvisorTrace';
 
 const remarkPlugins = [remarkGfm, remarkBreaks];
 
@@ -115,13 +115,14 @@ export function AdvisorMessage({
   message: AiMessageEntity;
   isStreaming?: boolean;
 }) {
+  const { t } = useTranslation();
   const isUser = message.role === 'user';
   const trace = message.parts.filter(part => part.type === 'trace');
   const tools = [
     ...new Set(
       message.parts
         .filter(part => part.type === 'tool' && part.state === 'result')
-        .map(part => (part.type === 'tool' ? part.toolName : '')),
+        .map(part => (part.type === 'tool' ? toolLabel(part.toolName, t) : '')),
     ),
   ];
   const sources = message.parts

@@ -17,6 +17,7 @@ import type {
 } from '@actual-app/core/types/models';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { aiAgentLabel } from '#components/ai/labels';
 import { RuleHealthPanel } from '#components/ai/RuleHealthPanel';
 import { RuleProposalsPanel } from '#components/ai/RuleProposalsPanel';
 import { Link } from '#components/common/Link';
@@ -61,8 +62,8 @@ const PROVIDER_SECRET_NAMES: Partial<Record<AiProviderId, string>> = {
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+function formatUsd(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -91,7 +92,8 @@ function ConfiguredBadge() {
 }
 
 export function AiSettings() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? 'en';
   const dispatch = useDispatch();
   const { cloudFileId } = useCurrentAccess();
   const queryClient = useQueryClient();
@@ -554,11 +556,15 @@ export function AiSettings() {
           <AnimatedLoading width={20} color={theme.pageTextSubdued} />
         ) : usage ? (
           <>
-            <FinancialText>{formatUsd(usage.totalCostUsd)}</FinancialText>
+            <FinancialText>
+              {formatUsd(usage.totalCostUsd, locale)}
+            </FinancialText>
             {Object.entries(usage.byAgent).map(([agent, cost]) => (
               <Text key={agent} style={{ color: theme.pageTextSubdued }}>
-                {agent}:{' '}
-                <FinancialText as="span">{formatUsd(cost)}</FinancialText>
+                {aiAgentLabel(agent, t)}:{' '}
+                <FinancialText as="span">
+                  {formatUsd(cost, locale)}
+                </FinancialText>
               </Text>
             ))}
           </>

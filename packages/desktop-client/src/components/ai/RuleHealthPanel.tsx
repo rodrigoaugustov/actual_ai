@@ -19,6 +19,8 @@ import type { Notification } from '#notifications/notificationsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
+import { ruleOperatorLabel } from './labels';
+
 const HEALTH_QUERY_KEY = ['ai-rule-health'];
 const REVIEW_CANDIDATE_MIN_HITS = 5;
 const REVIEW_CANDIDATE_MAX_PRECISION = 0.8;
@@ -203,7 +205,8 @@ export function RuleHealthPanel() {
             >
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontWeight: 600 }}>
-                  {rule.payeeName} — {rule.op} "{rule.value}" → {categoryName}
+                  {rule.payeeName} — {ruleOperatorLabel(rule.op, t)} "
+                  {rule.value}" → {categoryName}
                 </Text>
                 <Text
                   style={{ color: theme.pageTextSubdued, fontSize: '0.85em' }}

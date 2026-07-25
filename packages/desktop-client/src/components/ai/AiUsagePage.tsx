@@ -13,9 +13,12 @@ import { format as formatDate } from 'date-fns';
 import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
 import { FinancialText } from '#components/FinancialText';
 import { Page } from '#components/Page';
+import { useDateFormat } from '#hooks/useDateFormat';
 
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+import { aiAgentLabel, aiRunStatusLabel, aiTierLabel } from './labels';
+
+function formatUsd(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -30,7 +33,8 @@ const HEADER_STYLE = {
 };
 
 function SummaryBar({ runs }: { runs: AiRunEntity[] }) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? 'en';
   const totalCostUsd = runs.reduce((sum, run) => sum + run.costUsd, 0);
   const failedCount = runs.filter(run => run.status === 'error').length;
 
@@ -49,7 +53,9 @@ function SummaryBar({ runs }: { runs: AiRunEntity[] }) {
       <Text>{t('{{count}} calls shown', { count: runs.length })}</Text>
       <Text>
         <Trans>Total cost:</Trans>{' '}
-        <FinancialText as="span">{formatUsd(totalCostUsd)}</FinancialText>
+        <FinancialText as="span">
+          {formatUsd(totalCostUsd, locale)}
+        </FinancialText>
       </Text>
       {failedCount > 0 && (
         <Text style={{ color: theme.errorText }}>
@@ -61,6 +67,10 @@ function SummaryBar({ runs }: { runs: AiRunEntity[] }) {
 }
 
 function RunRow({ run }: { run: AiRunEntity }) {
+  const { i18n, t } = useTranslation();
+  const dateFormat = useDateFormat() || 'MM/dd/yyyy';
+  const locale = i18n.resolvedLanguage ?? 'en';
+
   return (
     <View
       style={{
@@ -72,23 +82,28 @@ function RunRow({ run }: { run: AiRunEntity }) {
       }}
     >
       <Text style={{ width: 140, color: theme.pageTextSubdued }}>
-        {formatDate(new Date(run.createdAt), 'MM/dd/yyyy HH:mm')}
+        {formatDate(new Date(run.createdAt), `${dateFormat} HH:mm`)}
       </Text>
-      <Text style={{ width: 110 }}>{run.agent}</Text>
+      <Text style={{ width: 110 }}>{aiAgentLabel(run.agent, t)}</Text>
       <Text style={{ width: 90, color: theme.pageTextSubdued }}>
-        {run.tier}
+        {aiTierLabel(run.tier, t)}
       </Text>
       <Text style={{ width: 180 }}>
         {run.provider} · {run.model}
       </Text>
       <FinancialText style={{ width: 110, textAlign: 'right' }}>
-        {run.inputTokens.toLocaleString()} → {run.outputTokens.toLocaleString()}
+        {run.inputTokens.toLocaleString(locale)} →{' '}
+        {run.outputTokens.toLocaleString(locale)}
       </FinancialText>
       <FinancialText style={{ width: 90, textAlign: 'right' }}>
-        {formatUsd(run.costUsd)}
+        {formatUsd(run.costUsd, locale)}
       </FinancialText>
       <FinancialText style={{ width: 80, textAlign: 'right' }}>
-        {(run.durationMs / 1000).toFixed(1)}s
+        {new Intl.NumberFormat(locale, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }).format(run.durationMs / 1000)}
+        s
       </FinancialText>
       <Text
         style={{
@@ -96,7 +111,7 @@ function RunRow({ run }: { run: AiRunEntity }) {
           color: run.status === 'error' ? theme.errorText : theme.noticeText,
         }}
       >
-        {run.status}
+        {aiRunStatusLabel(run.status, t)}
       </Text>
     </View>
   );

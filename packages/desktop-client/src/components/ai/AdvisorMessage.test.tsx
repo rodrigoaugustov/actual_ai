@@ -108,9 +108,11 @@ describe('AdvisorMessage', () => {
     );
 
     const renderedMessage = screen.getByTestId('advisor-message-assistant');
-    expect(renderedMessage).toHaveTextContent('get_financial_snapshot');
+    expect(renderedMessage).toHaveTextContent(
+      'Reviewing balances and net worth',
+    );
     expect(
-      renderedMessage.textContent?.match(/get_financial_snapshot/g),
+      renderedMessage.textContent?.match(/Reviewing balances and net worth/g),
     ).toHaveLength(1);
     expect(renderedMessage).not.toHaveTextContent('get_advisor_profile');
     expect(renderedMessage).toHaveTextContent('Resumo financeiro');

@@ -12,7 +12,7 @@ import { View } from '@actual-app/components/view';
 import type { AiTraceDetail, AiTracePart } from '@actual-app/core/types/models';
 import type { TFunction } from 'i18next';
 
-function toolLabel(toolName: string | undefined, t: TFunction): string {
+export function toolLabel(toolName: string | undefined, t: TFunction): string {
   switch (toolName) {
     case 'describe_financial_data':
       return t('Mapping available financial data');

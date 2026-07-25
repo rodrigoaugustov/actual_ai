@@ -26,6 +26,12 @@ import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
 import { AdvisorMessage } from './AdvisorMessage';
+import {
+  adviceStatusLabel,
+  documentKindLabel,
+  goalStatusLabel,
+  memoryKindLabel,
+} from './labels';
 
 type Tab = 'conversation' | 'profile' | 'goals' | 'documents' | 'plan';
 const panel = {
@@ -184,7 +190,9 @@ function Profile({
             )}
             {candidates.map(item => (
               <View key={item.id} style={panel}>
-                <Text style={{ fontWeight: 600 }}>{item.kind}</Text>
+                <Text style={{ fontWeight: 600 }}>
+                  {memoryKindLabel(item.kind, t)}
+                </Text>
                 {item.sensitivity === 'sensitive' && (
                   <Text style={{ color: theme.pageTextSubdued }}>
                     <Trans>
@@ -257,7 +265,9 @@ function Profile({
         ) : (
           confirmed.map(item => (
             <View key={item.id} style={{ padding: 8 }}>
-              <Text style={{ fontWeight: 600 }}>{item.kind}</Text>
+              <Text style={{ fontWeight: 600 }}>
+                {memoryKindLabel(item.kind, t)}
+              </Text>
               {item.sensitivity === 'sensitive' && (
                 <Text style={{ color: theme.pageTextSubdued }}>
                   <Trans>Sensitive — excluded from AI prompts by default</Trans>
@@ -361,7 +371,10 @@ function Goals({
             <Text style={{ fontWeight: 600 }}>{goal.title}</Text>
             <Text>{goal.description}</Text>
             <Text style={{ color: theme.pageTextSubdued }}>
-              {t('Priority {{priority}} · {{status}}', goal)}
+              {t('Priority {{priority}} · {{status}}', {
+                priority: goal.priority,
+                status: goalStatusLabel(goal.status, t),
+              })}
             </Text>
             <Button
               variant="bare"
@@ -469,7 +482,7 @@ function Documents({
           <View key={document.id} style={panel}>
             <Text style={{ fontWeight: 600 }}>{document.title}</Text>
             <Text style={{ color: theme.pageTextSubdued }}>
-              {document.kind}
+              {documentKindLabel(document.kind, t)}
             </Text>
             <Text>{document.content.slice(0, 300)}</Text>
             <Button
@@ -498,6 +511,7 @@ function Plan({
   isLoading: boolean;
   isError: boolean;
 }) {
+  const { t } = useTranslation();
   const mutation = useAdvisorMutation();
   const update = async (
     id: string,
@@ -528,7 +542,7 @@ function Plan({
               <Text style={{ fontWeight: 600 }}>{item.title}</Text>
               <Text>{item.recommendation}</Text>
               <Text style={{ color: theme.pageTextSubdued }}>
-                {item.status}
+                {adviceStatusLabel(item.status, t)}
               </Text>
               {item.status === 'proposed' && (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
