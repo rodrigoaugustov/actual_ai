@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -12,7 +13,8 @@ import { format as formatDate } from 'date-fns';
 
 import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
 import { FinancialText } from '#components/FinancialText';
-import { Page } from '#components/Page';
+import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
+import { MobilePageHeader, Page } from '#components/Page';
 import { useDateFormat } from '#hooks/useDateFormat';
 
 import { aiAgentLabel, aiRunStatusLabel, aiTierLabel } from './labels';
@@ -32,7 +34,13 @@ const HEADER_STYLE = {
   fontSize: '0.85em',
 };
 
-function SummaryBar({ runs }: { runs: AiRunEntity[] }) {
+function SummaryBar({
+  runs,
+  isMobile = false,
+}: {
+  runs: AiRunEntity[];
+  isMobile?: boolean;
+}) {
   const { i18n, t } = useTranslation();
   const locale = i18n.resolvedLanguage ?? 'en';
   const totalCostUsd = runs.reduce((sum, run) => sum + run.costUsd, 0);
@@ -41,7 +49,7 @@ function SummaryBar({ runs }: { runs: AiRunEntity[] }) {
   return (
     <View
       style={{
-        flexDirection: 'row',
+        flexDirection: isMobile ? 'column' : 'row',
         gap: 20,
         padding: '8px 12px',
         borderRadius: 4,
@@ -62,6 +70,99 @@ function SummaryBar({ runs }: { runs: AiRunEntity[] }) {
           {t('{{count}} failed', { count: failedCount })}
         </Text>
       )}
+    </View>
+  );
+}
+
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <View style={{ gap: 2, minWidth: 0 }}>
+      <Text style={HEADER_STYLE}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
+function RunCard({ run }: { run: AiRunEntity }) {
+  const { i18n, t } = useTranslation();
+  const dateFormat = useDateFormat() || 'MM/dd/yyyy';
+  const locale = i18n.resolvedLanguage ?? 'en';
+
+  return (
+    <View
+      style={{
+        gap: 10,
+        padding: 12,
+        border: '1px solid ' + theme.tableBorder,
+        borderRadius: 8,
+        backgroundColor: theme.tableBackground,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 12,
+        }}
+      >
+        <Detail label={t('Agent')}>
+          <Text style={{ fontWeight: 600 }}>{aiAgentLabel(run.agent, t)}</Text>
+        </Detail>
+        <Text
+          style={{
+            color: run.status === 'error' ? theme.errorText : theme.noticeText,
+            fontWeight: 600,
+          }}
+        >
+          {aiRunStatusLabel(run.status, t)}
+        </Text>
+      </View>
+      <Detail label={t('When')}>
+        <Text style={{ color: theme.pageTextSubdued }}>
+          {formatDate(new Date(run.createdAt), `${dateFormat} HH:mm`)}
+        </Text>
+      </Detail>
+      <View style={{ flexDirection: 'row', gap: 16 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Detail label={t('Tier')}>
+            <Text>{aiTierLabel(run.tier, t)}</Text>
+          </Detail>
+        </View>
+        <View style={{ flex: 2, minWidth: 0 }}>
+          <Detail label={t('Provider · model')}>
+            <Text style={{ overflowWrap: 'anywhere' }}>
+              {run.provider} · {run.model}
+            </Text>
+          </Detail>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 16 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Detail label={t('Tokens in → out')}>
+            <FinancialText>
+              {run.inputTokens.toLocaleString(locale)} →{' '}
+              {run.outputTokens.toLocaleString(locale)}
+            </FinancialText>
+          </Detail>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Detail label={t('Cost')}>
+            <FinancialText>{formatUsd(run.costUsd, locale)}</FinancialText>
+          </Detail>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Detail label={t('Duration')}>
+            <FinancialText>
+              {new Intl.NumberFormat(locale, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }).format(run.durationMs / 1000)}
+              s
+            </FinancialText>
+          </Detail>
+        </View>
+      </View>
     </View>
   );
 }
@@ -117,7 +218,11 @@ function RunRow({ run }: { run: AiRunEntity }) {
   );
 }
 
-export function AiUsagePage() {
+type AiUsagePageProps = {
+  isMobile?: boolean;
+};
+
+export function AiUsagePage({ isMobile = false }: AiUsagePageProps = {}) {
   const { t } = useTranslation();
   const {
     data: runs = [],
@@ -130,69 +235,120 @@ export function AiUsagePage() {
 
   return (
     <ErrorBoundary FallbackComponent={FeatureErrorFallback}>
-      <Page header={t('AI Usage')}>
-        <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>
-          <Trans>
-            Every AI call this budget has made — tokens, model, duration and
-            cost — most recent first. Use it to judge which provider/model is
-            actually worth what it costs.
-          </Trans>
-        </Text>
-        {isLoading ? (
-          <View style={{ alignItems: 'center', padding: 20 }}>
-            <AnimatedLoading width={20} color={theme.pageTextSubdued} />
-          </View>
-        ) : isError ? (
-          <Text style={{ color: theme.errorText }}>
-            <Trans>Could not load AI usage.</Trans>
+      <Page
+        header={
+          isMobile ? <MobilePageHeader title={t('AI Usage')} /> : t('AI Usage')
+        }
+        padding={isMobile ? 0 : undefined}
+      >
+        <View
+          style={
+            isMobile
+              ? {
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  gap: 12,
+                  padding: 12,
+                  paddingBottom: MOBILE_NAV_HEIGHT,
+                }
+              : undefined
+          }
+        >
+          <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>
+            <Trans>
+              Every AI call this budget has made — tokens, model, duration and
+              cost — most recent first. Use it to judge which provider/model is
+              actually worth what it costs.
+            </Trans>
           </Text>
-        ) : (
-          <>
-            <SummaryBar runs={runs} />
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: 8,
-                padding: '4px 0',
-                borderBottom: '2px solid ' + theme.pillBorderDark,
-              }}
-            >
-              <Text style={{ ...HEADER_STYLE, width: 140 }}>
-                <Trans>When</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 110 }}>
-                <Trans>Agent</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 90 }}>
-                <Trans>Tier</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 180 }}>
-                <Trans>Provider · model</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 110, textAlign: 'right' }}>
-                <Trans>Tokens in → out</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 90, textAlign: 'right' }}>
-                <Trans>Cost</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 80, textAlign: 'right' }}>
-                <Trans>Duration</Trans>
-              </Text>
-              <Text style={{ ...HEADER_STYLE, width: 70 }}>
-                <Trans>Status</Trans>
-              </Text>
+          {isLoading ? (
+            <View style={{ alignItems: 'center', padding: 20 }}>
+              <AnimatedLoading width={20} color={theme.pageTextSubdued} />
             </View>
-            {runs.length === 0 && (
-              <Text style={{ color: theme.pageTextSubdued, marginTop: 8 }}>
-                <Trans>No AI calls recorded yet.</Trans>
-              </Text>
-            )}
-            {runs.map(run => (
-              <RunRow key={run.id} run={run} />
-            ))}
-          </>
-        )}
+          ) : isError ? (
+            <Text style={{ color: theme.errorText }}>
+              <Trans>Could not load AI usage.</Trans>
+            </Text>
+          ) : (
+            <>
+              <SummaryBar runs={runs} isMobile={isMobile} />
+              {isMobile ? (
+                <>
+                  {runs.length === 0 && (
+                    <Text style={{ color: theme.pageTextSubdued }}>
+                      <Trans>No AI calls recorded yet.</Trans>
+                    </Text>
+                  )}
+                  {runs.map(run => (
+                    <RunCard key={run.id} run={run} />
+                  ))}
+                </>
+              ) : (
+                <>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 8,
+                      padding: '4px 0',
+                      borderBottom: '2px solid ' + theme.pillBorderDark,
+                    }}
+                  >
+                    <Text style={{ ...HEADER_STYLE, width: 140 }}>
+                      <Trans>When</Trans>
+                    </Text>
+                    <Text style={{ ...HEADER_STYLE, width: 110 }}>
+                      <Trans>Agent</Trans>
+                    </Text>
+                    <Text style={{ ...HEADER_STYLE, width: 90 }}>
+                      <Trans>Tier</Trans>
+                    </Text>
+                    <Text style={{ ...HEADER_STYLE, width: 180 }}>
+                      <Trans>Provider · model</Trans>
+                    </Text>
+                    <Text
+                      style={{
+                        ...HEADER_STYLE,
+                        width: 110,
+                        textAlign: 'right',
+                      }}
+                    >
+                      <Trans>Tokens in → out</Trans>
+                    </Text>
+                    <Text
+                      style={{ ...HEADER_STYLE, width: 90, textAlign: 'right' }}
+                    >
+                      <Trans>Cost</Trans>
+                    </Text>
+                    <Text
+                      style={{ ...HEADER_STYLE, width: 80, textAlign: 'right' }}
+                    >
+                      <Trans>Duration</Trans>
+                    </Text>
+                    <Text style={{ ...HEADER_STYLE, width: 70 }}>
+                      <Trans>Status</Trans>
+                    </Text>
+                  </View>
+                  {runs.length === 0 && (
+                    <Text
+                      style={{ color: theme.pageTextSubdued, marginTop: 8 }}
+                    >
+                      <Trans>No AI calls recorded yet.</Trans>
+                    </Text>
+                  )}
+                  {runs.map(run => (
+                    <RunRow key={run.id} run={run} />
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </View>
       </Page>
     </ErrorBoundary>
   );
+}
+
+export function MobileAiUsagePage() {
+  return <AiUsagePage isMobile />;
 }

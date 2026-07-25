@@ -19,5 +19,5 @@ export { MobileBankSyncAccountEditPage as BankSyncAccountEdit } from '#component
 // These aliases establish the responsive route boundary. Dedicated narrow
 // implementations replace them incrementally without changing route wiring.
 export { MobileAdvisorPage as Advisor } from '#components/ai/AdvisorPage';
-export { AiUsagePage as AiUsage } from '#components/ai/AiUsagePage';
-export { PendingCategorizationsPage as AiPendingCategorizations } from '#components/ai/PendingCategorizationsPage';
+export { MobileAiUsagePage as AiUsage } from '#components/ai/AiUsagePage';
+export { MobilePendingCategorizationsPage as AiPendingCategorizations } from '#components/ai/PendingCategorizationsPage';

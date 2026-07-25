@@ -9,7 +9,8 @@ import { send } from '@actual-app/core/platform/client/connection';
 import { useQuery } from '@tanstack/react-query';
 
 import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
-import { Page } from '#components/Page';
+import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
+import { MobilePageHeader, Page } from '#components/Page';
 
 import { SuggestionsInbox } from './SuggestionsInbox';
 
@@ -59,21 +60,54 @@ function PendingCountBanner() {
   );
 }
 
-export function PendingCategorizationsPage() {
+type PendingCategorizationsPageProps = {
+  isMobile?: boolean;
+};
+
+export function PendingCategorizationsPage({
+  isMobile = false,
+}: PendingCategorizationsPageProps = {}) {
   const { t } = useTranslation();
   return (
     <ErrorBoundary FallbackComponent={FeatureErrorFallback}>
-      <Page header={t('Pending AI Categorizations')}>
-        <PendingCountBanner />
-        <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>
-          <Trans>
-            Transactions the AI classifier wasn't confident enough to
-            auto-apply. Accept a suggestion to apply the suggested category, or
-            reject it to leave the transaction uncategorized.
-          </Trans>
-        </Text>
-        <SuggestionsInbox />
+      <Page
+        header={
+          isMobile ? (
+            <MobilePageHeader title={t('Pending AI Categorizations')} />
+          ) : (
+            t('Pending AI Categorizations')
+          )
+        }
+        padding={isMobile ? 0 : undefined}
+      >
+        <View
+          style={
+            isMobile
+              ? {
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  padding: 12,
+                  paddingBottom: MOBILE_NAV_HEIGHT,
+                }
+              : undefined
+          }
+        >
+          <PendingCountBanner />
+          <Text style={{ color: theme.pageTextSubdued, marginBottom: 12 }}>
+            <Trans>
+              Transactions the AI classifier wasn't confident enough to
+              auto-apply. Accept a suggestion to apply the suggested category,
+              or reject it to leave the transaction uncategorized.
+            </Trans>
+          </Text>
+          <SuggestionsInbox isMobile={isMobile} />
+        </View>
       </Page>
     </ErrorBoundary>
   );
+}
+
+export function MobilePendingCategorizationsPage() {
+  return <PendingCategorizationsPage isMobile />;
 }

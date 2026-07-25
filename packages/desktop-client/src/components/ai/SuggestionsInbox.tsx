@@ -22,7 +22,13 @@ import { useDispatch } from '#redux';
 
 const SUGGESTIONS_QUERY_KEY = ['ai-suggestions'];
 
-export function SuggestionsInbox() {
+type SuggestionsInboxProps = {
+  isMobile?: boolean;
+};
+
+export function SuggestionsInbox({
+  isMobile = false,
+}: SuggestionsInboxProps = {}) {
   const { t } = useTranslation();
   const {
     data: suggestions = [],
@@ -61,6 +67,16 @@ export function SuggestionsInbox() {
     );
   }
 
+  if (isMobile) {
+    return (
+      <View style={{ width: '100%', gap: 10 }}>
+        {suggestions.map(suggestion => (
+          <SuggestionRow key={suggestion.id} suggestion={suggestion} isMobile />
+        ))}
+      </View>
+    );
+  }
+
   // Column set/widths mirror the uncategorized register (Account/Payee/
   // Notes/Category are all flex there too) so the two screens read the same;
   // the AI-only columns (Confidence, actions) are the trailing fixed ones.
@@ -85,7 +101,13 @@ export function SuggestionsInbox() {
   );
 }
 
-function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
+function SuggestionRow({
+  suggestion,
+  isMobile = false,
+}: {
+  suggestion: AiSuggestionForReview;
+  isMobile?: boolean;
+}) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const format = useFormat();
@@ -151,6 +173,117 @@ function SuggestionRow({ suggestion }: { suggestion: AiSuggestionForReview }) {
   const categoryName = suggestion.categoryId
     ? (categoriesById?.[suggestion.categoryId]?.name ?? suggestion.categoryId)
     : t('(none)');
+
+  if (isMobile) {
+    return (
+      <View
+        style={{
+          gap: 10,
+          padding: 12,
+          border: '1px solid ' + theme.tableBorder,
+          borderRadius: 8,
+          backgroundColor: theme.tableBackground,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}
+        >
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={{ fontWeight: 600 }}>
+              {suggestion.payeeName || t('(no payee)')}
+            </Text>
+            <Text style={{ color: theme.pageTextSubdued }}>
+              {suggestion.accountName ?? ''}
+            </Text>
+          </View>
+          <FinancialText style={{ fontWeight: 600 }}>
+            {format(suggestion.amount, 'financial')}
+          </FinancialText>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text
+              style={{
+                color: theme.pageTextSubdued,
+                fontSize: '0.85em',
+                fontWeight: 600,
+              }}
+            >
+              <Trans>Date</Trans>
+            </Text>
+            <Text>{monthUtils.format(suggestion.date, dateFormat)}</Text>
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text
+              style={{
+                color: theme.pageTextSubdued,
+                fontSize: '0.85em',
+                fontWeight: 600,
+              }}
+            >
+              <Trans>Confidence</Trans>
+            </Text>
+            <FinancialText>
+              {t('{{confidence}}%', {
+                confidence: Math.round(suggestion.confidence * 100),
+              })}
+            </FinancialText>
+          </View>
+        </View>
+        <View style={{ gap: 2 }}>
+          <Text
+            style={{
+              color: theme.pageTextSubdued,
+              fontSize: '0.85em',
+              fontWeight: 600,
+            }}
+          >
+            <Trans>Suggested category</Trans>
+          </Text>
+          <Text style={{ fontWeight: 600 }}>{categoryName}</Text>
+          <Text style={{ color: theme.pageTextSubdued }}>
+            {suggestion.rationale}
+          </Text>
+        </View>
+        {suggestion.notes && (
+          <View style={{ gap: 2 }}>
+            <Text
+              style={{
+                color: theme.pageTextSubdued,
+                fontSize: '0.85em',
+                fontWeight: 600,
+              }}
+            >
+              <Trans>Notes</Trans>
+            </Text>
+            <Text>{suggestion.notes}</Text>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <ButtonWithLoading
+            style={{ flex: 1, minHeight: 40 }}
+            isDisabled={isLoading}
+            isLoading={isLoading}
+            onPress={onAccept}
+          >
+            <Trans>Accept</Trans>
+          </ButtonWithLoading>
+          <Button
+            style={{ flex: 1, minHeight: 40 }}
+            isDisabled={isLoading}
+            onPress={() => void onReject()}
+          >
+            <Trans>Reject</Trans>
+          </Button>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <Row style={{ borderBottom: '1px solid ' + theme.tableBorder }}>
