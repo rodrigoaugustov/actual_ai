@@ -9,6 +9,7 @@ import { createTestQueryClient, TestProviders } from '#mocks';
 
 import { MobileAiUsagePage } from './AiUsagePage';
 import { MobilePendingCategorizationsPage } from './PendingCategorizationsPage';
+import { SuggestionsInbox } from './SuggestionsInbox';
 
 vi.mock('#hooks/useCategories', () => ({
   useCategoriesById: () => ({
@@ -59,9 +60,62 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
           },
         ];
       case 'ai/get-rule-proposals':
+        return [
+          {
+            id: 'proposal-1',
+            ruleId: null,
+            payeeName: 'Market',
+            op: 'contains',
+            value: 'MARKET',
+            categoryId: 'category-1',
+            rationale: 'The last purchases used the same category.',
+            sampleTransactionIds: ['transaction-1'],
+            sampleTransactions: [
+              {
+                id: 'transaction-1',
+                date: '2026-07-24',
+                amount: -4250,
+                payeeName: 'Market',
+                importedPayee: 'MARKET STORE 12',
+                accountName: 'Checking',
+              },
+            ],
+            status: 'proposed',
+            hits: 0,
+            confirmed: 0,
+            corrected: 0,
+            createdAt: 1,
+          },
+          {
+            id: 'proposal-2',
+            ruleId: null,
+            payeeName: 'Transit',
+            op: 'contains',
+            value: 'TRANSIT',
+            categoryId: 'category-1',
+            rationale: 'The last rides used the same category.',
+            sampleTransactionIds: ['transaction-2'],
+            sampleTransactions: [
+              {
+                id: 'transaction-2',
+                date: '2026-07-23',
+                amount: -1800,
+                payeeName: 'Transit',
+                importedPayee: 'TRANSIT RIDE',
+                accountName: 'Checking',
+              },
+            ],
+            status: 'proposed',
+            hits: 0,
+            confirmed: 0,
+            corrected: 0,
+            createdAt: 1,
+          },
+        ];
       case 'ai/get-rule-health':
         return [];
       case 'ai/resolve-suggestion':
+      case 'ai/resolve-rule-proposal':
         return undefined;
       default:
         throw new Error(`Unexpected AI method: ${method}`);
@@ -109,11 +163,14 @@ describe('mobile AI list pages', () => {
     ).toBeVisible();
     expect(await screen.findByText('Market')).toBeVisible();
     expect(screen.getByText('Groceries')).toBeVisible();
+    expect(screen.getByText('High · 82%')).toBeVisible();
     expect(
       screen.getByText('Similar purchases were categorized as groceries.'),
     ).toBeVisible();
     expect(screen.getByText('Automation and rule health')).toBeVisible();
     expect(screen.getByText(/^Rule proposals/)).toBeVisible();
+    expect(screen.getAllByText('Sample transactions')).toHaveLength(2);
+    expect(screen.getByText(/MARKET STORE 12/)).toBeVisible();
     expect(screen.getByText('Mined rule health')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Accept' }));
@@ -122,5 +179,40 @@ describe('mobile AI list pages', () => {
       id: 'suggestion-1',
       action: 'accept',
     });
+
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Select all rule proposals',
+      }),
+    );
+    expect(screen.getByText('2 selected')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Approve selected' }));
+
+    expect(send).toHaveBeenCalledWith('ai/resolve-rule-proposal', {
+      id: 'proposal-1',
+      action: 'approve',
+    });
+    expect(send).toHaveBeenCalledWith('ai/resolve-rule-proposal', {
+      id: 'proposal-2',
+      action: 'approve',
+    });
+  });
+
+  it('makes the AI rationale reachable without a hover tooltip', async () => {
+    const user = userEvent.setup();
+    renderPage(<SuggestionsInbox />);
+
+    expect(await screen.findByText('Groceries')).toBeVisible();
+    expect(
+      screen.queryByText('Similar purchases were categorized as groceries.'),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Why this suggestion?' }),
+    );
+
+    expect(
+      screen.getByText('Similar purchases were categorized as groceries.'),
+    ).toBeVisible();
   });
 });

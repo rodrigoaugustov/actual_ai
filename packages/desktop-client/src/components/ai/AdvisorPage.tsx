@@ -20,18 +20,21 @@ import type {
 import type { AiAdvisorEvent } from '@actual-app/core/types/server-events';
 import { css } from '@emotion/css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format as formatDate } from 'date-fns';
 
 import { FloatingActionBar } from '#components/mobile/FloatingActionBar';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { TapField } from '#components/mobile/MobileForms';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { MobilePageHeader, Page } from '#components/Page';
+import { useDateFormat } from '#hooks/useDateFormat';
 import { useUrlParam } from '#hooks/useUrlParam';
 import { pushModal } from '#modals/modalsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
 import { AdvisorMessage } from './AdvisorMessage';
+import { toolLabel } from './AdvisorTrace';
 import {
   adviceStatusLabel,
   documentKindLabel,
@@ -382,6 +385,7 @@ function Goals({
   isError: boolean;
 }) {
   const { t } = useTranslation();
+  const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const dispatch = useDispatch();
@@ -452,6 +456,13 @@ function Goals({
                 status: goalStatusLabel(goal.status, t),
               })}
             </Text>
+            {goal.nextReviewAt != null && (
+              <Text style={{ color: theme.pageTextSubdued }}>
+                {t('Next review: {{date}}', {
+                  date: formatDate(new Date(goal.nextReviewAt), dateFormat),
+                })}
+              </Text>
+            )}
             <Button
               variant="bare"
               style={{ color: theme.errorTextMenu }}
@@ -463,6 +474,53 @@ function Goals({
           </View>
         ))
       )}
+    </View>
+  );
+}
+
+function DocumentRow({
+  document,
+  isMutationPending,
+  onDelete,
+}: {
+  document: AiDocumentEntity;
+  isMutationPending: boolean;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isTruncated = document.content.length > 300;
+  const displayedContent =
+    isTruncated && !isExpanded
+      ? `${document.content.slice(0, 300).trimEnd()}…`
+      : document.content;
+
+  return (
+    <View style={panel}>
+      <Text style={{ fontWeight: 600 }}>{document.title}</Text>
+      <Text style={{ color: theme.pageTextSubdued }}>
+        {documentKindLabel(document.kind, t)}
+      </Text>
+      <Text>{displayedContent}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {isTruncated && (
+          <Button
+            variant="bare"
+            aria-expanded={isExpanded}
+            onPress={() => setIsExpanded(value => !value)}
+          >
+            {isExpanded ? <Trans>View less</Trans> : <Trans>View more</Trans>}
+          </Button>
+        )}
+        <Button
+          variant="bare"
+          style={{ color: theme.errorTextMenu }}
+          isDisabled={isMutationPending}
+          onPress={onDelete}
+        >
+          <Trans>Delete</Trans>
+        </Button>
+      </View>
     </View>
   );
 }
@@ -555,21 +613,12 @@ function Documents({
         <LoadingError />
       ) : (
         documents.map(document => (
-          <View key={document.id} style={panel}>
-            <Text style={{ fontWeight: 600 }}>{document.title}</Text>
-            <Text style={{ color: theme.pageTextSubdued }}>
-              {documentKindLabel(document.kind, t)}
-            </Text>
-            <Text>{document.content.slice(0, 300)}</Text>
-            <Button
-              variant="bare"
-              style={{ color: theme.errorTextMenu }}
-              isDisabled={mutation.isPending}
-              onPress={() => confirmRemove(document)}
-            >
-              <Trans>Delete</Trans>
-            </Button>
-          </View>
+          <DocumentRow
+            key={document.id}
+            document={document}
+            isMutationPending={mutation.isPending}
+            onDelete={() => confirmRemove(document)}
+          />
         ))
       )}
     </View>
@@ -588,6 +637,7 @@ function Plan({
   isError: boolean;
 }) {
   const { t } = useTranslation();
+  const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const mutation = useAdvisorMutation();
   const update = async (
     id: string,
@@ -620,6 +670,45 @@ function Plan({
               <Text style={{ color: theme.pageTextSubdued }}>
                 {adviceStatusLabel(item.status, t)}
               </Text>
+              {item.followUpAt != null && (
+                <Text style={{ color: theme.pageTextSubdued }}>
+                  {t('Follow-up: {{date}}', {
+                    date: formatDate(new Date(item.followUpAt), dateFormat),
+                  })}
+                </Text>
+              )}
+              <AdviceDetailList
+                label={t('Assumptions')}
+                items={item.assumptions}
+              />
+              <AdviceDetailList
+                label={t('Alternatives')}
+                items={item.alternatives}
+              />
+              <AdviceDetailList label={t('Risks')} items={item.risks} />
+              <AdviceDetailList
+                label={t('Evidence')}
+                items={item.evidence.flatMap(part => {
+                  switch (part.type) {
+                    case 'source':
+                      return [
+                        part.excerpt
+                          ? `${part.title} — ${part.excerpt}`
+                          : part.title,
+                      ];
+                    case 'text':
+                      return [part.text];
+                    case 'tool':
+                      return [toolLabel(part.toolName, t)];
+                    case 'trace':
+                      return [];
+                    default: {
+                      const exhaustive: never = part;
+                      return exhaustive;
+                    }
+                  }
+                })}
+              />
               {item.status === 'proposed' && (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Button
@@ -649,6 +738,29 @@ function Plan({
           ))}
         </>
       )}
+    </View>
+  );
+}
+
+function AdviceDetailList({
+  label,
+  items,
+}: {
+  label: string;
+  items: string[];
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={{ gap: 3 }}>
+      <Text style={{ fontWeight: 600 }}>{label}</Text>
+      <ul className={css({ margin: 0, paddingLeft: 20 })}>
+        {items.map((item, index) => (
+          <li key={`${index}-${item}`}>{item}</li>
+        ))}
+      </ul>
     </View>
   );
 }

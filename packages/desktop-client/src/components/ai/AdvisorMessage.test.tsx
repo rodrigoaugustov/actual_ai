@@ -157,4 +157,38 @@ describe('AdvisorMessage', () => {
     expect(screen.getByText('Coverage complete')).toBeVisible();
     expect(screen.getByText('Completed in 1.5s')).toBeVisible();
   });
+
+  it('does not repeat a tool in metadata when its trace already explains it', async () => {
+    const user = userEvent.setup();
+    render(
+      <AdvisorMessage
+        message={message({
+          content: 'Answer grounded in the analysis.',
+          parts: [
+            {
+              type: 'tool',
+              toolName: 'run_financial_analysis',
+              state: 'result',
+            },
+            {
+              type: 'trace',
+              id: 'tool:analysis',
+              kind: 'tool',
+              state: 'completed',
+              toolName: 'run_financial_analysis',
+              startedAt: 1_000,
+              completedAt: 1_100,
+            },
+          ],
+        })}
+      />,
+      { wrapper: TestProviders },
+    );
+
+    expect(screen.queryByText('Consulted tools:')).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'How this analysis was built' }),
+    );
+    expect(screen.getAllByText('Running a financial analysis')).toHaveLength(1);
+  });
 });

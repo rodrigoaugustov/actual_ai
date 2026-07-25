@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { pushModal } from '#modals/modalsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
+import { transactionQueries } from '#transactions';
 
 type DeleteInstallmentsSuccess = () => void;
 
@@ -39,7 +40,14 @@ export function useDeleteInstallments() {
               void (async () => {
                 try {
                   await send('credit-card/delete-installments', { groupId });
-                  await queryClient.invalidateQueries();
+                  await Promise.all([
+                    queryClient.invalidateQueries({
+                      queryKey: transactionQueries.all(),
+                    }),
+                    queryClient.invalidateQueries({
+                      queryKey: ['credit-card-statements', transaction.account],
+                    }),
+                  ]);
                   dispatch(
                     addNotification({
                       notification: {

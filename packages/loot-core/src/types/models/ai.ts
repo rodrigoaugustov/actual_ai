@@ -89,6 +89,15 @@ export type AiFeedbackEntity = {
 
 export type AiRuleMetaStatus = 'proposed' | 'approved' | 'rejected';
 
+export type AiRuleSampleTransaction = {
+  id: string;
+  date: string;
+  amount: number;
+  payeeName: string | null;
+  importedPayee: string | null;
+  accountName: string | null;
+};
+
 export type AiRuleMetaEntity = {
   id: string;
   ruleId: string | null;
@@ -98,6 +107,7 @@ export type AiRuleMetaEntity = {
   categoryId: string;
   rationale: string;
   sampleTransactionIds: string[];
+  sampleTransactions?: AiRuleSampleTransaction[];
   status: AiRuleMetaStatus;
   hits: number;
   confirmed: number;

@@ -4,7 +4,10 @@ import { aqlQuery } from '#server/aql';
 import * as db from '#server/db';
 import { insertRule } from '#server/transactions/transaction-rules';
 import { q } from '#shared/query';
-import type { AiRuleMetaEntity } from '#types/models/ai';
+import type {
+  AiRuleMetaEntity,
+  AiRuleSampleTransaction,
+} from '#types/models/ai';
 
 import {
   parseRuleSampleTransactionIds,
@@ -73,7 +76,42 @@ export async function getRuleProposals(): Promise<AiRuleMetaEntity[]> {
       .select([...RULE_META_SELECT])
       .orderBy({ created_at: 'desc' }),
   );
-  return parseRuleMetaRows(data);
+  const proposals = parseRuleMetaRows(data);
+  const sampleIds = [
+    ...new Set(proposals.flatMap(proposal => proposal.sampleTransactionIds)),
+  ];
+  if (sampleIds.length === 0) {
+    return proposals.map(proposal => ({
+      ...proposal,
+      sampleTransactions: [],
+    }));
+  }
+
+  const { data: sampleData } = await aqlQuery(
+    q('transactions')
+      .filter({ id: { $oneof: sampleIds } })
+      .select([
+        'id',
+        'date',
+        'amount',
+        { payeeName: 'payee.name' },
+        { importedPayee: 'imported_payee' },
+        { accountName: 'account.name' },
+      ]),
+  );
+  const samplesById = new Map(
+    (sampleData as AiRuleSampleTransaction[]).map(sample => [
+      sample.id,
+      sample,
+    ]),
+  );
+  return proposals.map(proposal => ({
+    ...proposal,
+    sampleTransactions: proposal.sampleTransactionIds.flatMap(id => {
+      const sample = samplesById.get(id);
+      return sample ? [sample] : [];
+    }),
+  }));
 }
 
 /** Approved rules with their audit track record, for the rule-health panel. */

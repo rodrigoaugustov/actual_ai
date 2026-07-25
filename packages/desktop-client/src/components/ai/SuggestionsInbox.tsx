@@ -5,12 +5,12 @@ import { Button, ButtonWithLoading } from '@actual-app/components/button';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
-import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { AiSuggestionForReview } from '@actual-app/core/types/models';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 
 import { FinancialText } from '#components/FinancialText';
 import { Field, Row, TableHeader } from '#components/table';
@@ -25,6 +25,17 @@ const SUGGESTIONS_QUERY_KEY = ['ai-suggestions'];
 type SuggestionsInboxProps = {
   isMobile?: boolean;
 };
+
+function confidenceLabel(confidence: number, t: TFunction): string {
+  const percentage = Math.round(confidence * 100);
+  if (confidence >= 0.8) {
+    return t('High · {{confidence}}%', { confidence: percentage });
+  }
+  if (confidence >= 0.4) {
+    return t('Moderate · {{confidence}}%', { confidence: percentage });
+  }
+  return t('Low · {{confidence}}%', { confidence: percentage });
+}
 
 export function SuggestionsInbox({
   isMobile = false,
@@ -90,7 +101,7 @@ export function SuggestionsInbox({
           { name: t('Notes'), width: 'flex' },
           { name: t('Suggested category'), width: 'flex' },
           { name: t('Amount'), width: 90, style: { textAlign: 'right' } },
-          { name: t('Confidence'), width: 90 },
+          { name: t('Confidence'), width: 110 },
           { name: '', width: 150 },
         ]}
       />
@@ -116,6 +127,7 @@ function SuggestionRow({
   const { data } = useCategoriesById();
   const categoriesById = data?.list;
   const [isLoading, setIsLoading] = useState(false);
+  const [isRationaleVisible, setIsRationaleVisible] = useState(false);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: SUGGESTIONS_QUERY_KEY });
@@ -229,9 +241,7 @@ function SuggestionRow({
               <Trans>Confidence</Trans>
             </Text>
             <FinancialText>
-              {t('{{confidence}}%', {
-                confidence: Math.round(suggestion.confidence * 100),
-              })}
+              {confidenceLabel(suggestion.confidence, t)}
             </FinancialText>
           </View>
         </View>
@@ -294,13 +304,7 @@ function SuggestionRow({
       <Field width="flex">{suggestion.payeeName || t('(no payee)')}</Field>
       <Field width="flex">{suggestion.notes ?? ''}</Field>
       <Field width="flex" truncate={false}>
-        <Tooltip
-          content={
-            <Text style={{ maxWidth: 260, padding: 4 }}>
-              {suggestion.rationale}
-            </Text>
-          }
-        >
+        <View style={{ minWidth: 0, alignItems: 'flex-start' }}>
           <Text
             style={{
               cursor: 'default',
@@ -311,16 +315,29 @@ function SuggestionRow({
           >
             {categoryName}
           </Text>
-        </Tooltip>
+          <Button
+            variant="bare"
+            aria-expanded={isRationaleVisible}
+            onPress={() => setIsRationaleVisible(value => !value)}
+            style={{ minHeight: 32, padding: 0 }}
+          >
+            {isRationaleVisible ? (
+              <Trans>Hide explanation</Trans>
+            ) : (
+              <Trans>Why this suggestion?</Trans>
+            )}
+          </Button>
+          {isRationaleVisible && (
+            <Text style={{ color: theme.pageTextSubdued, maxWidth: 300 }}>
+              {suggestion.rationale}
+            </Text>
+          )}
+        </View>
       </Field>
       <Field width={90} truncate={false} style={{ alignItems: 'flex-end' }}>
         <FinancialText>{format(suggestion.amount, 'financial')}</FinancialText>
       </Field>
-      <Field width={90}>
-        {t('{{confidence}}%', {
-          confidence: Math.round(suggestion.confidence * 100),
-        })}
-      </Field>
+      <Field width={110}>{confidenceLabel(suggestion.confidence, t)}</Field>
       <Field
         width={150}
         truncate={false}

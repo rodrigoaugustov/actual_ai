@@ -33,9 +33,33 @@ import { useCategories } from '#hooks/useCategories';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
+import { transactionQueries } from '#transactions';
 
 const MIN_INSTALLMENTS = 2;
 const MAX_INSTALLMENTS = 36;
+const COLLAPSED_PREVIEW_HEAD_COUNT = 3;
+
+type InstallmentPreviewRow = {
+  position: number;
+  amount: number;
+};
+
+export function installmentPreviewRows(
+  preview: number[],
+  isExpanded: boolean,
+): InstallmentPreviewRow[] {
+  const rows = preview.map((amount, index) => ({
+    position: index + 1,
+    amount,
+  }));
+  if (isExpanded || rows.length <= COLLAPSED_PREVIEW_HEAD_COUNT + 1) {
+    return rows;
+  }
+  return [
+    ...rows.slice(0, COLLAPSED_PREVIEW_HEAD_COUNT),
+    rows[rows.length - 1],
+  ];
+}
 
 type CreateInstallmentPurchaseModalProps = {
   account: AccountEntity;
@@ -60,6 +84,7 @@ export function CreateInstallmentPurchaseModal({
   const [count, setCount] = useState('2');
   const [date, setDate] = useState(monthUtils.currentDay());
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
 
   const parsedAmount = evalArithmetic(amount || '');
   const parsedCount = parseInt(count, 10);
@@ -72,6 +97,7 @@ export function CreateInstallmentPurchaseModal({
   const preview: number[] = isValid
     ? distributePreview(amountToInteger(-Math.abs(parsedAmount)), parsedCount)
     : [];
+  const previewRows = installmentPreviewRows(preview, isPreviewExpanded);
 
   const onSave = async (close: () => void) => {
     if (isSaving || !isValid) {
@@ -87,7 +113,14 @@ export function CreateInstallmentPurchaseModal({
         count: parsedCount,
         date,
       });
-      await queryClient.invalidateQueries();
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: transactionQueries.all(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['credit-card-statements', account.id],
+        }),
+      ]);
       close();
     } catch {
       dispatch(
@@ -189,12 +222,44 @@ export function CreateInstallmentPurchaseModal({
                   <Text style={{ color: theme.pageTextSubdued }}>
                     <Trans>Preview</Trans>
                   </Text>
-                  {preview.map((installmentAmount, idx) => (
-                    <Text key={idx} style={{ display: 'block' }}>
-                      {idx + 1}/{parsedCount}:{' '}
-                      {integerToCurrency(installmentAmount)}
-                    </Text>
+                  {previewRows.map((row, index) => (
+                    <View key={row.position}>
+                      {index > 0 &&
+                        row.position > previewRows[index - 1].position + 1 && (
+                          <Text
+                            style={{
+                              display: 'block',
+                              color: theme.pageTextSubdued,
+                            }}
+                          >
+                            {t('… {{count}} installment(s) omitted …', {
+                              count:
+                                row.position -
+                                previewRows[index - 1].position -
+                                1,
+                            })}
+                          </Text>
+                        )}
+                      <Text style={{ display: 'block' }}>
+                        {row.position}/{parsedCount}:{' '}
+                        {integerToCurrency(row.amount)}
+                      </Text>
+                    </View>
                   ))}
+                  {preview.length > COLLAPSED_PREVIEW_HEAD_COUNT + 1 && (
+                    <Button
+                      variant="bare"
+                      aria-expanded={isPreviewExpanded}
+                      onPress={() => setIsPreviewExpanded(value => !value)}
+                      style={{ minHeight: 40, alignSelf: 'flex-start' }}
+                    >
+                      {isPreviewExpanded
+                        ? t('Show fewer installments')
+                        : t('Show all {{count}} installments', {
+                            count: preview.length,
+                          })}
+                    </Button>
+                  )}
                 </View>
               )}
 

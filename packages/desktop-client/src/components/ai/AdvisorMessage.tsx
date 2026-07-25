@@ -118,11 +118,18 @@ export function AdvisorMessage({
   const { t } = useTranslation();
   const isUser = message.role === 'user';
   const trace = message.parts.filter(part => part.type === 'trace');
+  const tracedTools = new Set(
+    trace.flatMap(part => (part.toolName ? [part.toolName] : [])),
+  );
   const tools = [
     ...new Set(
       message.parts
         .filter(part => part.type === 'tool' && part.state === 'result')
-        .map(part => (part.type === 'tool' ? toolLabel(part.toolName, t) : '')),
+        .flatMap(part =>
+          part.type === 'tool' && !tracedTools.has(part.toolName)
+            ? [toolLabel(part.toolName, t)]
+            : [],
+        ),
     ),
   ];
   const sources = message.parts

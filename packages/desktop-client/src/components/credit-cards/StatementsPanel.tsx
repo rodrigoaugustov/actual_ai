@@ -24,6 +24,7 @@ import { FinancialText } from '#components/FinancialText';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
+import { useLocale } from '#hooks/useLocale';
 import { pushModal } from '#modals/modalsSlice';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
@@ -45,6 +46,7 @@ export function StatementsPanel({
   const { t } = useTranslation();
   const { isNarrowWidth } = useResponsive();
   const format = useFormat();
+  const locale = useLocale();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
@@ -117,7 +119,7 @@ export function StatementsPanel({
     };
     onApplyFilter({
       customName: t('Statement {{month}}', {
-        month: monthUtils.format(statement.end_date, 'MMM yyyy'),
+        month: monthUtils.format(statement.end_date, 'MMM yyyy', locale),
       }),
       queryFilter: statement.pluggy_bill_id
         ? {
@@ -282,17 +284,17 @@ export function StatementsPanel({
               }}
             >
               <Text style={{ fontWeight: 600 }}>
-                {monthUtils.format(statement.end_date, 'MMM yyyy')}
+                {monthUtils.format(statement.end_date, 'MMM yyyy', locale)}
               </Text>
               <StatementStatusPill status={statement.status} />
             </View>
             <Text style={{ color: theme.pageTextSubdued, fontSize: '0.85em' }}>
-              {monthUtils.format(statement.start_date, dateFormat)} –{' '}
-              {monthUtils.format(statement.end_date, dateFormat)}
+              {monthUtils.format(statement.start_date, dateFormat, locale)} –{' '}
+              {monthUtils.format(statement.end_date, dateFormat, locale)}
             </Text>
             <Text style={{ color: theme.pageTextSubdued, fontSize: '0.85em' }}>
               {t('Due {{date}}', {
-                date: monthUtils.format(statement.due_date, dateFormat),
+                date: monthUtils.format(statement.due_date, dateFormat, locale),
               })}
             </Text>
             <View

@@ -22,8 +22,28 @@ async function prepare() {
 }
 
 describe('createRuleProposal / getRuleProposals', () => {
-  it('lists only proposed rules with sample transaction ids parsed back to an array', async () => {
+  it('lists only proposed rules with its sample transactions in source order', async () => {
     await prepare();
+    await db.insertAccount({ id: 'checking', name: 'Checking' });
+    const payeeId = await db.insertPayee({ name: 'Extra' });
+    await db.insertTransaction({
+      id: 't1',
+      account: 'checking',
+      payee: payeeId,
+      category: 'groceries',
+      imported_payee: 'EXTRA SUPERMERCADOS',
+      amount: -1000,
+      date: '2026-01-05',
+    });
+    await db.insertTransaction({
+      id: 't2',
+      account: 'checking',
+      payee: payeeId,
+      category: 'groceries',
+      imported_payee: 'EXTRA EXPRESS',
+      amount: -2500,
+      date: '2026-01-04',
+    });
     await createRuleProposal({
       proposal: {
         payeeName: 'Extra',
@@ -46,6 +66,24 @@ describe('createRuleProposal / getRuleProposals', () => {
       status: 'proposed',
     });
     expect(proposals[0].sampleTransactionIds).toEqual(['t1', 't2']);
+    expect(proposals[0].sampleTransactions).toEqual([
+      {
+        id: 't1',
+        date: '2026-01-05',
+        amount: -1000,
+        payeeName: 'Extra',
+        importedPayee: 'EXTRA SUPERMERCADOS',
+        accountName: 'Checking',
+      },
+      {
+        id: 't2',
+        date: '2026-01-04',
+        amount: -2500,
+        payeeName: 'Extra',
+        importedPayee: 'EXTRA EXPRESS',
+        accountName: 'Checking',
+      },
+    ]);
   });
 });
 
