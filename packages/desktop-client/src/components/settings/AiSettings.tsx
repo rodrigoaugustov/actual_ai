@@ -26,6 +26,7 @@ import { FormField, FormLabel } from '#components/forms';
 import { useCurrentAccess } from '#hooks/useCurrentAccess';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { getSecretsError } from '#util/error';
 
 import { Setting } from './UI';
@@ -80,9 +81,9 @@ function ConfiguredBadge() {
   return (
     <Text
       style={{
-        color: theme.noticeText,
-        backgroundColor: theme.noticeBackground,
-        borderRadius: 4,
+        color: nossoCaderninho.color.balance,
+        backgroundColor: nossoCaderninho.color.balanceSoft,
+        borderRadius: nossoCaderninho.radius.control,
         padding: '1px 6px',
         fontSize: '0.75em',
       }}
@@ -464,7 +465,7 @@ export function AiSettings() {
       <View
         style={{
           width: '100%',
-          borderTop: '1px solid ' + theme.pillBorderDark,
+          borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
           paddingTop: 10,
         }}
       >
@@ -558,7 +559,9 @@ export function AiSettings() {
         </FormField>
 
         {keysError && (
-          <Text style={{ color: theme.errorText }}>{keysError}</Text>
+          <Text style={{ color: nossoCaderninho.color.limit }}>
+            {keysError}
+          </Text>
         )}
 
         <ButtonWithLoading
@@ -575,7 +578,7 @@ export function AiSettings() {
       <View
         style={{
           width: '100%',
-          borderTop: '1px solid ' + theme.pillBorderDark,
+          borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
           paddingTop: 10,
         }}
       >

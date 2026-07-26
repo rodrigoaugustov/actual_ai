@@ -5,7 +5,6 @@ import { ButtonWithLoading } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { send } from '@actual-app/core/platform/client/connection';
 
-import { Link } from '#components/common/Link';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
 import { Setting } from './UI';
@@ -45,14 +44,7 @@ export function BudgetTypeSettings() {
           physical envelope budgeting system by allocating funds into virtual
           envelopes for different expenses. It helps track spending and ensure
           you don't overspend in any category.
-        </Trans>{' '}
-        <Link
-          variant="external"
-          to="https://actualbudget.org/docs/getting-started/envelope-budgeting"
-          linkColor="purple"
-        >
-          <Trans>Learn more</Trans>
-        </Link>
+        </Trans>
       </Text>
       <Text>
         <Trans>
@@ -60,14 +52,7 @@ export function BudgetTypeSettings() {
           month, and funds are managed using a "Saved" metric instead of "To Be
           Budgeted." Income is forecasted to plan future spending, rather than
           relying on current available funds.
-        </Trans>{' '}
-        <Link
-          variant="external"
-          to="https://actualbudget.org/docs/getting-started/tracking-budget"
-          linkColor="purple"
-        >
-          <Trans>Learn more</Trans>
-        </Link>
+        </Trans>
       </Text>
     </Setting>
   );

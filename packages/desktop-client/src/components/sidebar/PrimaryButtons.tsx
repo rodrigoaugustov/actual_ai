@@ -95,7 +95,11 @@ export function PrimaryButtons() {
             />
           )}
           <SecondaryItem title={t('Tags')} Icon={SvgTag} to="/tags" />
-          <SecondaryItem title={t('Settings')} Icon={SvgCog} to="/settings" />
+          <SecondaryItem
+            title={t('Home settings')}
+            Icon={SvgCog}
+            to="/settings"
+          />
         </View>
       )}
     </View>

@@ -7,7 +7,6 @@ import type { SelectOption } from '@actual-app/components/select';
 import { Text } from '@actual-app/components/text';
 import type { TFunction } from 'i18next';
 
-import { Link } from '#components/common/Link';
 import { useGlobalPref } from '#hooks/useGlobalPref';
 import { availableLanguages, setI18NextLanguage } from '#i18n';
 
@@ -58,33 +57,12 @@ export function LanguageSettings() {
       <Text>
         {isEnabled ? (
           <Trans>
-            <strong>Language</strong> is the display language of all text.
-            Please note that no warranty is provided for the accuracy or
-            completeness of non-English translations. If you encounter a
-            translation error, feel free to make a suggestion on{' '}
-            <Link
-              variant="external"
-              to={
-                'https://hosted.weblate.org/projects/actualbudget/actual/' +
-                (language ?? '')
-              }
-              linkColor="purple"
-            >
-              Weblate
-            </Link>
-            .
+            <strong>Language</strong> changes the text displayed throughout the
+            app. Some translations may still be incomplete.
           </Trans>
         ) : (
           <Trans>
-            <strong>Language</strong> support is not available. Please follow
-            the instructions{' '}
-            <Link
-              variant="external"
-              to="https://actualbudget.org/docs/install/build-from-source#translations"
-            >
-              here
-            </Link>{' '}
-            to add missing translation files.
+            <strong>Language</strong> support is not available in this build.
           </Trans>
         )}
       </Text>

@@ -42,7 +42,7 @@ describe('MobileNavTabs', () => {
       within(houseNavigation).getByRole('link', { name: 'Analyses' }),
     ).toBeVisible();
     expect(
-      within(houseNavigation).getByRole('link', { name: 'Settings' }),
+      within(houseNavigation).getByRole('link', { name: 'Home settings' }),
     ).toBeVisible();
 
     fireEvent.keyDown(window, { key: 'Escape' });

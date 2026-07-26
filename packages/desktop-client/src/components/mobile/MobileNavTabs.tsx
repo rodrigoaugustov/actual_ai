@@ -108,7 +108,7 @@ export function MobileNavTabs() {
         ]
       : []),
     { name: t('Tags'), path: '/tags', Icon: SvgTag },
-    { name: t('Settings'), path: '/settings', Icon: SvgCog },
+    { name: t('Home settings'), path: '/settings', Icon: SvgCog },
   ];
 
   return (
