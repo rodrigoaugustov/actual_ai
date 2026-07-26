@@ -18,7 +18,7 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import type { Binding } from '#spreadsheet';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
-import { getColumnWidth, PILL_STYLE } from './BudgetTable';
+import { getColumnWidth, VALUE_BUTTON_STYLE } from './BudgetTable';
 
 type BalanceCellProps = {
   binding: Binding<
@@ -83,7 +83,7 @@ export function BalanceCell({
         <Button
           variant="bare"
           style={{
-            ...PILL_STYLE,
+            ...VALUE_BUTTON_STYLE,
             maxWidth: columnWidth,
           }}
           onPress={onPress}

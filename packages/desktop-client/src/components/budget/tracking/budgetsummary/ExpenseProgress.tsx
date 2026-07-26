@@ -1,9 +1,8 @@
 import React from 'react';
 
-import { theme } from '@actual-app/components/theme';
-
 import { useTrackingSheetValue } from '#components/budget/tracking/TrackingBudgetComponents';
 import type { Binding } from '#spreadsheet';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { fraction } from './fraction';
 import { PieProgress } from './PieProgress';
@@ -34,8 +33,14 @@ export function ExpenseProgress({ current, target }: ExpenseProgressProps) {
   return (
     <PieProgress
       progress={frac}
-      color={over ? theme.numberNegative : theme.numberPositive}
-      backgroundColor={over ? theme.errorBackground : theme.budgetCurrentMonth}
+      color={
+        over ? nossoCaderninho.color.limit : nossoCaderninho.color.commitment
+      }
+      backgroundColor={
+        over
+          ? nossoCaderninho.color.limitSoft
+          : nossoCaderninho.color.partnershipSoft
+      }
       style={{ width: 20, height: 20 }}
     />
   );

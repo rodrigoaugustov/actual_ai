@@ -5,7 +5,6 @@ import { Trans, useTranslation } from 'react-i18next';
 import { AlignedText } from '@actual-app/components/aligned-text';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
 import { css } from '@emotion/css';
@@ -16,6 +15,7 @@ import { FinancialText } from '#components/FinancialText';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { trackingBudget } from '#spreadsheet/bindings';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type SavedProps = {
   projected: boolean;
@@ -34,11 +34,11 @@ export function Saved({ projected, style }: SavedProps) {
   return (
     <View style={{ alignItems: 'center', fontSize: 14, ...style }}>
       {projected ? (
-        <Text style={{ color: theme.pageTextLight }}>
+        <Text style={{ color: nossoCaderninho.color.graphiteSubdued }}>
           <Trans>Projected savings:</Trans>
         </Text>
       ) : (
-        <View style={{ color: theme.pageTextLight }}>
+        <View style={{ color: nossoCaderninho.color.graphiteSubdued }}>
           {isNegative ? t('Overspent:') : t('Saved:')}
         </View>
       )}
@@ -72,12 +72,13 @@ export function Saved({ projected, style }: SavedProps) {
       >
         <View
           className={css({
-            fontSize: 25,
+            fontSize: 18,
+            fontWeight: 650,
             color: projected
-              ? theme.templateNumberUnderFunded
+              ? nossoCaderninho.color.partnership
               : isNegative
-                ? theme.budgetNumberNegative
-                : theme.templateNumberFunded,
+                ? nossoCaderninho.color.limit
+                : nossoCaderninho.color.balance,
           })}
         >
           <PrivacyFilter>

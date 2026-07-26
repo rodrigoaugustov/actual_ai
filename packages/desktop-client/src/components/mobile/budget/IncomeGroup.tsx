@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { Card } from '@actual-app/components/card';
 import { SvgExpandArrow } from '@actual-app/components/icons/v0';
 import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { Label } from '@actual-app/components/label';
@@ -11,7 +10,6 @@ import type { CSSProperties } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryGroupEntity } from '@actual-app/core/types/models';
 import { css } from '@emotion/css';
 import { AutoTextSize } from 'auto-text-size';
@@ -21,6 +19,7 @@ import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
 import { IncomeCategoryList } from './IncomeCategoryList';
@@ -72,8 +71,8 @@ export function IncomeGroup({
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          marginTop: 50,
-          marginBottom: 5,
+          marginTop: nossoCaderninho.space.xl,
+          marginBottom: nossoCaderninho.space.xs,
           marginRight: 15,
         }}
       >
@@ -83,7 +82,14 @@ export function IncomeGroup({
         <Label title={t('Received')} style={{ width: columnWidth }} />
       </View>
 
-      <Card style={{ marginTop: 0 }}>
+      <View
+        style={{
+          marginTop: 0,
+          backgroundColor: nossoCaderninho.color.plate,
+          borderTop: `1px solid ${nossoCaderninho.color.rail}`,
+          borderBottom: `1px solid ${nossoCaderninho.color.rail}`,
+        }}
+      >
         <IncomeGroupHeader
           group={categoryGroup}
           month={month}
@@ -97,7 +103,7 @@ export function IncomeGroup({
           onEditCategory={onEditCategory}
           onBudgetAction={onBudgetAction}
         />
-      </Card>
+      </View>
     </View>
   );
 }
@@ -113,7 +119,6 @@ type IncomeGroupHeaderProps = {
 
 function IncomeGroupHeader({
   group,
-  month,
   onEdit,
   isCollapsed,
   onToggleCollapse,
@@ -133,9 +138,7 @@ function IncomeGroupHeader({
         paddingLeft: 5,
         paddingRight: 5,
         opacity: group.hidden ? 0.5 : undefined,
-        backgroundColor: monthUtils.isCurrentMonth(month)
-          ? theme.budgetHeaderCurrentMonth
-          : theme.budgetHeaderOtherMonth,
+        backgroundColor: nossoCaderninho.color.signalSoft,
         ...style,
       }}
     >
@@ -180,7 +183,7 @@ function IncomeGroupName({
         variant="bare"
         className={css({
           flexShrink: 0,
-          color: theme.pageTextSubdued,
+          color: nossoCaderninho.color.graphiteSubdued,
           '&[data-pressed]': {
             backgroundColor: 'transparent',
           },
@@ -218,13 +221,17 @@ function IncomeGroupName({
               width: sidebarColumnWidth,
               textAlign: 'left',
               ...styles.smallText,
+              color: nossoCaderninho.color.graphite,
             }}
             data-testid="category-group-name"
           >
             {group.name}
           </Text>
           <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
+            style={{
+              flexShrink: 0,
+              color: nossoCaderninho.color.graphiteSubdued,
+            }}
             width={14}
             height={14}
           />

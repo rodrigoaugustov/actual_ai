@@ -12,17 +12,15 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@actual-app/components/button';
 import { Card } from '@actual-app/components/card';
 import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
-import { SvgLogo } from '@actual-app/components/icons/logo';
 import {
   SvgArrowThinLeft,
   SvgArrowThinRight,
-  SvgCheveronRight,
+  SvgDotsHorizontalTriple,
 } from '@actual-app/components/icons/v1';
 import {
   SvgArrowButtonDown1,
   SvgCalendar,
 } from '@actual-app/components/icons/v2';
-import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -43,6 +41,7 @@ import {
   useSortCategoriesMutation,
 } from '#budget';
 import { closeBudget } from '#budgetfiles/budgetfilesSlice';
+import { planningSurfaceClass } from '#components/budget/planningStyles';
 import { prewarmMonth } from '#components/budget/util';
 import { FinancialText } from '#components/FinancialText';
 import { MobilePageHeader, Page } from '#components/Page';
@@ -64,6 +63,7 @@ import { collapseModals, pushModal } from '#modals/modalsSlice';
 import { uncategorizedTransactions } from '#queries';
 import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { BudgetTable, PILL_STYLE } from './BudgetTable';
 
@@ -554,79 +554,90 @@ export function BudgetPage() {
   }
 
   return (
-    <Page
-      padding={0}
-      header={
-        <MobilePageHeader
-          title={
-            <MonthSelector
-              month={startMonth}
-              monthBounds={monthBounds}
-              onOpenMonthMenu={onOpenBudgetMonthMenu}
-              onPrevMonth={onPrevMonth}
-              onNextMonth={onNextMonth}
-            />
-          }
-          leftContent={
-            <Button
-              variant="bare"
-              style={{ margin: 10 }}
-              onPress={onOpenBudgetPageMenu}
-              aria-label={t('Budget page menu')}
-            >
-              <SvgLogo
-                style={{ color: theme.mobileHeaderText }}
-                width="20"
-                height="20"
+    <View
+      className={planningSurfaceClass}
+      style={{ flex: 1, minWidth: 0, minHeight: 0 }}
+    >
+      <Page
+        padding={0}
+        header={
+          <MobilePageHeader
+            style={{
+              backgroundColor: nossoCaderninho.color.nav,
+              borderBottom: `1px solid ${nossoCaderninho.color.navHover}`,
+            }}
+            title={
+              <MonthSelector
+                month={startMonth}
+                monthBounds={monthBounds}
+                onOpenMonthMenu={onOpenBudgetMonthMenu}
+                onPrevMonth={onPrevMonth}
+                onNextMonth={onNextMonth}
               />
-              <SvgCheveronRight
-                style={{ flexShrink: 0, color: theme.mobileHeaderTextSubdued }}
-                width="14"
-                height="14"
-              />
-            </Button>
-          }
-          rightContent={
-            !monthUtils.isCurrentMonth(startMonth) && (
+            }
+            leftContent={
               <Button
                 variant="bare"
-                onPress={onCurrentMonth}
-                aria-label={t('Today')}
-                style={{ margin: 10 }}
+                style={{
+                  minWidth: 42,
+                  minHeight: 42,
+                  margin: 4,
+                  color: nossoCaderninho.color.navText,
+                }}
+                onPress={onOpenBudgetPageMenu}
+                aria-label={t('Budget page menu')}
               >
-                <SvgCalendar width={20} height={20} />
+                <SvgDotsHorizontalTriple width={18} height={18} />
               </Button>
-            )
-          }
-        />
-      }
-    >
-      <SheetNameProvider name={monthUtils.sheetForMonth(startMonth)}>
-        <SyncRefresh
-          onSync={async () => {
-            void dispatch(sync());
-          }}
-        >
-          {({ onRefresh }) => (
-            <>
-              <Banners month={startMonth} onBudgetAction={onBudgetAction} />
-              <BudgetTable
-                // This key forces the whole table rerender when the number
-                // format changes
-                key={`${numberFormat}${hideFraction}`}
-                categoryGroups={categoryGroups}
-                month={startMonth}
-                onShowBudgetSummary={onShowBudgetSummary}
-                onBudgetAction={onBudgetAction}
-                onRefresh={onRefresh}
-                onEditCategoryGroup={onOpenCategoryGroupMenuModal}
-                onEditCategory={onOpenCategoryMenuModal}
-              />
-            </>
-          )}
-        </SyncRefresh>
-      </SheetNameProvider>
-    </Page>
+            }
+            rightContent={
+              !monthUtils.isCurrentMonth(startMonth) && (
+                <Button
+                  variant="bare"
+                  onPress={onCurrentMonth}
+                  aria-label={t('Today')}
+                  style={{
+                    minWidth: 42,
+                    minHeight: 42,
+                    margin: 4,
+                    color: nossoCaderninho.color.navText,
+                  }}
+                >
+                  <SvgCalendar width={18} height={18} />
+                </Button>
+              )
+            }
+          />
+        }
+        style={{ backgroundColor: nossoCaderninho.color.enamel }}
+      >
+        <SheetNameProvider name={monthUtils.sheetForMonth(startMonth)}>
+          <SyncRefresh
+            onSync={async () => {
+              void dispatch(sync());
+            }}
+          >
+            {({ onRefresh }) => (
+              <>
+                <Banners month={startMonth} onBudgetAction={onBudgetAction} />
+                <BudgetTable
+                  // This key forces the whole table rerender when the number
+                  // format changes
+                  key={`${numberFormat}${hideFraction}`}
+                  categoryGroups={categoryGroups}
+                  month={startMonth}
+                  onShowBudgetSummary={onShowBudgetSummary}
+                  onBudgetAction={onBudgetAction}
+                  onRefresh={onRefresh}
+                  onEditCategoryGroup={onOpenCategoryGroupMenuModal}
+                  onEditCategory={onOpenCategoryMenuModal}
+                />
+              </>
+            )}
+          </SyncRefresh>
+        </SheetNameProvider>
+      </Page>
+    </View>
   );
 }
 
@@ -637,7 +648,7 @@ function Banners({ month, onBudgetAction }) {
   return (
     <GridList
       aria-label={t('Banners')}
-      style={{ backgroundColor: theme.mobilePageBackground }}
+      style={{ backgroundColor: nossoCaderninho.color.enamel }}
     >
       <UncategorizedTransactionsBanner />
       <OverspendingBanner
@@ -657,16 +668,30 @@ function Banner({ type = 'info', children }) {
     <Card
       style={{
         height: 50,
-        marginTop: 10,
-        marginBottom: 10,
+        margin: `${nossoCaderninho.space.sm}px ${nossoCaderninho.space.sm}px 0`,
         padding: 10,
         justifyContent: 'center',
         backgroundColor:
           type === 'critical'
-            ? theme.errorBackground
+            ? nossoCaderninho.color.limitSoft
             : type === 'warning'
-              ? theme.warningBackground
-              : theme.noticeBackground,
+              ? nossoCaderninho.color.commitmentSoft
+              : nossoCaderninho.color.partnershipSoft,
+        color:
+          type === 'critical'
+            ? nossoCaderninho.color.limit
+            : type === 'warning'
+              ? nossoCaderninho.color.commitment
+              : nossoCaderninho.color.partnership,
+        border: `1px solid ${
+          type === 'critical'
+            ? nossoCaderninho.color.limit
+            : type === 'warning'
+              ? nossoCaderninho.color.commitment
+              : nossoCaderninho.color.rail
+        }`,
+        borderRadius: nossoCaderninho.radius.control,
+        boxShadow: 'none',
       }}
     >
       {children}
@@ -990,8 +1015,11 @@ function MonthSelector({
   const nextEnabled = month < monthUtils.subMonths(monthBounds.end, 1);
 
   const arrowButtonStyle = {
-    padding: 10,
-    margin: 2,
+    minWidth: 42,
+    minHeight: 42,
+    padding: 8,
+    margin: 0,
+    color: nossoCaderninho.color.navText,
   };
 
   return (
@@ -1017,14 +1045,20 @@ function MonthSelector({
         style={{
           textAlign: 'center',
           fontSize: 16,
-          fontWeight: 500,
+          fontWeight: 650,
+          color: nossoCaderninho.color.navText,
         }}
         onPress={() => {
           onOpenMonthMenu?.(month);
         }}
         data-month={month}
       >
-        <Text style={styles.underlinedText}>
+        <Text
+          style={{
+            paddingBottom: 2,
+            borderBottom: `1px solid ${nossoCaderninho.color.navTextSubdued}`,
+          }}
+        >
           {monthUtils.format(month, "MMMM ''yy", locale)}
         </Text>
       </Button>

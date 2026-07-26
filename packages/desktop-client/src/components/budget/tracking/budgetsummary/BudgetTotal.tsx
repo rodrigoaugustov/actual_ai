@@ -5,11 +5,11 @@ import { Trans } from 'react-i18next';
 
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
 import { CellValue } from '#components/spreadsheet/CellValue';
 import type { Binding, SheetFields } from '#spreadsheet';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type BudgetTotalProps<
   CurrentField extends SheetFields<'tracking-budget'>,
@@ -45,7 +45,9 @@ export function BudgetTotal<
 
       <View style={{ marginLeft: 10, ...styles.tnum }}>
         <View>
-          <Text style={{ color: theme.pageTextLight }}>{title}</Text>
+          <Text style={{ color: nossoCaderninho.color.graphiteSubdued }}>
+            {title}
+          </Text>
         </View>
 
         <Text>
@@ -55,7 +57,10 @@ export function BudgetTotal<
               allocatedAmount: <CellValue binding={current} type="financial" />,
               italic: (
                 <Text
-                  style={{ color: theme.pageTextLight, fontStyle: 'italic' }}
+                  style={{
+                    color: nossoCaderninho.color.graphiteSubdued,
+                    fontStyle: 'italic',
+                  }}
                 />
               ),
               totalAmount: <CellValue binding={target} type="financial" />,

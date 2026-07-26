@@ -7,9 +7,7 @@ import { Button } from '@actual-app/components/button';
 import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
 import { useNavigate } from '#hooks/useNavigate';
@@ -17,6 +15,7 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import { collapseModals, pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
@@ -72,13 +71,17 @@ function IncomeCategoryName({ category, onEdit }: IncomeCategoryNameProps) {
               width: sidebarColumnWidth,
               textAlign: 'left',
               ...styles.smallText,
+              color: nossoCaderninho.color.graphite,
             }}
             data-testid="category-name"
           >
             {category.name}
           </Text>
           <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
+            style={{
+              flexShrink: 0,
+              color: nossoCaderninho.color.graphiteSubdued,
+            }}
             width={14}
             height={14}
           />
@@ -248,7 +251,7 @@ export function IncomeCategoryListItem({
       <View
         style={{
           height: ROW_HEIGHT,
-          borderColor: theme.tableBorder,
+          borderColor: nossoCaderninho.color.railSoft,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -256,9 +259,10 @@ export function IncomeCategoryListItem({
           paddingRight: 5,
           borderBottomWidth: 1,
           opacity: category.hidden ? 0.5 : undefined,
-          backgroundColor: monthUtils.isCurrentMonth(month)
-            ? theme.budgetCurrentMonth
-            : theme.budgetOtherMonth,
+          backgroundColor: nossoCaderninho.color.plate,
+          '&:hover': {
+            backgroundColor: nossoCaderninho.color.signalSoft,
+          },
         }}
       >
         <IncomeCategoryName category={category} onEdit={onEdit} />

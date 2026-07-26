@@ -12,6 +12,7 @@ import { DropHighlightPosContext } from '#components/sort';
 import type { DragState, OnDropCallback } from '#components/sort';
 import { Row } from '#components/table';
 import { useLocalPref } from '#hooks/useLocalPref';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { ExpenseCategory } from './ExpenseCategory';
 import { ExpenseGroup } from './ExpenseGroup';
@@ -242,10 +243,13 @@ export const BudgetCategories = memo<BudgetCategoriesProps>(
       <View
         style={{
           marginBottom: 10,
-          backgroundColor: theme.budgetCurrentMonth, // match budget colors, not generic table colors.
+          marginLeft: 5,
+          marginRight: 5,
+          backgroundColor: nossoCaderninho.color.plate,
           overflow: 'hidden',
-          boxShadow: styles.cardShadow,
-          borderRadius: '0 0 4px 4px',
+          borderRadius: `0 0 ${nossoCaderninho.radius.control}px ${nossoCaderninho.radius.control}px`,
+          border: `1px solid ${nossoCaderninho.color.rail}`,
+          borderTop: 0,
           flex: 1,
         }}
       >

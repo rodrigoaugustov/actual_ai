@@ -8,7 +8,6 @@ import {
   SvgArrowButtonUp1,
 } from '@actual-app/components/icons/v2';
 import { Popover } from '@actual-app/components/popover';
-import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
@@ -19,9 +18,10 @@ import { NotesButton } from '#components/NotesButton';
 import { useLocale } from '#hooks/useLocale';
 import { SheetNameProvider } from '#hooks/useSheetName';
 import { useUndo } from '#hooks/useUndo';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { BudgetMonthMenu } from './BudgetMonthMenu';
-import { ToBudget } from './ToBudget';
+import { CapacityRail } from './CapacityRail';
 import { TotalsList } from './TotalsList';
 
 type BudgetSummaryProps = {
@@ -69,14 +69,14 @@ export const BudgetSummary = memo(({ month }: BudgetSummaryProps) => {
           month === currentMonth
             ? theme.budgetCurrentMonth
             : theme.budgetOtherMonth,
-        boxShadow: styles.cardShadow,
-        borderRadius: 6,
+        border: '1px solid ' + theme.tableBorder,
+        borderRadius: nossoCaderninho.radius.control,
         marginLeft: 0,
         marginRight: 0,
-        marginTop: 5,
+        marginTop: 0,
         flex: 1,
         cursor: 'default',
-        marginBottom: 5,
+        marginBottom: 8,
         overflow: 'hidden',
         '& .hover-visible': {
           opacity: 0,
@@ -90,8 +90,10 @@ export const BudgetSummary = memo(({ month }: BudgetSummaryProps) => {
       <SheetNameProvider name={monthUtils.sheetForMonth(month)}>
         <View
           style={{
+            minHeight: 42,
             padding: '0 13px',
-            ...(collapsed ? { margin: '10px 0' } : { marginTop: 16 }),
+            justifyContent: 'center',
+            borderBottom: '1px solid ' + theme.tableBorder,
           }}
         >
           <View
@@ -124,9 +126,8 @@ export const BudgetSummary = memo(({ month }: BudgetSummaryProps) => {
             className={css([
               {
                 textAlign: 'center',
-                marginTop: 3,
-                fontSize: 18,
-                fontWeight: 500,
+                fontSize: 15,
+                fontWeight: 650,
                 textDecorationSkip: 'ink',
               },
               currentMonth === month && { fontWeight: 'bold' },
@@ -247,44 +248,23 @@ export const BudgetSummary = memo(({ month }: BudgetSummaryProps) => {
           </View>
         </View>
 
-        {collapsed ? (
+        <CapacityRail
+          month={month}
+          prevMonthName={prevMonthName}
+          onBudgetAction={onBudgetAction}
+        />
+
+        {!collapsed && (
           <View
             style={{
               alignItems: 'center',
-              padding: '10px 20px',
-              justifyContent: 'space-between',
-              backgroundColor: theme.budgetCurrentMonth,
+              padding: '8px 20px',
+              backgroundColor: theme.budgetHeaderCurrentMonth,
               borderTop: '1px solid ' + theme.tableBorder,
             }}
           >
-            <ToBudget
-              prevMonthName={prevMonthName}
-              month={month}
-              onBudgetAction={onBudgetAction}
-              isCollapsed
-            />
+            <TotalsList prevMonthName={prevMonthName} />
           </View>
-        ) : (
-          <>
-            <TotalsList
-              prevMonthName={prevMonthName}
-              style={{
-                padding: '5px 0',
-                marginTop: 17,
-                backgroundColor: theme.budgetHeaderCurrentMonth,
-                borderTopWidth: 1,
-                borderBottomWidth: 1,
-                borderColor: theme.tableBorder,
-              }}
-            />
-            <View style={{ margin: '23px 0' }}>
-              <ToBudget
-                prevMonthName={prevMonthName}
-                month={month}
-                onBudgetAction={onBudgetAction}
-              />
-            </View>
-          </>
         )}
       </SheetNameProvider>
     </View>

@@ -1,3 +1,10 @@
+/*
+THESIS — Planejamento é a mesa de acordos do mês, não um calculador escuro nem um painel de KPIs.
+OWN-WORLD — Esmalte frio, placas brancas, trilhos retos e Azul Parceria organizam números tabulares.
+STORY — O casal escolhe o mês, entende a capacidade, distribui recursos e corrige excessos reais.
+FIRST VIEWPORT — Navegação mensal compacta, trilho proporcional da casa e registro contínuo de categorias.
+FORM — Mesa de Acordos, estrutura 7, composição A+C aprovada; seed 053731a6.
+*/
 // @ts-strict-ignore
 import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
@@ -32,6 +39,7 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import { AutoSizingBudgetTable } from './DynamicBudgetTable';
 import * as envelopeBudget from './envelope/EnvelopeBudgetComponents';
 import { EnvelopeBudgetProvider } from './envelope/EnvelopeBudgetContext';
+import { planningSurfaceClass } from './planningStyles';
 import * as trackingBudget from './tracking/TrackingBudgetComponents';
 import { TrackingBudgetProvider } from './tracking/TrackingBudgetContext';
 import { prewarmAllMonths, prewarmMonth } from './util';
@@ -249,10 +257,12 @@ export function Budget() {
         appear. We might not need it anymore?
       */}
       <View
+        className={planningSurfaceClass}
         style={{
           ...styles.page,
           paddingLeft: 8,
           paddingRight: 8,
+          backgroundColor: 'var(--color-pageBackground)',
           overflow: 'hidden',
         }}
       >

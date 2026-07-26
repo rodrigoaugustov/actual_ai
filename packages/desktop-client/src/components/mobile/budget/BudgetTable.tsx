@@ -19,6 +19,8 @@ import type {
 } from '@actual-app/core/types/models';
 import { AutoTextSize } from 'auto-text-size';
 
+import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
+import { useTrackingSheetValue } from '#components/budget/tracking/TrackingBudgetComponents';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -30,6 +32,7 @@ import { useSheetValue } from '#hooks/useSheetValue';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import type { Binding } from '#spreadsheet';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { ExpenseGroupList } from './ExpenseGroupList';
 import { IncomeGroup } from './IncomeGroup';
@@ -37,9 +40,18 @@ import { IncomeGroup } from './IncomeGroup';
 export const ROW_HEIGHT = 50;
 
 export const PILL_STYLE: CSSProperties = {
-  borderRadius: 16,
-  color: theme.pillText,
-  backgroundColor: theme.pillBackgroundLight,
+  borderRadius: nossoCaderninho.radius.control,
+  color: nossoCaderninho.color.partnership,
+  backgroundColor: nossoCaderninho.color.partnershipSoft,
+  border: `1px solid ${nossoCaderninho.color.rail}`,
+};
+
+export const VALUE_BUTTON_STYLE: CSSProperties = {
+  minHeight: 36,
+  padding: '4px 2px',
+  color: nossoCaderninho.color.graphite,
+  backgroundColor: 'transparent',
+  borderRadius: 0,
 };
 
 export function getColumnWidth({
@@ -295,7 +307,12 @@ function BudgetGroups({
   return (
     <View
       data-testid="budget-groups"
-      style={{ flex: '1 0 auto', overflowY: 'auto', paddingBottom: 15 }}
+      style={{
+        flex: '1 0 auto',
+        overflowY: 'auto',
+        paddingBottom: MOBILE_NAV_HEIGHT,
+        backgroundColor: nossoCaderninho.color.plate,
+      }}
     >
       <ExpenseGroupList
         categoryGroups={expenseGroups}
@@ -379,9 +396,8 @@ export function BudgetTable({
         <View
           data-testid="budget-table"
           style={{
-            backgroundColor: theme.pageBackground,
+            backgroundColor: nossoCaderninho.color.plate,
             minHeight: '100vh',
-            paddingBottom: MOBILE_NAV_HEIGHT,
           }}
         >
           <SchedulesProvider query={schedulesQuery}>
@@ -421,6 +437,25 @@ function BudgetTableHeader({
   const { t } = useTranslation();
   const format = useFormat();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
+  const envelopePlanned =
+    Math.abs(useEnvelopeSheetValue(envelopeBudget.totalBudgeted) ?? 0) || 0;
+  const envelopeUsed =
+    Math.abs(useEnvelopeSheetValue(envelopeBudget.totalSpent) ?? 0) || 0;
+  const trackingPlanned =
+    Math.abs(useTrackingSheetValue(trackingBudget.totalBudgetedExpense) ?? 0) ||
+    0;
+  const trackingUsed =
+    Math.abs(useTrackingSheetValue(trackingBudget.totalSpent) ?? 0) || 0;
+  const plannedAmount =
+    budgetType === 'tracking' ? trackingPlanned : envelopePlanned;
+  const usedAmount = budgetType === 'tracking' ? trackingUsed : envelopeUsed;
+  const isOverPlan = plannedAmount > 0 && usedAmount > plannedAmount;
+  const usedRatio =
+    plannedAmount > 0
+      ? Math.min((usedAmount / plannedAmount) * 100, 100)
+      : usedAmount > 0
+        ? 100
+        : 0;
   const buttonStyle = {
     padding: 0,
     backgroundColor: 'transparent',
@@ -441,17 +476,17 @@ function BudgetTableHeader({
     <View
       data-testid="budget-table-header"
       style={{
+        position: 'relative',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexShrink: 0,
         padding: '10px 15px',
+        paddingBottom: 18,
         paddingLeft: 10,
-        backgroundColor: monthUtils.isCurrentMonth(month)
-          ? theme.budgetHeaderCurrentMonth
-          : theme.budgetHeaderOtherMonth,
+        backgroundColor: nossoCaderninho.color.signalSoft,
         borderBottomWidth: 1,
-        borderColor: theme.tableBorder,
+        borderColor: nossoCaderninho.color.rail,
       }}
     >
       <View
@@ -655,6 +690,37 @@ function BudgetTableHeader({
             </View>
           )}
         </CellValue>
+      </View>
+      <View
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          left: 0,
+          height: 8,
+          flexDirection: 'row',
+          overflow: 'hidden',
+          backgroundColor: nossoCaderninho.color.partnershipSoft,
+          borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
+        }}
+      >
+        <View
+          style={{
+            width: `${usedRatio}%`,
+            backgroundColor: isOverPlan
+              ? nossoCaderninho.color.limit
+              : nossoCaderninho.color.commitment,
+          }}
+        />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isOverPlan
+              ? nossoCaderninho.color.limitSoft
+              : nossoCaderninho.color.partnershipSoft,
+          }}
+        />
       </View>
     </View>
   );

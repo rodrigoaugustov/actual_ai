@@ -10,7 +10,6 @@ import {
 } from '@actual-app/components/icons/v2';
 import { Popover } from '@actual-app/components/popover';
 import { SpaceBetween } from '@actual-app/components/space-between';
-import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
@@ -21,8 +20,10 @@ import { NotesButton } from '#components/NotesButton';
 import { useLocale } from '#hooks/useLocale';
 import { SheetNameProvider } from '#hooks/useSheetName';
 import { useUndo } from '#hooks/useUndo';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { BudgetMonthMenu } from './BudgetMonthMenu';
+import { CapacityRail } from './CapacityRail';
 import { ExpenseTotal } from './ExpenseTotal';
 import { IncomeTotal } from './IncomeTotal';
 import { Saved } from './Saved';
@@ -65,14 +66,14 @@ export function BudgetSummary({ month }: BudgetSummaryProps) {
           month === currentMonth
             ? theme.budgetCurrentMonth
             : theme.budgetOtherMonth,
-        boxShadow: styles.cardShadow,
-        borderRadius: 6,
+        border: '1px solid ' + theme.tableBorder,
+        borderRadius: nossoCaderninho.radius.control,
         marginLeft: 0,
         marginRight: 0,
-        marginTop: 5,
+        marginTop: 0,
         flex: 1,
         cursor: 'default',
-        marginBottom: 5,
+        marginBottom: 8,
         overflow: 'hidden',
         '& .hover-visible': {
           opacity: 0,
@@ -86,8 +87,10 @@ export function BudgetSummary({ month }: BudgetSummaryProps) {
       <SheetNameProvider name={monthUtils.sheetForMonth(month)}>
         <View
           style={{
+            minHeight: 42,
             padding: '0 13px',
-            ...(collapsed ? { margin: '10px 0' } : { marginTop: 16 }),
+            justifyContent: 'center',
+            borderBottom: '1px solid ' + theme.tableBorder,
           }}
         >
           <View
@@ -119,9 +122,8 @@ export function BudgetSummary({ month }: BudgetSummaryProps) {
           <div
             className={css({
               textAlign: 'center',
-              marginTop: 3,
-              fontSize: 18,
-              fontWeight: 500,
+              fontSize: 15,
+              fontWeight: 650,
               textDecorationSkip: 'ink',
             })}
           >
@@ -230,6 +232,8 @@ export function BudgetSummary({ month }: BudgetSummaryProps) {
           </View>
         </View>
 
+        <CapacityRail isProjected={month >= currentMonth} />
+
         {!collapsed && (
           <SpaceBetween
             direction="vertical"
@@ -237,8 +241,9 @@ export function BudgetSummary({ month }: BudgetSummaryProps) {
             style={{
               alignSelf: 'center',
               alignItems: 'flex-start',
-              backgroundColor: theme.budgetHeaderCurrentMonth,
-              borderRadius: 4,
+              backgroundColor: nossoCaderninho.color.signalSoft,
+              border: `1px solid ${nossoCaderninho.color.railSoft}`,
+              borderRadius: 0,
               padding: '10px 15px',
               marginTop: 13,
             }}
@@ -248,19 +253,7 @@ export function BudgetSummary({ month }: BudgetSummaryProps) {
           </SpaceBetween>
         )}
 
-        {collapsed ? (
-          <View
-            style={{
-              alignItems: 'center',
-              padding: '10px 20px',
-              justifyContent: 'space-between',
-              backgroundColor: theme.budgetHeaderCurrentMonth,
-              borderTop: '1px solid ' + theme.tableBorder,
-            }}
-          >
-            <Saved projected={month >= currentMonth} />
-          </View>
-        ) : (
+        {!collapsed && (
           <Saved
             projected={month >= currentMonth}
             style={{ marginTop: 13, marginBottom: 20 }}

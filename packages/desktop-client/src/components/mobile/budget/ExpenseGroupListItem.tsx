@@ -3,7 +3,6 @@ import type { ComponentPropsWithoutRef } from 'react';
 import { GridListItem } from 'react-aria-components';
 
 import { Button } from '@actual-app/components/button';
-import { Card } from '@actual-app/components/card';
 import { SvgExpandArrow } from '@actual-app/components/icons/v0';
 import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
@@ -11,7 +10,6 @@ import type { CSSProperties } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
@@ -24,6 +22,7 @@ import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
 import { ExpenseCategoryList } from './ExpenseCategoryList';
@@ -81,10 +80,10 @@ export function ExpenseGroupListItem({
 
   return (
     <GridListItem textValue={categoryGroup.name} {...props}>
-      <Card
+      <View
         style={{
-          marginTop: 4,
-          marginBottom: 4,
+          backgroundColor: nossoCaderninho.color.plate,
+          borderBottom: `1px solid ${nossoCaderninho.color.rail}`,
         }}
       >
         <ExpenseGroupHeader
@@ -108,7 +107,7 @@ export function ExpenseGroupListItem({
           show3Columns={show3Columns}
           showBudgetedColumn={showBudgetedColumn}
         />
-      </Card>
+      </View>
     </GridListItem>
   );
 }
@@ -126,7 +125,6 @@ type ExpenseGroupHeaderProps = {
 
 export function ExpenseGroupHeader({
   categoryGroup,
-  month,
   onEditCategoryGroup,
   show3Columns,
   showBudgetedColumn,
@@ -148,9 +146,7 @@ export function ExpenseGroupHeader({
         paddingLeft: 5,
         paddingRight: 5,
         opacity: isHidden ? 0.5 : undefined,
-        backgroundColor: monthUtils.isCurrentMonth(month)
-          ? theme.budgetHeaderCurrentMonth
-          : theme.budgetHeaderOtherMonth,
+        backgroundColor: nossoCaderninho.color.signalSoft,
       }}
     >
       <ExpenseGroupName
@@ -213,7 +209,7 @@ function ExpenseGroupName({
         variant="bare"
         className={css({
           flexShrink: 0,
-          color: theme.pageTextSubdued,
+          color: nossoCaderninho.color.graphiteSubdued,
           '&[data-pressed]': {
             backgroundColor: 'transparent',
           },
@@ -252,13 +248,17 @@ function ExpenseGroupName({
               textAlign: 'left',
               ...styles.smallText,
               fontWeight: '500',
+              color: nossoCaderninho.color.graphite,
             }}
             data-testid="category-group-name"
           >
             {group.name}
           </Text>
           <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
+            style={{
+              flexShrink: 0,
+              color: nossoCaderninho.color.graphiteSubdued,
+            }}
             width={14}
             height={14}
           />
