@@ -189,6 +189,8 @@ describe('auditApprovedRules', () => {
               categoryId: 'restaurants',
               confidence: 0.8,
               rationale: 'Looks like a restaurant',
+              needsWebResearch: false,
+              researchQuery: null,
             },
           ],
         },

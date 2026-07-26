@@ -209,5 +209,5 @@
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.10"
   },
-  "actualAiVersion": "1.1.0"
+  "actualAiVersion": "1.1.1"
 }

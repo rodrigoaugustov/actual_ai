@@ -83,6 +83,34 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function RunErrorDetail({ run }: { run: AiRunEntity }) {
+  const { t } = useTranslation();
+  const error = run.error?.trim();
+  if (run.status !== 'error' || !error) return null;
+
+  return (
+    <View
+      style={{
+        padding: 8,
+        borderRadius: 4,
+        backgroundColor: theme.errorBackground,
+      }}
+    >
+      <Detail label={t('Error details')}>
+        <Text
+          style={{
+            color: theme.errorText,
+            overflowWrap: 'anywhere',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {error.slice(0, 2000)}
+        </Text>
+      </Detail>
+    </View>
+  );
+}
+
 function RunCard({ run }: { run: AiRunEntity }) {
   const { i18n, t } = useTranslation();
   const dateFormat = useDateFormat() || 'MM/dd/yyyy';
@@ -163,6 +191,7 @@ function RunCard({ run }: { run: AiRunEntity }) {
           </Detail>
         </View>
       </View>
+      <RunErrorDetail run={run} />
     </View>
   );
 }
@@ -175,45 +204,51 @@ function RunRow({ run }: { run: AiRunEntity }) {
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 0',
         borderBottom: '1px solid ' + theme.pillBorderDark,
       }}
     >
-      <Text style={{ width: 140, color: theme.pageTextSubdued }}>
-        {formatDate(new Date(run.createdAt), `${dateFormat} HH:mm`)}
-      </Text>
-      <Text style={{ width: 110 }}>{aiAgentLabel(run.agent, t)}</Text>
-      <Text style={{ width: 90, color: theme.pageTextSubdued }}>
-        {aiTierLabel(run.tier, t)}
-      </Text>
-      <Text style={{ width: 180 }}>
-        {run.provider} · {run.model}
-      </Text>
-      <FinancialText style={{ width: 110, textAlign: 'right' }}>
-        {run.inputTokens.toLocaleString(locale)} →{' '}
-        {run.outputTokens.toLocaleString(locale)}
-      </FinancialText>
-      <FinancialText style={{ width: 90, textAlign: 'right' }}>
-        {formatUsd(run.costUsd, locale)}
-      </FinancialText>
-      <FinancialText style={{ width: 80, textAlign: 'right' }}>
-        {new Intl.NumberFormat(locale, {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1,
-        }).format(run.durationMs / 1000)}
-        s
-      </FinancialText>
-      <Text
+      <View
         style={{
-          width: 70,
-          color: run.status === 'error' ? theme.errorText : theme.noticeText,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 0',
         }}
       >
-        {aiRunStatusLabel(run.status, t)}
-      </Text>
+        <Text style={{ width: 140, color: theme.pageTextSubdued }}>
+          {formatDate(new Date(run.createdAt), `${dateFormat} HH:mm`)}
+        </Text>
+        <Text style={{ width: 110 }}>{aiAgentLabel(run.agent, t)}</Text>
+        <Text style={{ width: 90, color: theme.pageTextSubdued }}>
+          {aiTierLabel(run.tier, t)}
+        </Text>
+        <Text style={{ width: 180 }}>
+          {run.provider} · {run.model}
+        </Text>
+        <FinancialText style={{ width: 110, textAlign: 'right' }}>
+          {run.inputTokens.toLocaleString(locale)} →{' '}
+          {run.outputTokens.toLocaleString(locale)}
+        </FinancialText>
+        <FinancialText style={{ width: 90, textAlign: 'right' }}>
+          {formatUsd(run.costUsd, locale)}
+        </FinancialText>
+        <FinancialText style={{ width: 80, textAlign: 'right' }}>
+          {new Intl.NumberFormat(locale, {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          }).format(run.durationMs / 1000)}
+          s
+        </FinancialText>
+        <Text
+          style={{
+            width: 70,
+            color: run.status === 'error' ? theme.errorText : theme.noticeText,
+          }}
+        >
+          {aiRunStatusLabel(run.status, t)}
+        </Text>
+      </View>
+      <RunErrorDetail run={run} />
     </View>
   );
 }

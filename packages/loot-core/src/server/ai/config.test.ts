@@ -37,4 +37,13 @@ describe('getAiConfig / setAiConfig', () => {
     expect(config.tiers.fast).toEqual(DEFAULT_AI_CONFIG.tiers.fast);
     expect(config.tiers.frontier).toEqual(DEFAULT_AI_CONFIG.tiers.frontier);
   });
+
+  it('keeps web search disabled for configs saved before the option existed', async () => {
+    const { webSearchEnabled: _webSearchEnabled, ...legacyConfig } =
+      DEFAULT_AI_CONFIG;
+
+    await setAiConfig(legacyConfig as never);
+
+    expect(getAiConfig().webSearchEnabled).toBe(false);
+  });
 });

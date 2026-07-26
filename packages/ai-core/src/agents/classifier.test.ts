@@ -97,23 +97,49 @@ describe('classifierOutputSchema', () => {
           categoryId: 'c1',
           confidence: 0.92,
           rationale: 'Known grocery payee',
+          needsWebResearch: false,
+          researchQuery: null,
         },
         {
           id: 't2',
           categoryId: null,
           confidence: 0.1,
           rationale: 'Unrecognized payee',
+          needsWebResearch: true,
+          researchQuery: 'Unrecognized payee',
         },
       ],
     });
     expect(parsed.items).toHaveLength(2);
   });
 
+  it('requires web-research fields for OpenAI strict structured outputs', () => {
+    expect(() =>
+      classifierOutputSchema.parse({
+        items: [
+          {
+            id: 't1',
+            categoryId: 'c1',
+            confidence: 0.9,
+            rationale: 'Known payee',
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
   it('rejects an out-of-range confidence', () => {
     expect(() =>
       classifierOutputSchema.parse({
         items: [
-          { id: 't1', categoryId: 'c1', confidence: 1.5, rationale: 'x' },
+          {
+            id: 't1',
+            categoryId: 'c1',
+            confidence: 1.5,
+            rationale: 'x',
+            needsWebResearch: false,
+            researchQuery: null,
+          },
         ],
       }),
     ).toThrow();

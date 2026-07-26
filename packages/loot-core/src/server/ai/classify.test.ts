@@ -56,9 +56,27 @@ async function prepareAccountWithTransaction({
   return { accountId, transactionId };
 }
 
-function mockWorkflowOutput(output: ClassifierOutput) {
+type ClassifierTestItem = Omit<
+  ClassifierOutput['items'][number],
+  'needsWebResearch' | 'researchQuery'
+> &
+  Partial<
+    Pick<
+      ClassifierOutput['items'][number],
+      'needsWebResearch' | 'researchQuery'
+    >
+  >;
+
+function mockWorkflowOutput(output: { items: ClassifierTestItem[] }) {
+  const normalizedOutput: ClassifierOutput = {
+    items: output.items.map(item => ({
+      needsWebResearch: false,
+      researchQuery: null,
+      ...item,
+    })),
+  };
   runWorkflowMock.mockResolvedValue({
-    output,
+    output: normalizedOutput,
     run: {
       agent: 'classifier',
       tier: 'standard',
@@ -295,6 +313,8 @@ describe('classifyPendingTransactions', () => {
             categoryId: 'groceries',
             confidence: 0.95,
             rationale: 'bulk',
+            needsWebResearch: false,
+            researchQuery: null,
           })),
         },
         run: {
@@ -480,6 +500,8 @@ describe('classifyPendingTransactions', () => {
               categoryId: 'groceries',
               confidence: 0.95,
               rationale: 'Web evidence identifies a supermarket',
+              needsWebResearch: false,
+              researchQuery: null,
             },
           ],
         },

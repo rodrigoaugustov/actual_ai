@@ -2,7 +2,7 @@
 
 ## Resultado
 
-A Fase 5 foi implementada e validada em 25/07/2026 e compõe a versão `1.1.0`
+A Fase 5 foi implementada e validada em 25/07/2026 e compõe a versão `1.1.1`
 do fork. O classificador agora combina taxonomia semântica editável, evidência
 local relevante, `imported_payee`, consistência por cluster de estabelecimento
 e pesquisa web opcional para casos ambíguos.

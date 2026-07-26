@@ -46,7 +46,24 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
             costUsd: 0.0123,
             durationMs: 2400,
             status: 'ok',
+            error: null,
             createdAt: new Date(2026, 6, 25, 10, 30).getTime(),
+          },
+          {
+            id: 'run-2',
+            agent: 'classifier',
+            tier: 'standard',
+            provider: 'openai',
+            model: 'gpt-invalid-schema',
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            costUsd: 0,
+            durationMs: 400,
+            status: 'error',
+            error: 'Invalid schema for structured output.',
+            createdAt: new Date(2026, 6, 25, 10, 31).getTime(),
           },
         ];
       case 'ai/get-suggestions':
@@ -157,12 +174,21 @@ describe('mobile AI list pages', () => {
           element.textContent === 'openai · gpt-test',
       ),
     ).toBeVisible();
-    expect(screen.getByText('Tokens in → out')).toBeVisible();
+    expect(screen.getAllByText('Tokens in → out')).toHaveLength(2);
     expect(
       screen.getByText(
         (_, element) =>
           element?.tagName === 'SPAN' && element.textContent === '1,200 → 300',
       ),
+    ).toBeVisible();
+  });
+
+  it('shows the persisted error message for a failed AI run', async () => {
+    renderPage(<MobileAiUsagePage />);
+
+    expect(await screen.findByText('Error details')).toBeVisible();
+    expect(
+      screen.getByText('Invalid schema for structured output.'),
     ).toBeVisible();
   });
 
