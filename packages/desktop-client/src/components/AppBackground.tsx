@@ -8,14 +8,19 @@ import { View } from '@actual-app/components/view';
 import { css } from '@emotion/css';
 
 import { useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { Background } from './Background';
 
 type AppBackgroundProps = {
   isLoading?: boolean;
+  surface?: 'default' | 'manager';
 };
 
-export function AppBackground({ isLoading }: AppBackgroundProps) {
+export function AppBackground({
+  isLoading,
+  surface = 'default',
+}: AppBackgroundProps) {
   const loadingText = useSelector(state => state.app.loadingText);
   const showLoading = isLoading || loadingText !== null;
   const transitions = useTransition(loadingText, {
@@ -26,7 +31,17 @@ export function AppBackground({ isLoading }: AppBackgroundProps) {
 
   return (
     <>
-      <Background />
+      {surface === 'manager' ? (
+        <div
+          className={css({
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: nossoCaderninho.color.enamel,
+          })}
+        />
+      ) : (
+        <Background />
+      )}
 
       {showLoading &&
         transitions((style, item) => (
@@ -39,14 +54,28 @@ export function AppBackground({ isLoading }: AppBackgroundProps) {
                 right: 0,
                 padding: 50,
                 paddingTop: 200,
-                color: theme.pageText,
+                color:
+                  surface === 'manager'
+                    ? nossoCaderninho.color.graphite
+                    : theme.pageText,
                 alignItems: 'center',
+                fontFamily:
+                  surface === 'manager'
+                    ? nossoCaderninho.font.family
+                    : undefined,
               })}
             >
               <Block style={{ marginBottom: 20, fontSize: 18 }}>
                 {loadingText}
               </Block>
-              <AnimatedLoading width={25} color={theme.pageText} />
+              <AnimatedLoading
+                width={25}
+                color={
+                  surface === 'manager'
+                    ? nossoCaderninho.color.partnership
+                    : theme.pageText
+                }
+              />
             </View>
           </animated.div>
         ))}

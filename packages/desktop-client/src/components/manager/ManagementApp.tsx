@@ -23,6 +23,7 @@ import {
 } from '#components/ServerContext';
 import { useMetaThemeColor } from '#hooks/useMetaThemeColor';
 import { useDispatch, useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { loggedIn } from '#users/usersSlice';
 import { getClientBuildVersion } from '#util/versions';
 
@@ -42,17 +43,17 @@ function Version() {
   return (
     <Text
       style={{
-        color: theme.pageTextSubdued,
-        ':hover': { color: theme.pageText },
+        position: 'absolute',
+        right: 17,
+        bottom: 0,
+        zIndex: 5001,
+        color: nossoCaderninho.color.graphiteSubdued,
+        ':hover': { color: nossoCaderninho.color.graphite },
         margin: 15,
-        marginLeft: 17,
-        [`@media (min-width: ${tokens.breakpoint_small})`]: {
-          position: 'absolute',
-          bottom: 0,
-          right: 0,
-          marginLeft: 15,
-          marginRight: 17,
-          zIndex: 5001,
+        fontFamily: nossoCaderninho.font.family,
+        fontSize: 11,
+        [`@media (max-width: ${tokens.breakpoint_small})`]: {
+          display: 'none',
         },
       }}
     >
@@ -89,8 +90,14 @@ export function ManagementApp() {
   }, [dispatch]);
 
   return (
-    <View style={{ height: '100%', color: theme.pageText }}>
-      <AppBackground />
+    <View
+      style={{
+        height: '100%',
+        color: nossoCaderninho.color.graphite,
+        fontFamily: nossoCaderninho.font.family,
+      }}
+    >
+      <AppBackground surface="manager" />
       <View
         style={{
           position: 'absolute',
@@ -128,6 +135,12 @@ export function ManagementApp() {
             position: 'absolute',
             right: 0,
             top: 0,
+            overflowY: 'auto',
+            [`@media (max-width: ${tokens.breakpoint_small})`]: {
+              alignItems: 'stretch',
+              justifyContent: 'flex-start',
+              padding: 0,
+            },
           }}
         >
           {userData && files ? (

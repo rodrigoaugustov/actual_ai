@@ -7,7 +7,6 @@ import { Button, ButtonWithLoading } from '@actual-app/components/button';
 import { BigInput } from '@actual-app/components/input';
 import { Label } from '@actual-app/components/label';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { isElectron } from '@actual-app/core/shared/environment';
 import { css } from '@emotion/css';
@@ -19,8 +18,10 @@ import { useGlobalPref } from '#hooks/useGlobalPref';
 import { useNavigate } from '#hooks/useNavigate';
 import { saveGlobalPrefs } from '#prefs/prefsSlice';
 import { useDispatch, useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { loggedIn, signOut } from '#users/usersSlice';
 
+import { ManagerSurface } from './ManagerSurface';
 import { Title } from './subscribe/common';
 
 export function ElectronServerConfig({
@@ -117,7 +118,7 @@ export function ElectronServerConfig({
 
   return (
     <>
-      <Title text={t('Configure your server')} />
+      <Title level={2} text={t('Set up sync')} />
       <View
         style={{
           display: 'flex',
@@ -128,36 +129,18 @@ export function ElectronServerConfig({
         <Text
           style={{
             fontSize: 16,
-            color: theme.pageText,
+            color: nossoCaderninho.color.graphite,
             lineHeight: 1.5,
           }}
         >
           <Trans>
-            Set up your server below to enable seamless data synchronization
-            across your devices, bank sync and more...
-          </Trans>
-        </Text>
-        <Text
-          style={{
-            fontSize: 16,
-            color: theme.pageText,
-            lineHeight: 1.5,
-          }}
-        >
-          <Trans>
-            Need to expose your server to the internet? Follow our step-by-step{' '}
-            <Link
-              variant="external"
-              to="https://actualbudget.org/docs/install/desktop-app"
-            >
-              guide
-            </Link>{' '}
-            for more information.
+            Keep the same caderninho up to date across your devices. This device
+            can host the connection locally when Nosso Caderninho is open.
           </Trans>
         </Text>
 
         {configError && (
-          <Text style={{ color: theme.errorText, marginTop: 10 }}>
+          <Text style={{ color: nossoCaderninho.color.limit, marginTop: 10 }}>
             {configError}
           </Text>
         )}
@@ -253,7 +236,7 @@ export function ElectronServerConfig({
         {hasInternalServerConfig && (
           <Button
             variant="bare"
-            style={{ color: theme.pageTextLight, margin: 5 }}
+            style={{ color: nossoCaderninho.color.graphiteSubdued, margin: 5 }}
             onPress={() => navigate(-1)}
           >
             <Trans>Cancel</Trans>
@@ -261,18 +244,18 @@ export function ElectronServerConfig({
         )}
         <Button
           variant="bare"
-          style={{ color: theme.pageTextLight, margin: 5 }}
+          style={{ color: nossoCaderninho.color.graphiteSubdued, margin: 5 }}
           onPress={dontUseSyncServer}
         >
-          <Trans>Don't use a server</Trans>
+          <Trans>Continue only on this device</Trans>
         </Button>
         {canShowExternalServerConfig && (
           <Button
             variant="bare"
-            style={{ color: theme.pageTextLight, margin: 5 }}
+            style={{ color: nossoCaderninho.color.partnership, margin: 5 }}
             onPress={() => onSetServerConfigView('external')}
           >
-            <Trans>Use an external server</Trans>
+            <Trans>Use another sync address</Trans>
           </Button>
         )}
       </View>
@@ -313,7 +296,7 @@ export function ConfigServer() {
         );
       default:
         return t(
-          'Server does not look like an Actual server. Is it set up correctly?',
+          'This address does not appear to be a Nosso Caderninho sync service. Check the address and try again.',
         );
     }
   }
@@ -385,18 +368,33 @@ export function ConfigServer() {
   });
 
   return (
-    <View style={{ maxWidth: 500, marginTop: -30 }}>
+    <ManagerSurface
+      chapter={<Trans>Connection of our home</Trans>}
+      title={<Trans>The same caderninho on every device.</Trans>}
+      description={
+        <Trans>
+          Connect this device to the shared home or continue with budgets saved
+          locally.
+        </Trans>
+      }
+      status={
+        currentUrl ? (
+          <Trans>This device has a sync address</Trans>
+        ) : (
+          <Trans>Sync is optional</Trans>
+        )
+      }
+    >
       {(userData || currentUrl) && (
         <MobileBackButton
           onPress={() =>
             location.key !== 'default' ? navigate(-1) : navigate('/')
           }
           style={{
-            position: 'fixed',
-            top: 'calc(10px + env(safe-area-inset-top))',
-            left: 10,
+            alignSelf: 'flex-start',
+            color: nossoCaderninho.color.partnership,
             margin: 0,
-            zIndex: 4000,
+            marginBottom: 16,
           }}
         />
       )}
@@ -408,24 +406,24 @@ export function ConfigServer() {
       )}
       {serverConfigView === 'external' && (
         <>
-          <Title text={t('Connect to a server')} />
+          <Title level={2} text={t('Connect this device')} />
           <Text
             style={{
               fontSize: 16,
-              color: theme.tableRowHeaderText,
+              color: nossoCaderninho.color.graphite,
               lineHeight: 1.5,
             }}
           >
             {currentUrl ? (
               <Trans>
-                Existing sessions will be logged out and you will log in to this
-                server. We will validate that Actual is running at this URL.
+                Existing sessions will be closed before you enter the home
+                available at this address.
               </Trans>
             ) : (
               <Trans>
-                A sync server keeps your budget up to date across all your
-                devices and unlocks features like bank syncing. It is completely
-                optional: Actual works great on just this device too.
+                A sync connection keeps the household budget up to date across
+                devices. It is optional: your local budgets continue to work on
+                this device.
               </Trans>
             )}
           </Text>
@@ -433,22 +431,14 @@ export function ConfigServer() {
             <Text
               style={{
                 fontSize: 16,
-                color: theme.pageTextLight,
+                color: nossoCaderninho.color.graphiteSubdued,
                 lineHeight: 1.5,
                 marginTop: 10,
               }}
             >
               <Trans>
-                If you already run a server, enter its URL below. Otherwise you
-                can{' '}
-                <Link
-                  variant="external"
-                  to="https://actualbudget.org/docs/install/"
-                  linkColor="purple"
-                >
-                  learn how to set one up
-                </Link>{' '}
-                and connect it whenever you are ready.
+                Enter the sync address already used by your home. You can also
+                continue locally and connect later in Home settings.
               </Trans>
             </Text>
           )}
@@ -457,7 +447,7 @@ export function ConfigServer() {
               <Text
                 style={{
                   marginTop: 20,
-                  color: theme.errorText,
+                  color: nossoCaderninho.color.limit,
                   borderRadius: 4,
                   fontSize: 15,
                 }}
@@ -474,7 +464,7 @@ export function ConfigServer() {
                 >
                   <Text
                     style={{
-                      color: theme.errorText,
+                      color: nossoCaderninho.color.limit,
                       borderRadius: 4,
                       fontSize: 15,
                     }}
@@ -495,21 +485,31 @@ export function ConfigServer() {
               )}
             </>
           )}
-          <View
-            style={{ display: 'flex', flexDirection: 'row', marginTop: 30 }}
-          >
+          <View className={connectionFormClass}>
             <BigInput
               autoFocus
+              className={connectedInputClass}
               placeholder={t('https://example.com')}
               value={url || ''}
               onChangeValue={setUrl}
-              style={{ flex: 1, marginRight: 10 }}
+              style={{
+                minWidth: 0,
+                color: nossoCaderninho.color.graphite,
+                backgroundColor: nossoCaderninho.color.plate,
+                borderColor: nossoCaderninho.color.rail,
+              }}
               onEnter={onSubmit}
             />
             <ButtonWithLoading
               variant="primary"
               isLoading={loading}
-              style={{ fontSize: 15 }}
+              style={{
+                fontSize: 15,
+                color: nossoCaderninho.color.navText,
+                backgroundColor: nossoCaderninho.color.partnership,
+                borderColor: nossoCaderninho.color.partnership,
+                boxShadow: 'none',
+              }}
               onPress={onSubmit}
             >
               <Trans>Connect</Trans>
@@ -525,29 +525,29 @@ export function ConfigServer() {
             {currentUrl ? (
               <Button
                 variant="bare"
-                style={{ color: theme.pageTextLink }}
+                style={{ color: nossoCaderninho.color.partnership }}
                 onPress={onSkip}
               >
-                <Trans>Stop using a server</Trans>
+                <Trans>Disconnect this device</Trans>
               </Button>
             ) : (
               <>
                 {!isElectron() && (
                   <Button
                     variant="bare"
-                    style={{ color: theme.pageTextLink }}
+                    style={{ color: nossoCaderninho.color.partnership }}
                     onPress={onSameDomain}
                   >
-                    <Trans>Use the current domain</Trans>
+                    <Trans>Use this site's address</Trans>
                   </Button>
                 )}
                 {!userData && (
                   <Button
                     variant="bare"
-                    style={{ color: theme.pageTextLink }}
+                    style={{ color: nossoCaderninho.color.partnership }}
                     onPress={onSkip}
                   >
-                    <Trans>Don't use a server</Trans>
+                    <Trans>Continue only on this device</Trans>
                   </Button>
                 )}
               </>
@@ -555,6 +555,28 @@ export function ConfigServer() {
           </View>
         </>
       )}
-    </View>
+    </ManagerSurface>
   );
 }
+
+const connectionFormClass = css({
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
+  gap: 10,
+  marginTop: 30,
+  '@media (max-width: 460px)': {
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    button: {
+      width: '100%',
+      minHeight: 44,
+    },
+  },
+});
+
+const connectedInputClass = css({
+  boxShadow: 'none !important',
+  '&::placeholder': {
+    color: `${nossoCaderninho.color.graphiteSubdued} !important`,
+    opacity: 1,
+  },
+});

@@ -12,19 +12,21 @@ import { Menu } from '@actual-app/components/menu';
 import { Popover } from '@actual-app/components/popover';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import { isElectron } from '@actual-app/core/shared/environment';
 import type { OpenIdConfig } from '@actual-app/core/types/models';
+import { css } from '@emotion/css';
 
 import { Link } from '#components/common/Link';
+import { ManagerSurface } from '#components/manager/ManagerSurface';
 import {
   useAvailableLoginMethods,
   useLoginMethod,
 } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { loggedIn } from '#users/usersSlice';
 
 import { Title, useBootstrapped } from './common';
@@ -66,6 +68,7 @@ function PasswordLogin({ setError, dispatch }) {
     >
       <BigInput
         autoFocus
+        className={managerInputClass}
         placeholder={t('Password')}
         type="password"
         onChangeValue={setPassword}
@@ -77,6 +80,10 @@ function PasswordLogin({ setError, dispatch }) {
         isLoading={loading}
         style={{
           fontSize: 15,
+          color: nossoCaderninho.color.navText,
+          backgroundColor: nossoCaderninho.color.partnership,
+          borderColor: nossoCaderninho.color.partnership,
+          boxShadow: 'none',
           width: isNarrowWidth ? '100%' : 170,
           ...(isNarrowWidth ? { padding: 10 } : null),
         }}
@@ -158,6 +165,7 @@ function OpenIdLogin({ setError }) {
             {warnMasterCreation && askForPassword && (
               <ResponsiveInput
                 autoFocus
+                className={managerInputClass}
                 placeholder={t('Enter server password')}
                 type="password"
                 onChangeValue={newValue => {
@@ -172,6 +180,10 @@ function OpenIdLogin({ setError }) {
               style={{
                 padding: 6,
                 fontSize: 14,
+                color: nossoCaderninho.color.navText,
+                backgroundColor: nossoCaderninho.color.partnership,
+                borderColor: nossoCaderninho.color.partnership,
+                boxShadow: 'none',
                 width: 170,
               }}
               isDisabled={
@@ -189,7 +201,12 @@ function OpenIdLogin({ setError }) {
           </View>
           {warnMasterCreation && (
             <>
-              <label style={{ color: theme.warningText, marginTop: 10 }}>
+              <label
+                style={{
+                  color: nossoCaderninho.color.commitment,
+                  marginTop: 10,
+                }}
+              >
                 <Trans>
                   The first user to login with OpenID will be the{' '}
                   <Text style={{ fontWeight: 'bold' }}>server owner</Text>. This
@@ -230,7 +247,7 @@ function OpenIdLogin({ setError }) {
           <Text
             style={{
               ...styles.verySmallText,
-              color: theme.pageTextLight,
+              color: nossoCaderninho.color.graphiteSubdued,
               fontWeight: 'bold ',
               width: '100%',
               textAlign: 'center',
@@ -355,94 +372,119 @@ export function Login() {
   }
 
   return (
-    <View style={{ maxWidth: 450, marginTop: -30, color: theme.pageText }}>
-      <Title text={t('Sign in to this Actual instance')} />
+    <ManagerSurface
+      chapter={<Trans>Access to our home</Trans>}
+      title={<Trans>Continue together on this device.</Trans>}
+      description={
+        <Trans>Enter the connected home to open its shared caderninhos.</Trans>
+      }
+      status={<Trans>An internet connection is required to enter</Trans>}
+    >
+      <View
+        style={{
+          width: '100%',
+          maxWidth: 450,
+          color: nossoCaderninho.color.graphite,
+        }}
+      >
+        <Title level={2} text={t('Enter this home')} />
 
-      {loginMethods?.length > 1 && (
-        <Text
-          style={{
-            fontSize: 16,
-            color: theme.pageTextDark,
-            lineHeight: 1.4,
-            marginBottom: 10,
-          }}
-        >
-          <Trans>
-            If you lost your password, you likely still have access to your
-            server to manually reset it.
-          </Trans>
-        </Text>
-      )}
-
-      {method === 'password' && (
-        <PasswordLogin setError={setError} dispatch={dispatch} />
-      )}
-
-      {method === 'openid' && <OpenIdLogin setError={setError} />}
-
-      {method === 'header' && <HeaderLogin error={error} />}
-
-      {loginMethods?.length > 1 && (
-        <View style={{ marginTop: 10 }}>
-          <View
+        {loginMethods?.length > 1 && (
+          <Text
             style={{
-              width: '100%',
-              flexDirection: 'row',
-              justifyContent: 'end',
+              fontSize: 14,
+              color: nossoCaderninho.color.graphite,
+              lineHeight: 1.45,
+              marginBottom: 10,
             }}
           >
-            <Button
-              variant="bare"
-              ref={loginMethodRef}
-              onPress={() => setLoginMethodMenuOpen(true)}
+            <Trans>
+              Use one of the access methods configured for this home.
+            </Trans>
+          </Text>
+        )}
+
+        {method === 'password' && (
+          <PasswordLogin setError={setError} dispatch={dispatch} />
+        )}
+
+        {method === 'openid' && <OpenIdLogin setError={setError} />}
+
+        {method === 'header' && <HeaderLogin error={error} />}
+
+        {loginMethods?.length > 1 && (
+          <View style={{ marginTop: 10 }}>
+            <View
               style={{
-                ...styles.verySmallText,
-                color: theme.pageTextLight,
-                paddingTop: 5,
-                width: 'fit-content',
-                ...(isNarrowWidth ? { padding: 10 } : null),
+                width: '100%',
+                flexDirection: 'row',
+                justifyContent: 'end',
               }}
             >
-              <Trans>Select the login method</Trans>{' '}
-              <SvgCheveronDown width={12} height={12} />
-            </Button>
-          </View>
-          <Popover
-            triggerRef={loginMethodRef}
-            onOpenChange={value => {
-              setLoginMethodMenuOpen(value);
-            }}
-            isOpen={loginMethodMenuOpen}
-          >
-            <Menu
-              items={loginMethods
-                ?.filter(f => f.method !== method)
-                .map(m => ({
-                  name: m.method,
-                  text: m.displayName,
-                }))}
-              onMenuSelect={selected => {
-                setError(null);
-                setMethod(selected);
-                setLoginMethodMenuOpen(false);
+              <Button
+                variant="bare"
+                ref={loginMethodRef}
+                onPress={() => setLoginMethodMenuOpen(true)}
+                style={{
+                  ...styles.verySmallText,
+                  color: nossoCaderninho.color.partnership,
+                  paddingTop: 5,
+                  width: 'fit-content',
+                  ...(isNarrowWidth ? { padding: 10 } : null),
+                }}
+              >
+                <Trans>Select the login method</Trans>{' '}
+                <SvgCheveronDown width={12} height={12} />
+              </Button>
+            </View>
+            <Popover
+              triggerRef={loginMethodRef}
+              onOpenChange={value => {
+                setLoginMethodMenuOpen(value);
               }}
-            />
-          </Popover>
-        </View>
-      )}
+              isOpen={loginMethodMenuOpen}
+            >
+              <Menu
+                items={loginMethods
+                  ?.filter(f => f.method !== method)
+                  .map(m => ({
+                    name: m.method,
+                    text: m.displayName,
+                  }))}
+                onMenuSelect={selected => {
+                  setError(null);
+                  setMethod(selected);
+                  setLoginMethodMenuOpen(false);
+                }}
+              />
+            </Popover>
+          </View>
+        )}
 
-      {error && (
-        <Text
-          style={{
-            marginTop: 20,
-            color: theme.errorText,
-            borderRadius: 4,
-            fontSize: 15,
-          }}
-        >
-          {getErrorMessage(error)}
-        </Text>
-      )}
-    </View>
+        {error && (
+          <Text
+            style={{
+              marginTop: 20,
+              color: nossoCaderninho.color.limit,
+              borderRadius: 4,
+              fontSize: 15,
+            }}
+          >
+            {getErrorMessage(error)}
+          </Text>
+        )}
+      </View>
+    </ManagerSurface>
   );
 }
+
+const managerInputClass = css({
+  color: `${nossoCaderninho.color.graphite} !important`,
+  backgroundColor: `${nossoCaderninho.color.plate} !important`,
+  borderColor: `${nossoCaderninho.color.rail} !important`,
+  boxShadow: 'none !important',
+  '&::placeholder': {
+    color: `${nossoCaderninho.color.graphiteSubdued} !important`,
+    opacity: 1,
+  },
+});

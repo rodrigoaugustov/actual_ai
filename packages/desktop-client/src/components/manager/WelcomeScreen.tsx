@@ -1,186 +1,236 @@
-import React from 'react';
 import { Trans } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { useResponsive } from '@actual-app/components/hooks/useResponsive';
-import { SvgLogo } from '@actual-app/components/icons/logo';
-import { Paragraph } from '@actual-app/components/paragraph';
-import { styles } from '@actual-app/components/styles';
-import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
-import { View } from '@actual-app/components/view';
-import { css, keyframes } from '@emotion/css';
+import {
+  SvgCheveronRight,
+  SvgCloudDownload,
+  SvgFileDouble,
+  SvgUserGroup,
+} from '@actual-app/components/icons/v1';
+import { css } from '@emotion/css';
 
 import { createBudget } from '#budgetfiles/budgetfilesSlice';
-import { Link } from '#components/common/Link';
 import { useServerURL } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
-import { useReducedMotion } from '#hooks/useReducedMotion';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
-const fadeInUp = keyframes({
-  from: { opacity: 0, transform: 'translateY(12px)' },
-  to: { opacity: 1, transform: 'translateY(0)' },
-});
+import { ManagerSurface } from './ManagerSurface';
 
-function entrance(delay: number) {
-  return css({
-    animationName: fadeInUp,
-    animationDuration: '500ms',
-    animationTimingFunction: 'ease-out',
-    animationFillMode: 'backwards',
-    animationDelay: `${delay}ms`,
-  });
-}
-
+// impeccable:surface Entry is a connected two-plate composition: partnership
+// promise on the left, mutually clear paths to first household value on the right.
 export function WelcomeScreen() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const serverURL = useServerURL();
-  const { isNarrowWidth } = useResponsive();
-  const isReducedMotion = useReducedMotion();
 
-  const entranceClass = (delay: number) =>
-    isReducedMotion ? undefined : entrance(delay);
-
-  const buttonStyle = {
-    fontSize: 15,
-    padding: '12px 15px',
-    flexShrink: 0,
-    ...(isNarrowWidth && { minHeight: styles.mobileMinHeight }),
-  };
+  function createNewBudget({ testMode = false } = {}) {
+    void dispatch(createBudget({ testMode }));
+  }
 
   return (
-    <View
-      style={{
-        alignItems: 'center',
-        gap: isNarrowWidth ? 25 : 12,
-        width: '100%',
-        maxWidth: 480,
-        fontSize: 15,
-        maxHeight: '100%',
-        overflowY: 'auto',
-        paddingTop: 20,
-        // Keep the last line clear of the absolutely-positioned
-        // server bar at the bottom of the screen.
-        paddingBottom: 'calc(45px + env(safe-area-inset-bottom))',
-      }}
+    <ManagerSurface
+      chapter={<Trans>The finances of our home</Trans>}
+      title={<Trans>Cared for together.</Trans>}
+      description={
+        <Trans>
+          Continue from where you left off or start a new financial memory for
+          the family.
+        </Trans>
+      }
     >
-      <View
-        className={entranceClass(0)}
-        style={{ alignItems: 'center', gap: 10, flexShrink: 0 }}
-      >
-        <SvgLogo
-          width={45}
-          height={45}
-          style={{ color: theme.pageTextPositive }}
-        />
-        <Text style={{ ...styles.veryLargeText, textAlign: 'center' }}>
-          <Trans>Welcome to Actual</Trans>
-        </Text>
-        <Text
-          style={{
-            color: theme.pageTextLight,
-            textAlign: 'center',
-            fontStyle: 'italic',
-          }}
-        >
-          <Trans>Your finances - made simple</Trans>
-        </Text>
-      </View>
+      <div className={stageHeadingClass}>
+        <h2>
+          <Trans>How do you want to start?</Trans>
+        </h2>
+        <p>
+          <Trans>Reach your first household view in less than a minute.</Trans>
+        </p>
+      </div>
 
-      <View
-        className={entranceClass(150)}
-        style={{ alignItems: 'center', flexShrink: 0 }}
-      >
-        <Paragraph
-          style={{ textAlign: 'center', maxWidth: 400, marginBottom: 0 }}
+      <div className={primaryPathsClass}>
+        <button
+          type="button"
+          className={pathClass}
+          onClick={() => navigate('/config-server')}
         >
-          <Trans>
-            Actual is a super fast, privacy-focused app for managing your
-            finances. It is 100% free and open source: everything stays on your
-            device, no data is collected, and there is nothing to sign up for.
-          </Trans>
-        </Paragraph>
-      </View>
+          <SvgUserGroup width={20} height={20} aria-hidden />
+          <span className={pathCopyClass}>
+            <strong>
+              {serverURL ? (
+                <Trans>Open our connected home</Trans>
+              ) : (
+                <Trans>Enter our home</Trans>
+              )}
+            </strong>
+            <span>
+              {serverURL ? (
+                <Trans>Review the connection used by this device</Trans>
+              ) : (
+                <Trans>Connect and open a budget that is already shared</Trans>
+              )}
+            </span>
+          </span>
+          <SvgCheveronRight width={17} height={17} aria-hidden />
+        </button>
 
-      <View
-        className={entranceClass(300)}
-        style={{
-          width: '100%',
-          maxWidth: 400,
-          gap: 10,
-          flexShrink: 0,
-          marginTop: 10,
-        }}
-      >
-        <Button
-          variant="primary"
-          autoFocus={!isNarrowWidth}
-          style={buttonStyle}
-          onPress={() => dispatch(createBudget({}))}
+        <button
+          type="button"
+          className={pathClass}
+          onClick={() => createNewBudget()}
         >
-          <Trans>Start budgeting</Trans>
-        </Button>
-        <Button
-          style={buttonStyle}
-          onPress={() => dispatch(createBudget({ testMode: true }))}
-        >
-          <Trans>Try the demo</Trans>
-        </Button>
-        {!serverURL && (
+          <SvgFileDouble width={20} height={20} aria-hidden />
+          <span className={pathCopyClass}>
+            <strong>
+              <Trans>Start a new caderninho</Trans>
+            </strong>
+            <span>
+              <Trans>Create the first budget on this device</Trans>
+            </span>
+          </span>
+          <SvgCheveronRight width={17} height={17} aria-hidden />
+        </button>
+      </div>
+
+      <div className={secondaryAreaClass}>
+        <p>
+          <Trans>Want to explore first or bring an existing budget?</Trans>
+        </p>
+        <div className={secondaryActionsClass}>
           <Button
-            style={buttonStyle}
-            onPress={() => navigate('/config-server')}
+            variant="bare"
+            style={secondaryButtonStyle}
+            onPress={() => createNewBudget({ testMode: true })}
           >
-            <Trans>Connect to a sync server</Trans>
+            <Trans>Try with an example</Trans>
           </Button>
-        )}
-      </View>
+          <Button
+            variant="bare"
+            style={secondaryButtonStyle}
+            onPress={() => dispatch(pushModal({ modal: { name: 'import' } }))}
+          >
+            <SvgCloudDownload width={15} height={15} aria-hidden />
+            <Trans>Import budget</Trans>
+          </Button>
+        </div>
+      </div>
 
-      <View
-        className={entranceClass(450)}
-        style={{
-          alignItems: 'center',
-          gap: isNarrowWidth ? 12 : 5,
-          flexShrink: 0,
-          marginTop: 10,
-        }}
-      >
-        <Text style={{ color: theme.pageTextLight }}>
-          <Trans>Coming from another budgeting app?</Trans>
-        </Text>
-        <Button
-          variant="bare"
-          style={{ color: theme.pageTextLink }}
-          onPress={() => dispatch(pushModal({ modal: { name: 'import' } }))}
-        >
-          <Trans>Import my budget</Trans>
-        </Button>
-        <Paragraph
-          style={{
-            color: theme.pageTextLight,
-            fontSize: 13,
-            textAlign: 'center',
-            maxWidth: 400,
-            marginTop: 10,
-            marginBottom: 0,
-          }}
-        >
-          <Trans>
-            New to budgeting? Take the{' '}
-            <Link
-              variant="external"
-              to="https://actualbudget.org/docs/tour/"
-              linkColor="purple"
-            >
-              guided tour
-            </Link>{' '}
-            to learn how Actual works.
-          </Trans>
-        </Paragraph>
-      </View>
-    </View>
+      <span className={connectionNoteClass}>
+        <Trans>You can change the connection later in Home settings.</Trans>
+      </span>
+    </ManagerSurface>
   );
 }
+
+const stageHeadingClass = css({
+  display: 'grid',
+  gap: nossoCaderninho.space.sm,
+  marginBottom: nossoCaderninho.space.xl,
+  h2: {
+    margin: 0,
+    color: nossoCaderninho.color.graphite,
+    fontSize: 20,
+    fontWeight: 720,
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
+  },
+  p: {
+    margin: 0,
+    color: nossoCaderninho.color.graphiteSubdued,
+    fontSize: 13,
+    lineHeight: 1.45,
+  },
+});
+
+const primaryPathsClass = css({
+  display: 'grid',
+  borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
+});
+
+const pathClass = css({
+  display: 'grid',
+  gridTemplateColumns: '20px minmax(0, 1fr) 17px',
+  alignItems: 'center',
+  gap: nossoCaderninho.space.md,
+  width: '100%',
+  padding: '16px 4px',
+  color: nossoCaderninho.color.graphite,
+  font: 'inherit',
+  textAlign: 'left',
+  background: 'transparent',
+  border: 0,
+  borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+  borderRadius: 0,
+  cursor: 'pointer',
+  transition: `background-color ${nossoCaderninho.motion.duration} ${nossoCaderninho.motion.easing}`,
+  '&:hover': {
+    backgroundColor: nossoCaderninho.color.signalSoft,
+  },
+  '&:focus-visible': {
+    position: 'relative',
+    zIndex: 1,
+    outline: `2px solid ${nossoCaderninho.color.focusOnLight}`,
+    outlineOffset: 2,
+  },
+  svg: {
+    color: nossoCaderninho.color.partnership,
+  },
+  '@media (max-width: 720px)': {
+    minHeight: 58,
+    padding: '14px 4px',
+  },
+});
+
+const pathCopyClass = css({
+  display: 'grid',
+  minWidth: 0,
+  gap: 3,
+  strong: {
+    fontSize: 14,
+    fontWeight: 650,
+    lineHeight: 1.3,
+  },
+  span: {
+    color: nossoCaderninho.color.graphiteSubdued,
+    fontSize: 12,
+    lineHeight: 1.4,
+  },
+});
+
+const secondaryAreaClass = css({
+  display: 'grid',
+  gap: nossoCaderninho.space.sm,
+  marginTop: 'auto',
+  paddingTop: nossoCaderninho.space.xl,
+  p: {
+    margin: 0,
+    color: nossoCaderninho.color.graphiteSubdued,
+    fontSize: 12,
+    lineHeight: 1.4,
+  },
+});
+
+const secondaryActionsClass = css({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: nossoCaderninho.space.sm,
+});
+
+const secondaryButtonStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  minHeight: 36,
+  padding: '8px 12px',
+  color: nossoCaderninho.color.partnership,
+  backgroundColor: nossoCaderninho.color.partnershipSoft,
+  borderRadius: nossoCaderninho.radius.control,
+} as const;
+
+const connectionNoteClass = css({
+  marginTop: nossoCaderninho.space.lg,
+  color: nossoCaderninho.color.graphiteSubdued,
+  fontSize: 11,
+  lineHeight: 1.4,
+});

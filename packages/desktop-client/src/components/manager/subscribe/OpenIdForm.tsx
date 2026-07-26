@@ -334,21 +334,12 @@ const openIdProviders: (OpenIdProviderOption | typeof Menu.line)[] = [
       clientIdDisabled: true,
       submitButtonDisabled: true,
       tip: (
-        <>
-          <Text style={{ color: theme.errorText }}>
-            <Trans>
-              GitHub does not support discovery. You need to configure it in the
-              server.
-            </Trans>
-          </Text>{' '}
-          <Link
-            variant="external"
-            to="https://actualbudget.org/docs/"
-            linkColor="muted"
-          >
-            <Trans>Learn more</Trans>
-          </Link>
-        </>
+        <Text style={{ color: theme.errorText }}>
+          <Trans>
+            GitHub does not support discovery. You need to configure it in the
+            server.
+          </Trans>
+        </Text>
       ),
     },
     {
@@ -391,13 +382,6 @@ const openIdProviders: (OpenIdProviderOption | typeof Menu.line)[] = [
             from server
           </Text>
         </Trans>{' '}
-        <Link
-          variant="external"
-          to="https://actualbudget.org/docs/"
-          linkColor="muted"
-        >
-          <Trans>Learn more</Trans>
-        </Link>
       </Text>
     ),
   },

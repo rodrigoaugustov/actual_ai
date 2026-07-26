@@ -9,15 +9,19 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { css } from '@emotion/css';
 
+import { nossoCaderninho } from '#style/nossoCaderninho';
+
 type ConfirmPasswordFormProps = {
   buttons: ReactNode;
   onSetPassword: (password: string) => Promise<void>;
   onError: (error: string) => void;
+  surface?: 'default' | 'manager';
 };
 export function ConfirmPasswordForm({
   buttons,
   onSetPassword,
   onError,
+  surface = 'default',
 }: ConfirmPasswordFormProps) {
   const { t } = useTranslation();
 
@@ -55,6 +59,7 @@ export function ConfirmPasswordForm({
     >
       <BigInput
         autoFocus
+        className={surface === 'manager' ? managerInputClass : undefined}
         placeholder={t('Password')}
         type={showPassword ? 'text' : 'password'}
         value={password1}
@@ -62,6 +67,7 @@ export function ConfirmPasswordForm({
         onEnter={onSubmit}
       />
       <BigInput
+        className={surface === 'manager' ? managerInputClass : undefined}
         placeholder={t('Confirm password')}
         type={showPassword ? 'text' : 'password'}
         value={password2}
@@ -87,6 +93,16 @@ export function ConfirmPasswordForm({
         <ButtonWithLoading
           variant="primary"
           isLoading={loading}
+          style={
+            surface === 'manager'
+              ? {
+                  color: nossoCaderninho.color.navText,
+                  backgroundColor: nossoCaderninho.color.partnership,
+                  borderColor: nossoCaderninho.color.partnership,
+                  boxShadow: 'none',
+                }
+              : undefined
+          }
           onPress={onSubmit}
         >
           <Trans>OK</Trans>
@@ -95,6 +111,17 @@ export function ConfirmPasswordForm({
     </View>
   );
 }
+
+const managerInputClass = css({
+  color: `${nossoCaderninho.color.graphite} !important`,
+  backgroundColor: `${nossoCaderninho.color.plate} !important`,
+  borderColor: `${nossoCaderninho.color.rail} !important`,
+  boxShadow: 'none !important',
+  '&::placeholder': {
+    color: `${nossoCaderninho.color.graphiteSubdued} !important`,
+    opacity: 1,
+  },
+});
 
 export function ConfirmOldPasswordForm({
   buttons,

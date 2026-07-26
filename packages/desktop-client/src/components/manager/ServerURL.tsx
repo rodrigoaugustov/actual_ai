@@ -6,6 +6,7 @@ import { View } from '@actual-app/components/view';
 
 import { Link } from '#components/common/Link';
 import { useServerURL } from '#components/ServerContext';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 export function ServerURL() {
   const url = useServerURL();
@@ -17,23 +18,33 @@ export function ServerURL() {
         bottom: 0,
         left: 0,
         right: 0,
+        alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        marginBottom: 'calc(15px + env(safe-area-inset-bottom))',
+        gap: 10,
+        minHeight: 42,
+        padding: '8px 16px calc(8px + env(safe-area-inset-bottom))',
+        color: nossoCaderninho.color.graphiteSubdued,
+        backgroundColor: nossoCaderninho.color.enamel,
+        borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
+        fontFamily: nossoCaderninho.font.family,
+        fontSize: 12,
         zIndex: 5000,
       }}
     >
       <Text>
         {url ? (
-          <Trans>
-            Using server: <strong>{url}</strong>
-          </Trans>
+          <Trans>Home sync is configured on this device</Trans>
         ) : (
-          <Trans>Using this device only</Trans>
+          <Trans>Budgets are stored on this device</Trans>
         )}
       </Text>
-      <Link variant="internal" to="/config-server" style={{ marginLeft: 15 }}>
-        {url ? <Trans>Change</Trans> : <Trans>Set up sync</Trans>}
+      <Link
+        variant="internal"
+        to="/config-server"
+        style={{ color: nossoCaderninho.color.partnership }}
+      >
+        {url ? <Trans>Review connection</Trans> : <Trans>Set up sync</Trans>}
       </Link>
     </View>
   );

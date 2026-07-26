@@ -5,15 +5,15 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@actual-app/components/button';
 import { Paragraph } from '@actual-app/components/paragraph';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 
 import { createBudget } from '#budgetfiles/budgetfilesSlice';
-import { Link } from '#components/common/Link';
+import { ManagerSurface } from '#components/manager/ManagerSurface';
 import { useRefreshLoginMethods } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { Title, useBootstrapped } from './common';
 import { ConfirmPasswordForm } from './ConfirmPasswordForm';
@@ -67,56 +67,59 @@ export function Bootstrap() {
   }
 
   return (
-    <View style={{ maxWidth: 450 }}>
-      <Title text={t('Welcome to Actual!')} />
-      <Paragraph style={{ fontSize: 16, color: theme.pageTextDark }}>
+    <ManagerSurface
+      chapter={<Trans>Protection of our home</Trans>}
+      title={<Trans>Create secure access for the family.</Trans>}
+      description={
         <Trans>
-          Actual is a super fast privacy-focused app for managing your finances.
-          To secure your data, you'll need to set a password for your server.
+          This password protects the sync service used by your devices.
         </Trans>
-      </Paragraph>
-
-      <Paragraph isLast style={{ fontSize: 16, color: theme.pageTextDark }}>
-        <Trans>
-          Consider opening{' '}
-          <Link variant="external" to="https://actualbudget.org/docs/tour/">
-            our tour
-          </Link>{' '}
-          in a new tab for some guidance on what to do when you've set your
-          password.
-        </Trans>
-      </Paragraph>
-
-      {error && (
-        <Text
-          style={{
-            marginTop: 20,
-            color: theme.errorText,
-            borderRadius: 4,
-            fontSize: 15,
-          }}
+      }
+      status={<Trans>An internet connection is required for this step</Trans>}
+    >
+      <View style={{ width: '100%', maxWidth: 450 }}>
+        <Title level={2} text={t('Protect this home')} />
+        <Paragraph
+          style={{ fontSize: 14, color: nossoCaderninho.color.graphite }}
         >
-          {getErrorMessage(error)}
-        </Text>
-      )}
+          <Trans>
+            Choose a password for this sync service. You will use it when
+            connecting another device to the same home.
+          </Trans>
+        </Paragraph>
 
-      <ConfirmPasswordForm
-        buttons={
-          <Button
-            variant="bare"
+        {error && (
+          <Text
             style={{
+              marginTop: 20,
+              color: nossoCaderninho.color.limit,
+              borderRadius: 4,
               fontSize: 15,
-              color: theme.pageTextLink,
-              marginRight: 15,
             }}
-            onPress={onDemo}
           >
-            {t('Try Demo')}
-          </Button>
-        }
-        onSetPassword={onSetPassword}
-        onError={setError}
-      />
-    </View>
+            {getErrorMessage(error)}
+          </Text>
+        )}
+
+        <ConfirmPasswordForm
+          surface="manager"
+          buttons={
+            <Button
+              variant="bare"
+              style={{
+                fontSize: 15,
+                color: nossoCaderninho.color.partnership,
+                marginRight: 15,
+              }}
+              onPress={onDemo}
+            >
+              {t('Try Demo')}
+            </Button>
+          }
+          onSetPassword={onSetPassword}
+          onError={setError}
+        />
+      </View>
+    </ManagerSurface>
   );
 }

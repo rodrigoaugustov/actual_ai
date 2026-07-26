@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 
-import { theme } from '@actual-app/components/theme';
 import { send } from '@actual-app/core/platform/client/connection';
 import { isElectron } from '@actual-app/core/shared/environment';
 import type { Handlers } from '@actual-app/core/types/handlers';
@@ -14,6 +13,7 @@ import {
 } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { loggedIn } from '#users/usersSlice';
 
 // There are two URLs that dance with each other: `/login` and
@@ -142,18 +142,25 @@ export function useBootstrapped(redirect = true) {
 
 type TitleProps = {
   text: string;
+  level?: 1 | 2;
 };
-export function Title({ text }: TitleProps) {
+export function Title({ text, level = 1 }: TitleProps) {
+  const Heading = level === 2 ? 'h2' : 'h1';
+
   return (
-    <h1
+    <Heading
       style={{
-        fontSize: 40,
-        fontWeight: 700,
-        color: theme.pageTextPositive,
-        marginBottom: 20,
+        margin: 0,
+        marginBottom: 12,
+        color: nossoCaderninho.color.graphite,
+        fontFamily: nossoCaderninho.font.family,
+        fontSize: level === 2 ? 20 : 28,
+        fontWeight: 720,
+        lineHeight: 1.1,
+        letterSpacing: level === 2 ? '-0.02em' : '-0.025em',
       }}
     >
       {text}
-    </h1>
+    </Heading>
   );
 }

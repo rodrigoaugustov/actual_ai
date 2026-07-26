@@ -25,7 +25,6 @@ import { Popover } from '@actual-app/components/popover';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
-import { tokens } from '@actual-app/components/tokens';
 import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
 import {
@@ -55,7 +54,10 @@ import { useMetadataPref } from '#hooks/useMetadataPref';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch, useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { getUserData } from '#users/usersSlice';
+
+import { ManagerSurface } from './ManagerSurface';
 
 function getFileDescription(file: File, t: (key: string) => string) {
   if (file.state === 'unknown') {
@@ -167,7 +169,7 @@ function BudgetFileState({ file, currentUserId }: BudgetFileStateProps) {
 
   let Icon;
   let status;
-  let color;
+  let color: string = nossoCaderninho.color.balance;
   let ownerName = null;
 
   const getOwnerDisplayName = useCallback(() => {
@@ -188,27 +190,31 @@ function BudgetFileState({ file, currentUserId }: BudgetFileStateProps) {
     case 'unknown':
       Icon = SvgCloudUnknown;
       status = t('Network unavailable');
-      color = theme.buttonNormalDisabledText;
+      color = nossoCaderninho.color.graphiteSubdued;
       ownerName = t('Unknown');
       break;
     case 'remote':
       Icon = SvgCloudDownload;
       status = t('Available for download');
+      color = nossoCaderninho.color.partnership;
       ownerName = getOwnerDisplayName();
       break;
     case 'local':
       Icon = SvgFileDouble;
       status = t('Local');
+      color = nossoCaderninho.color.balance;
       ownerName = t('You');
       break;
     case 'broken':
       Icon = SvgFileDouble;
       status = t('Local');
+      color = nossoCaderninho.color.commitment;
       ownerName = t('Unknown');
       break;
     default:
       Icon = SvgCloudCheck;
       status = t('Syncing');
+      color = nossoCaderninho.color.balance;
       ownerName = getOwnerDisplayName();
       break;
   }
@@ -216,34 +222,26 @@ function BudgetFileState({ file, currentUserId }: BudgetFileStateProps) {
   const showOwnerContent = multiuserEnabled && file.owner !== currentUserId;
 
   return (
-    <View style={{ width: '100%' }}>
-      <View
-        style={{
-          color,
-          alignItems: 'center',
-          flexDirection: 'row',
-          marginTop: 8,
-        }}
-      >
+    <View style={{ width: '100%', gap: 4 }}>
+      <View style={{ color, alignItems: 'center', flexDirection: 'row' }}>
         <Icon
           style={{
-            width: 18,
-            height: 18,
+            width: 15,
+            height: 15,
             color: 'currentColor',
           }}
         />
 
-        <Text style={{ marginLeft: 5 }}>{status}</Text>
+        <Text style={{ marginLeft: 6, fontSize: 12 }}>{status}</Text>
       </View>
 
-      <View style={{ paddingTop: 10, flexDirection: 'row', width: '100%' }}>
+      <View style={{ flexDirection: 'row', width: '100%' }}>
         {showOwnerContent && (
           <View style={{ flexDirection: 'row' }}>
             <Text
               style={{
-                ...styles.altMenuHeaderText,
                 ...styles.verySmallText,
-                color: theme.pageTextLight,
+                color: nossoCaderninho.color.graphiteSubdued,
               }}
             >
               <Trans>Owner:</Trans>
@@ -251,8 +249,8 @@ function BudgetFileState({ file, currentUserId }: BudgetFileStateProps) {
             <Text
               style={{
                 ...styles.verySmallText,
-                color: theme.pageTextLight,
-                paddingLeft: 10,
+                color: nossoCaderninho.color.graphiteSubdued,
+                paddingLeft: 5,
               }}
             >
               {ownerName}
@@ -309,28 +307,32 @@ function BudgetFileListItem({
       onAction={() => _onSelect(file)}
       {...props}
     >
-      <View
-        className={css({
-          ...styles.shadow,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          margin: '5px 10px',
-          padding: 15,
-          cursor: 'pointer',
-          borderRadius: 6,
-          backgroundColor: theme.buttonNormalBackground,
-          '&:hover': {
-            backgroundColor: theme.buttonNormalBackgroundHover,
-          },
-        })}
-      >
+      <View className={budgetRowClass}>
         <View
           title={getFileDescription(file, t) || ''}
           style={{ alignItems: 'flex-start', width: '100%' }}
         >
-          <View style={{ flexDirection: 'row', width: '100%' }}>
-            <Text style={{ fontSize: 16, fontWeight: 700 }}>{file.name}</Text>
+          <View
+            style={{
+              minWidth: 0,
+              flexDirection: 'row',
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Text
+              style={{
+                minWidth: 0,
+                overflow: 'hidden',
+                fontSize: 14,
+                fontWeight: 650,
+                lineHeight: 1.3,
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {file.name}
+            </Text>
             {multiuserEnabled && 'cloudFileId' in file && (
               <UserAccessForFile
                 fileId={file.cloudFileId}
@@ -356,8 +358,8 @@ function BudgetFileListItem({
                 height: 13,
                 marginRight: 8,
                 color: file.hasKey
-                  ? theme.formLabelText
-                  : theme.buttonNormalDisabledText,
+                  ? nossoCaderninho.color.partnership
+                  : nossoCaderninho.color.graphiteSubdued,
               }}
             />
           )}
@@ -397,20 +399,23 @@ function BudgetFileList({
       aria-label={t('Budget files')}
       items={files}
       style={{
-        overflow: 'auto',
+        flex: 1,
+        minHeight: 0,
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
       }}
       renderEmptyState={() => (
         <Text
           style={{
-            ...styles.mediumText,
-            textAlign: 'center',
-            color: theme.pageTextSubdued,
+            padding: 24,
+            fontSize: 13,
+            textAlign: 'left',
+            color: nossoCaderninho.color.graphiteSubdued,
           }}
         >
-          <Trans>No budget files</Trans>
+          <Trans>No other caderninhos are available on this device.</Trans>
         </Text>
       )}
     >
@@ -474,7 +479,7 @@ function SettingsButton({ onOpenSettings }: SettingsButtonProps) {
     <View>
       <Button
         variant="bare"
-        aria-label={t('Settings')}
+        aria-label={t('Home settings')}
         onPress={() => {
           onOpenSettings();
         }}
@@ -498,32 +503,31 @@ function BudgetFileSelectionHeader({
   onOpenSettings,
 }: BudgetFileSelectionHeaderProps) {
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        margin: 20,
-      }}
-    >
-      <Text
-        style={{
-          ...styles.veryLargeText,
-        }}
-      >
-        <Trans>Files</Trans>
-      </Text>
+    <div className={selectionHeaderClass}>
+      <div className={selectionHeadingClass}>
+        <h2>
+          {quickSwitchMode ? (
+            <Trans>Choose another caderninho</Trans>
+          ) : (
+            <Trans>Caderninhos from this home</Trans>
+          )}
+        </h2>
+        {!quickSwitchMode && (
+          <p>
+            <Trans>
+              Open a budget available on this device or download one from your
+              connected home.
+            </Trans>
+          </p>
+        )}
+      </div>
       {!quickSwitchMode && (
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: '0.2rem',
-          }}
-        >
+        <View style={{ flexDirection: 'row', gap: 4 }}>
           {onRefresh && <RefreshButton onRefresh={onRefresh} />}
           {isElectron() && <SettingsButton onOpenSettings={onOpenSettings} />}
         </View>
       )}
-    </View>
+    </div>
   );
 }
 
@@ -611,24 +615,8 @@ export function BudgetFileSelection({
     }
   };
 
-  return (
-    <View
-      style={{
-        maxHeight: '100%',
-        flex: 1,
-        justifyContent: 'center',
-        ...(quickSwitchMode
-          ? {
-              marginTop: 20,
-              width: '100vw',
-            }
-          : { marginBottom: 20 }),
-        [`@media (min-width: ${tokens.breakpoint_small})`]: {
-          maxWidth: tokens.breakpoint_small,
-          width: '100%',
-        },
-      }}
-    >
+  const selectionContent = (
+    <>
       {showHeader && (
         <BudgetFileSelectionHeader
           quickSwitchMode={quickSwitchMode}
@@ -667,27 +655,18 @@ export function BudgetFileSelection({
         }}
       />
       {!quickSwitchMode && (
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'flex-end',
-            alignItems: 'stretch',
-            margin: 10,
-            minHeight: 39,
-          }}
-        >
+        <div className={selectionActionsClass}>
           <Button
             variant="bare"
             style={{
               ...narrowButtonStyle,
-              marginLeft: 10,
-              color: theme.pageTextLight,
+              color: nossoCaderninho.color.partnership,
             }}
             onPress={() => {
               dispatch(pushModal({ modal: { name: 'import' } }));
             }}
           >
-            <Trans>Import file</Trans>
+            <Trans>Import budget</Trans>
           </Button>
 
           <Button
@@ -695,10 +674,10 @@ export function BudgetFileSelection({
             onPress={() => onCreate()}
             style={{
               ...narrowButtonStyle,
-              marginLeft: 10,
+              backgroundColor: nossoCaderninho.color.partnership,
             }}
           >
-            <Trans>Create new file</Trans>
+            <Trans>Start a new caderninho</Trans>
           </Button>
 
           {isNonProductionEnvironment() && (
@@ -707,17 +686,123 @@ export function BudgetFileSelection({
               onPress={() => onCreate({ testMode: true })}
               style={{
                 ...narrowButtonStyle,
-                marginLeft: 10,
+                backgroundColor: nossoCaderninho.color.partnership,
               }}
             >
-              <Trans>Create test file</Trans>
+              <Trans>Create test caderninho</Trans>
             </Button>
           )}
-        </View>
+        </div>
       )}
-    </View>
+    </>
+  );
+
+  if (quickSwitchMode) {
+    return <View className={quickSwitchClass}>{selectionContent}</View>;
+  }
+
+  return (
+    <ManagerSurface
+      chapter={<Trans>Our home</Trans>}
+      title={<Trans>Choose a caderninho to continue.</Trans>}
+      description={
+        <Trans>
+          Local and shared budgets stay together here, with their availability
+          clearly indicated.
+        </Trans>
+      }
+      status={
+        serverStatus === 'online' ? (
+          <Trans>Connected home available</Trans>
+        ) : (
+          <Trans>Local budgets remain available offline</Trans>
+        )
+      }
+    >
+      {selectionContent}
+    </ManagerSurface>
   );
 }
+
+const budgetRowClass = css({
+  display: 'flex',
+  minWidth: 0,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: nossoCaderninho.space.md,
+  minHeight: 66,
+  padding: '12px 4px',
+  color: nossoCaderninho.color.graphite,
+  backgroundColor: nossoCaderninho.color.plate,
+  borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+  cursor: 'pointer',
+  transition: `background-color ${nossoCaderninho.motion.duration} ${nossoCaderninho.motion.easing}`,
+  '&:hover': {
+    backgroundColor: nossoCaderninho.color.signalSoft,
+  },
+  '[data-focused] &': {
+    outline: `2px solid ${nossoCaderninho.color.focusOnLight}`,
+    outlineOffset: -2,
+  },
+});
+
+const selectionHeaderClass = css({
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: nossoCaderninho.space.md,
+  marginBottom: nossoCaderninho.space.lg,
+});
+
+const selectionHeadingClass = css({
+  display: 'grid',
+  gap: nossoCaderninho.space.sm,
+  minWidth: 0,
+  h2: {
+    margin: 0,
+    color: nossoCaderninho.color.graphite,
+    fontSize: 20,
+    fontWeight: 720,
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
+  },
+  p: {
+    maxWidth: '58ch',
+    margin: 0,
+    color: nossoCaderninho.color.graphiteSubdued,
+    fontSize: 13,
+    lineHeight: 1.45,
+  },
+});
+
+const selectionActionsClass = css({
+  display: 'flex',
+  flexWrap: 'wrap-reverse',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+  gap: nossoCaderninho.space.sm,
+  minHeight: 39,
+  marginTop: nossoCaderninho.space.lg,
+  '@media (max-width: 520px)': {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    button: {
+      width: '100%',
+    },
+  },
+});
+
+const quickSwitchClass = css({
+  display: 'flex',
+  width: 'min(560px, 100vw)',
+  maxHeight: 'min(620px, calc(100dvh - 40px))',
+  flexDirection: 'column',
+  padding: nossoCaderninho.space.xl,
+  color: nossoCaderninho.color.graphite,
+  backgroundColor: nossoCaderninho.color.plate,
+  fontFamily: nossoCaderninho.font.family,
+});
 
 type UserAccessForFileProps = {
   fileId: string;
