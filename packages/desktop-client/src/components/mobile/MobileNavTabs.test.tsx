@@ -1,9 +1,6 @@
-import { useRef } from 'react';
 import { MemoryRouter } from 'react-router';
 
-import { fireEvent, render, screen } from '@testing-library/react';
-
-import { ScrollProvider } from '#hooks/useScrollListener';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import { MobileNavTabs } from './MobileNavTabs';
 
@@ -15,39 +12,42 @@ vi.mock('#hooks/useSyncServerStatus', () => ({
   useSyncServerStatus: () => 'online',
 }));
 
-function TestNav() {
-  const scrollableRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <ScrollProvider scrollableRef={scrollableRef} isDisabled>
-      <div ref={scrollableRef}>
-        <MobileNavTabs />
-      </div>
-    </ScrollProvider>
-  );
-}
-
 describe('MobileNavTabs', () => {
-  it('keeps AI operations, the advisor, and settings reachable', () => {
+  it('keeps five primary destinations and places analyses under House', () => {
     render(
       <MemoryRouter>
-        <TestNav />
+        <MobileNavTabs />
       </MemoryRouter>,
     );
 
-    const navigation = screen.getByRole('navigation');
-    const links = [...navigation.querySelectorAll('a')];
-    expect(links.slice(-3).map(link => link.textContent)).toEqual([
-      'AI operations',
-      'Financial advisor',
-      'Settings',
-    ]);
-    expect(navigation).toHaveStyle({ height: '308px' });
+    const navigation = screen.getByRole('navigation', {
+      name: 'Main navigation',
+    });
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .map(link => link.textContent),
+    ).toEqual(['Today', 'Movements', 'Plan', 'Assistant']);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Expand navigation menu' }),
-    );
-    expect(navigation).toHaveAttribute('data-navbar-state', 'open');
-    expect(screen.getByRole('link', { name: 'Settings' })).toBeVisible();
+    const houseButton = within(navigation).getByRole('button', {
+      name: 'House',
+    });
+    expect(houseButton).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(houseButton);
+
+    expect(houseButton).toHaveAttribute('aria-expanded', 'true');
+    const houseNavigation = screen.getByTestId('house-navigation');
+    expect(
+      within(houseNavigation).getByRole('link', { name: 'Analyses' }),
+    ).toBeVisible();
+    expect(
+      within(houseNavigation).getByRole('link', { name: 'Settings' }),
+    ).toBeVisible();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(houseButton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('house-navigation')).not.toBeInTheDocument();
+    expect(houseButton).toHaveFocus();
   });
 });

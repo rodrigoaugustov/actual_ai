@@ -30,6 +30,7 @@ import { ContextMenu } from './ContextMenu';
 import { EnableBankingCallback } from './EnableBankingCallback';
 import { FeatureErrorFallback } from './FeatureErrorFallback';
 import { GlobalKeys } from './GlobalKeys';
+import { HomePage } from './home/HomePage';
 import { MobileBankSyncAccountEditPage } from './mobile/banksync/MobileBankSyncAccountEditPage';
 import { MobileNavTabs } from './mobile/MobileNavTabs';
 import { TransactionEdit } from './mobile/transactions/TransactionEdit';
@@ -232,19 +233,23 @@ export function FinancesApp() {
                   position: 'relative',
                 }}
               >
-                <Titlebar
-                  style={{
-                    WebkitAppRegion: 'drag',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 1000,
-                  }}
-                />
+                {(!isNarrowWidth || location.pathname !== '/') && (
+                  <Titlebar
+                    style={{
+                      WebkitAppRegion: 'drag',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      zIndex: 1000,
+                    }}
+                  />
+                )}
                 <Notifications />
                 <BankSyncStatus />
-                {isNarrowWidth && <MobilePageHeaderSlot />}
+                {isNarrowWidth && location.pathname !== '/' && (
+                  <MobilePageHeaderSlot />
+                )}
                 {isNarrowWidth &&
                   !location.pathname.startsWith(
                     '/ai-pending-categorizations',
@@ -257,7 +262,7 @@ export function FinancesApp() {
                       isAccountsFetching || !accounts ? (
                         <LoadingIndicator />
                       ) : accounts.length > 0 ? (
-                        <Navigate to="/budget" replace />
+                        <HomePage />
                       ) : (
                         // If there are no accounts, we want to redirect the user to
                         // the All Accounts screen which will prompt them to add an account
@@ -464,15 +469,13 @@ export function FinancesApp() {
                       }
                     />
                   )}
-                  {/* redirect all other traffic to the budget page */}
-                  <Route
-                    path="/*"
-                    element={<Navigate to="/budget" replace />}
-                  />
+                  {/* Redirect all other traffic to the household overview. */}
+                  <Route path="/*" element={<Navigate to="/" replace />} />
                 </Routes>
               </View>
 
               <Routes>
+                <Route path="/" element={<MobileNavTabs />} />
                 <Route path="/budget" element={<MobileNavTabs />} />
                 <Route path="/accounts" element={<MobileNavTabs />} />
                 <Route path="/settings" element={<MobileNavTabs />} />
@@ -485,6 +488,7 @@ export function FinancesApp() {
                 <Route path="/rules" element={<MobileNavTabs />} />
                 <Route path="/payees" element={<MobileNavTabs />} />
                 <Route path="/schedules" element={<MobileNavTabs />} />
+                <Route path="/tags" element={<MobileNavTabs />} />
                 <Route path="/advisor" element={<MobileNavTabs />} />
                 <Route path="/ai-usage" element={<MobileNavTabs />} />
                 <Route

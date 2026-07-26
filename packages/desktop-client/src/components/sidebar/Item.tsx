@@ -10,8 +10,9 @@ import type {
 
 import { Block } from '@actual-app/components/block';
 import { styles } from '@actual-app/components/styles';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
+
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { ItemContent } from './ItemContent';
 
@@ -41,7 +42,7 @@ export function Item({
   forceActive = false,
 }: ItemProps) {
   const hoverStyle = {
-    backgroundColor: theme.sidebarItemBackgroundHover,
+    backgroundColor: nossoCaderninho.color.navHover,
   };
 
   const content = (
@@ -50,10 +51,11 @@ export function Item({
         flexDirection: 'row',
         alignItems: 'center',
         height: 20,
+        gap: 10,
       }}
     >
-      <Icon width={15} height={15} />
-      <Block style={{ marginLeft: 8 }}>{title}</Block>
+      <Icon width={16} height={16} />
+      <Block>{title}</Block>
       <View style={{ flex: 1 }} />
     </View>
   );
@@ -63,20 +65,22 @@ export function Item({
       <ItemContent
         style={{
           ...styles.mediumText,
-          paddingTop: 9,
-          paddingBottom: 9,
-          paddingLeft: 19 + indent,
-          paddingRight: 10,
+          margin: '2px 8px',
+          paddingTop: 10,
+          paddingBottom: 10,
+          paddingLeft: 12 + indent,
+          paddingRight: 12,
           textDecoration: 'none',
-          color: theme.sidebarItemText,
+          color: nossoCaderninho.color.navTextSubdued,
+          borderRadius: nossoCaderninho.radius.control,
           ...(forceHover ? hoverStyle : {}),
           ':hover': hoverStyle,
         }}
         forceActive={forceActive}
         activeStyle={{
-          borderLeft: '4px solid ' + theme.sidebarItemTextSelected,
-          paddingLeft: 19 + indent - 4,
-          color: theme.sidebarItemTextSelected,
+          color: nossoCaderninho.color.navText,
+          backgroundColor: nossoCaderninho.color.partnership,
+          fontWeight: 650,
         }}
         to={to}
         onClick={onClick}

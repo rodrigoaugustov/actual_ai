@@ -8,10 +8,10 @@ import type {
 } from 'react';
 
 import { Block } from '@actual-app/components/block';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
-import { accountNameStyle } from './Account';
+import { nossoCaderninho } from '#style/nossoCaderninho';
+
 import { ItemContent } from './ItemContent';
 
 const fontWeight = 600;
@@ -56,19 +56,24 @@ export function SecondaryItem({
     <View style={{ flexShrink: 0, ...style }}>
       <ItemContent
         style={{
-          ...accountNameStyle,
-          color: theme.sidebarItemText,
-          paddingLeft: 14 + indent,
+          minHeight: 34,
+          margin: '1px 8px',
+          padding: `8px 12px 8px ${28 + indent}px`,
+          color: nossoCaderninho.color.navTextSubdued,
+          fontSize: 12,
           fontWeight: bold ? fontWeight : null,
-          ':hover': { backgroundColor: theme.sidebarItemBackgroundHover },
+          borderRadius: nossoCaderninho.radius.control,
+          ':hover': {
+            color: nossoCaderninho.color.navText,
+            backgroundColor: nossoCaderninho.color.navHover,
+          },
         }}
         to={to}
         onClick={onClick}
         activeStyle={{
-          borderLeft: '4px solid ' + theme.sidebarItemTextSelected,
-          paddingLeft: 14 - 4 + indent,
-          color: theme.sidebarItemTextSelected,
-          fontWeight: bold ? fontWeight : null,
+          color: nossoCaderninho.color.navText,
+          backgroundColor: nossoCaderninho.color.navHover,
+          fontWeight: 650,
         }}
       >
         {content}

@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-26T14:44:00-03:00",
+  "title": "Design System: Nosso Caderninho",
+  "extensions": {
+    "colorMeta": {
+      "partnership": {
+        "role": "primary",
+        "displayName": "Azul Parceria",
+        "canonical": "#26677a",
+        "tonalRamp": ["oklch(15% 0.08 220)", "oklch(25% 0.08 220)", "oklch(38% 0.08 220)", "oklch(50% 0.08 220)", "oklch(62% 0.08 220)", "oklch(74% 0.07 220)", "oklch(86% 0.04 220)", "oklch(95% 0.02 220)"]
+      },
+      "partnership-soft": {
+        "role": "primary",
+        "displayName": "Azul Parceria Suave",
+        "canonical": "#e4eff1",
+        "tonalRamp": ["oklch(15% 0.025 220)", "oklch(25% 0.025 220)", "oklch(38% 0.025 220)", "oklch(50% 0.025 220)", "oklch(62% 0.025 220)", "oklch(74% 0.025 220)", "oklch(86% 0.025 220)", "oklch(95% 0.02 220)"]
+      },
+      "balance": {
+        "role": "secondary",
+        "displayName": "Verde Equilíbrio",
+        "canonical": "#4c7a61",
+        "tonalRamp": ["oklch(15% 0.06 150)", "oklch(25% 0.06 150)", "oklch(38% 0.06 150)", "oklch(50% 0.06 150)", "oklch(62% 0.06 150)", "oklch(74% 0.05 150)", "oklch(86% 0.03 150)", "oklch(95% 0.015 150)"]
+      },
+      "balance-soft": {
+        "role": "secondary",
+        "displayName": "Verde Equilíbrio Suave",
+        "canonical": "#e8f0eb",
+        "tonalRamp": ["oklch(15% 0.02 150)", "oklch(25% 0.02 150)", "oklch(38% 0.02 150)", "oklch(50% 0.02 150)", "oklch(62% 0.02 150)", "oklch(74% 0.02 150)", "oklch(86% 0.02 150)", "oklch(95% 0.015 150)"]
+      },
+      "commitment": {
+        "role": "secondary",
+        "displayName": "Âmbar Compromisso",
+        "canonical": "#b96f00",
+        "tonalRamp": ["oklch(15% 0.14 75)", "oklch(25% 0.14 75)", "oklch(38% 0.14 75)", "oklch(50% 0.14 75)", "oklch(62% 0.13 75)", "oklch(74% 0.10 75)", "oklch(86% 0.06 75)", "oklch(95% 0.025 75)"]
+      },
+      "commitment-soft": {
+        "role": "secondary",
+        "displayName": "Âmbar Compromisso Suave",
+        "canonical": "#fff1db",
+        "tonalRamp": ["oklch(15% 0.03 75)", "oklch(25% 0.03 75)", "oklch(38% 0.03 75)", "oklch(50% 0.03 75)", "oklch(62% 0.03 75)", "oklch(74% 0.03 75)", "oklch(86% 0.03 75)", "oklch(95% 0.025 75)"]
+      },
+      "limit": {
+        "role": "tertiary",
+        "displayName": "Vermelho Limite",
+        "canonical": "#b44238",
+        "tonalRamp": ["oklch(15% 0.12 28)", "oklch(25% 0.12 28)", "oklch(38% 0.12 28)", "oklch(50% 0.12 28)", "oklch(62% 0.11 28)", "oklch(74% 0.08 28)", "oklch(86% 0.045 28)", "oklch(95% 0.02 28)"]
+      },
+      "limit-soft": {
+        "role": "tertiary",
+        "displayName": "Vermelho Limite Suave",
+        "canonical": "#fbe9e7",
+        "tonalRamp": ["oklch(15% 0.025 28)", "oklch(25% 0.025 28)", "oklch(38% 0.025 28)", "oklch(50% 0.025 28)", "oklch(62% 0.025 28)", "oklch(74% 0.025 28)", "oklch(86% 0.025 28)", "oklch(95% 0.02 28)"]
+      },
+      "enamel": {
+        "role": "neutral",
+        "displayName": "Esmalte Claro",
+        "canonical": "#f2f5f4",
+        "tonalRamp": ["oklch(15% 0.015 170)", "oklch(25% 0.015 170)", "oklch(38% 0.015 170)", "oklch(50% 0.015 170)", "oklch(62% 0.015 170)", "oklch(74% 0.015 170)", "oklch(86% 0.012 170)", "oklch(95% 0.008 170)"]
+      },
+      "plate": {
+        "role": "neutral",
+        "displayName": "Placa Branca",
+        "canonical": "#ffffff",
+        "tonalRamp": ["oklch(15% 0 0)", "oklch(25% 0 0)", "oklch(38% 0 0)", "oklch(50% 0 0)", "oklch(62% 0 0)", "oklch(74% 0 0)", "oklch(86% 0 0)", "oklch(100% 0 0)"]
+      },
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Grafite Estrutural",
+        "canonical": "#202729",
+        "tonalRamp": ["oklch(15% 0.015 205)", "oklch(25% 0.015 205)", "oklch(38% 0.015 205)", "oklch(50% 0.015 205)", "oklch(62% 0.015 205)", "oklch(74% 0.012 205)", "oklch(86% 0.008 205)", "oklch(95% 0.004 205)"]
+      },
+      "graphite-subdued": {
+        "role": "neutral",
+        "displayName": "Grafite Suave",
+        "canonical": "#5d6a6d",
+        "tonalRamp": ["oklch(15% 0.02 205)", "oklch(25% 0.02 205)", "oklch(38% 0.02 205)", "oklch(50% 0.02 205)", "oklch(62% 0.018 205)", "oklch(74% 0.014 205)", "oklch(86% 0.009 205)", "oklch(95% 0.004 205)"]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Trilho Médio",
+        "canonical": "#b8c3c2",
+        "tonalRamp": ["oklch(15% 0.015 175)", "oklch(25% 0.015 175)", "oklch(38% 0.015 175)", "oklch(50% 0.015 175)", "oklch(62% 0.015 175)", "oklch(74% 0.014 175)", "oklch(86% 0.01 175)", "oklch(95% 0.005 175)"]
+      },
+      "rail-soft": {
+        "role": "neutral",
+        "displayName": "Trilho Suave",
+        "canonical": "#dfe6e4",
+        "tonalRamp": ["oklch(15% 0.01 175)", "oklch(25% 0.01 175)", "oklch(38% 0.01 175)", "oklch(50% 0.01 175)", "oklch(62% 0.01 175)", "oklch(74% 0.01 175)", "oklch(86% 0.008 175)", "oklch(95% 0.004 175)"]
+      },
+      "signal-soft": {
+        "role": "neutral",
+        "displayName": "Sinal Suave",
+        "canonical": "#edf2f1",
+        "tonalRamp": ["oklch(15% 0.012 175)", "oklch(25% 0.012 175)", "oklch(38% 0.012 175)", "oklch(50% 0.012 175)", "oklch(62% 0.012 175)", "oklch(74% 0.01 175)", "oklch(86% 0.008 175)", "oklch(95% 0.004 175)"]
+      },
+      "nav": {
+        "role": "neutral",
+        "displayName": "Navegação Profunda",
+        "canonical": "#10292f",
+        "tonalRamp": ["oklch(15% 0.04 205)", "oklch(25% 0.04 205)", "oklch(38% 0.04 205)", "oklch(50% 0.04 205)", "oklch(62% 0.035 205)", "oklch(74% 0.025 205)", "oklch(86% 0.015 205)", "oklch(95% 0.006 205)"]
+      },
+      "nav-hover": {
+        "role": "neutral",
+        "displayName": "Navegação Elevada",
+        "canonical": "#183a43",
+        "tonalRamp": ["oklch(15% 0.045 205)", "oklch(25% 0.045 205)", "oklch(38% 0.045 205)", "oklch(50% 0.04 205)", "oklch(62% 0.035 205)", "oklch(74% 0.025 205)", "oklch(86% 0.015 205)", "oklch(95% 0.006 205)"]
+      },
+      "nav-text": {
+        "role": "neutral",
+        "displayName": "Texto de Navegação",
+        "canonical": "#f3f7f6",
+        "tonalRamp": ["oklch(15% 0.01 175)", "oklch(25% 0.01 175)", "oklch(38% 0.01 175)", "oklch(50% 0.01 175)", "oklch(62% 0.01 175)", "oklch(74% 0.008 175)", "oklch(86% 0.006 175)", "oklch(95% 0.004 175)"]
+      },
+      "nav-text-subdued": {
+        "role": "neutral",
+        "displayName": "Texto de Navegação Suave",
+        "canonical": "#b8c8c8",
+        "tonalRamp": ["oklch(15% 0.015 190)", "oklch(25% 0.015 190)", "oklch(38% 0.015 190)", "oklch(50% 0.015 190)", "oklch(62% 0.015 190)", "oklch(74% 0.012 190)", "oklch(86% 0.008 190)", "oklch(95% 0.004 190)"]
+      },
+      "focus-on-light": {
+        "role": "primary",
+        "displayName": "Foco em Superfície Clara",
+        "canonical": "#26677a",
+        "tonalRamp": ["oklch(15% 0.08 220)", "oklch(25% 0.08 220)", "oklch(38% 0.08 220)", "oklch(50% 0.08 220)", "oklch(62% 0.08 220)", "oklch(74% 0.07 220)", "oklch(86% 0.04 220)", "oklch(95% 0.02 220)"]
+      },
+      "focus-on-dark": {
+        "role": "primary",
+        "displayName": "Foco em Superfície Profunda",
+        "canonical": "#58a7b8",
+        "tonalRamp": ["oklch(15% 0.08 215)", "oklch(25% 0.08 215)", "oklch(38% 0.08 215)", "oklch(50% 0.08 215)", "oklch(62% 0.075 215)", "oklch(74% 0.06 215)", "oklch(86% 0.035 215)", "oklch(95% 0.015 215)"]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Nomeia o estado atual da casa." },
+      "title": { "displayName": "Title", "purpose": "Organiza painéis e grupos de trabalho." },
+      "body": { "displayName": "Body", "purpose": "Carrega contexto, instruções e conteúdo." },
+      "label": { "displayName": "Label", "purpose": "Identifica controles e metadados em português natural." },
+      "financial": { "displayName": "Financial", "purpose": "Mantém valores comparáveis com algarismos tabulares." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "state-duration", "value": "180ms", "purpose": "Duração padrão para hover, seleção e mudança de segmento." },
+      { "name": "state-easing", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "Easing funcional para mudanças de estado sem efeito elástico." }
+    ],
+    "breakpoints": [
+      { "name": "compact-panel", "value": "359px" },
+      { "name": "compact-attention-panel", "value": "439px" },
+      { "name": "mobile-shell", "value": "729px" },
+      { "name": "single-column-web", "value": "899px" },
+      { "name": "three-column", "value": "1280px" },
+      { "name": "content-maximum", "value": "1480px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "Destino persistente na navegação profunda.",
+      "html": "<a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M8 20H3V10H0L10 0l10 10h-3v10h-5v-6H8z\" fill=\"currentColor\"/></svg><span>Hoje</span></a>",
+      "css": ".ds-nav-item { display:flex; align-items:center; gap:10px; margin:2px 8px; padding:10px 12px; color:#b8c8c8; background:#10292f; border-radius:6px; font:600 13px Aptos,\"Segoe UI\",system-ui,sans-serif; text-decoration:none; transition:background-color 180ms cubic-bezier(.2,0,0,1),color 180ms cubic-bezier(.2,0,0,1); } .ds-nav-item svg { width:16px; height:16px; } .ds-nav-item:hover { color:#f3f7f6; background:#183a43; } .ds-nav-item:focus-visible { outline:2px solid #58a7b8; outline-offset:-2px; }"
+    },
+    {
+      "name": "Ghost Action",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ação secundária compartilhada sem criar elevação.",
+      "html": "<button class=\"ds-ghost-action\">Abrir planejamento</button>",
+      "css": ".ds-ghost-action { padding:8px 12px; color:#26677a; background:#e4eff1; border:0; border-radius:6px; font:650 13px Aptos,\"Segoe UI\",system-ui,sans-serif; transition:background-color 180ms cubic-bezier(.2,0,0,1); } .ds-ghost-action:hover { background:#edf2f1; } .ds-ghost-action:focus-visible { outline:2px solid #26677a; outline-offset:1px; }"
+    },
+    {
+      "name": "Shared Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Placa plana que compartilha bordas com conteúdo relacionado.",
+      "html": "<section class=\"ds-panel\"><header><h2>Compromissos</h2><p>O que já está previsto</p></header><div class=\"ds-panel-content\">Conteúdo financeiro</div></section>",
+      "css": ".ds-panel { color:#202729; background:#fff; border-top:1px solid #b8c3c2; border-bottom:1px solid #b8c3c2; font-family:Aptos,\"Segoe UI\",system-ui,sans-serif; } .ds-panel header { padding:16px; border-bottom:1px solid #dfe6e4; } .ds-panel h2 { margin:0; font-size:17px; line-height:1.25; } .ds-panel p { margin:4px 0 0; color:#5d6a6d; font-size:13px; } .ds-panel-content { padding:16px; } .ds-panel:focus-within { outline:2px solid #26677a; outline-offset:-2px; }"
+    },
+    {
+      "name": "Capacity Rail",
+      "kind": "custom",
+      "refersTo": "capacity-rail",
+      "description": "Assinatura visual para comprometido, planejado e disponível.",
+      "html": "<div class=\"ds-capacity\" role=\"img\" aria-label=\"Capacidade do mês\"><span class=\"ds-committed\"></span><span class=\"ds-planned\"></span><span class=\"ds-available\"></span></div>",
+      "css": ".ds-capacity { display:flex; height:46px; overflow:hidden; background:#edf2f1; border:1px solid #dfe6e4; border-radius:6px; } .ds-capacity span { min-width:4px; transition:flex-grow 180ms cubic-bezier(.2,0,0,1); } .ds-committed { flex:7; background:#b96f00; } .ds-planned { flex:2; background:#26677a; border-left:1px solid #fff; } .ds-available { flex:3; background:#4c7a61; border-left:1px solid #fff; } .ds-capacity:focus-visible { outline:2px solid #26677a; outline-offset:1px; }"
+    },
+    {
+      "name": "Dense Financial Row",
+      "kind": "custom",
+      "description": "Linha resiliente com conteúdo truncável e valor estável.",
+      "html": "<a class=\"ds-dense-row\" href=\"#\"><time>24/07</time><span><strong>Internet da casa</strong><small>Conta conjunta com nome muito longo</small></span><output>140,00</output></a>",
+      "css": ".ds-dense-row { min-height:52px; padding:0 16px; display:grid; grid-template-columns:52px minmax(0,1fr) auto; align-items:center; gap:8px; color:#202729; border-bottom:1px solid #dfe6e4; font:400 12px Aptos,\"Segoe UI\",system-ui,sans-serif; text-decoration:none; transition:background-color 180ms cubic-bezier(.2,0,0,1); } .ds-dense-row>span { min-width:0; display:grid; gap:2px; } .ds-dense-row strong,.ds-dense-row small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ds-dense-row small,.ds-dense-row time { color:#5d6a6d; } .ds-dense-row output { font-variant-numeric:tabular-nums; } .ds-dense-row:hover { background:#edf2f1; } .ds-dense-row:focus-visible { outline:2px solid #26677a; outline-offset:-2px; }"
+    },
+    {
+      "name": "Mobile Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "mobile-bottom-navigation",
+      "description": "Cinco destinos estáveis para conclusão de tarefas no mobile.",
+      "html": "<nav class=\"ds-mobile-nav\"><a class=\"active\" href=\"#\">Hoje</a><a href=\"#\">Movimentos</a><a href=\"#\">Planejar</a><a href=\"#\">Assistente</a><button>Casa</button></nav>",
+      "css": ".ds-mobile-nav { height:72px; padding:7px 6px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:2px; color:#b8c8c8; background:#10292f; border-top:1px solid #183a43; font:600 10px Aptos,\"Segoe UI\",system-ui,sans-serif; } .ds-mobile-nav a,.ds-mobile-nav button { display:flex; align-items:center; justify-content:center; min-width:0; padding:5px 2px; color:inherit; background:transparent; border:0; border-radius:6px; text-decoration:none; } .ds-mobile-nav .active,.ds-mobile-nav a:hover,.ds-mobile-nav button:hover { color:#f3f7f6; background:#183a43; } .ds-mobile-nav a:focus-visible,.ds-mobile-nav button:focus-visible { outline:2px solid #58a7b8; outline-offset:-2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Quadro da Casa",
+    "overview": "Nosso Caderninho se comporta como o quadro discreto que mantém uma casa funcionando: cada parte tem lugar, relação e estado reconhecíveis. Esmalte frio, placas brancas e trilhos funcionais formam uma interface precisa e doméstica, nunca corporativa ou decorativa.\n\nA expressão vive na organização do trabalho. Relações financeiras aparecem em estruturas contínuas; números permanecem firmemente alinhados; a voz acolhedora lembra que duas pessoas cuidam da mesma casa. O sistema rejeita tanto o mosaico de cards de fintech quanto a imitação literal de um caderno de papel.",
+    "keyCharacteristics": [
+      "Estrutura operacional clara, densa e estável.",
+      "Trilhos compartilhados como assinatura visual e relacional.",
+      "Cor com função explícita, nunca como preenchimento arbitrário.",
+      "Tipografia humanista de trabalho com números tabulares.",
+      "Composições próprias para Web e mobile sobre a mesma realidade financeira."
+    ],
+    "rules": [
+      { "name": "The Color Has a Job Rule", "body": "Toda cor deve indicar ação, relação, estado ou agrupamento; se puder ser removida sem perda de significado, ela não é necessária.", "section": "colors" },
+      { "name": "The Red Means Consequence Rule", "body": "Vermelho não representa gasto comum por reflexo; aparece apenas quando há risco, erro ou consequência que exige atenção.", "section": "colors" },
+      { "name": "The Numbers Stay Put Rule", "body": "Valores comparáveis mantêm largura, alinhamento e posição estáveis durante carregamento, edição e atualização.", "section": "typography" },
+      { "name": "The Label Is Language Rule", "body": "Rótulos devem ser lidos como português natural; caixa alta e tracking não servem de atalho para hierarquia.", "section": "typography" },
+      { "name": "The Density Is a Requirement Rule", "body": "A composição é validada com a faixa máxima realista de conteúdo; estados vazios não provam resiliência.", "section": "layout" },
+      { "name": "The Composition May Change Rule", "body": "Web e mobile podem usar árvores e padrões especializados quando isso melhora clareza, alcance e desempenho.", "section": "layout" },
+      { "name": "The Panel Is Not a Card Rule", "body": "Conteúdo relacionado compartilha estrutura e alinhamento antes de receber um contêiner individual.", "section": "elevation" },
+      { "name": "The Overlay Must Be Real Rule", "body": "Se um elemento não bloqueia, flutua ou se move sobre outro, ele não ganha sombra para parecer importante.", "section": "elevation" },
+      { "name": "The Shared Edge Rule", "body": "Elementos relacionados preferem bordas compartilhadas, alinhamento e continuidade a espaços decorativos entre caixas.", "section": "shapes" }
+    ],
+    "dos": [
+      "**Do** use trilhos e alinhamentos para tornar relações financeiras visíveis.",
+      "**Do** mantenha valores tabulares, ações importantes e contexto estáveis.",
+      "**Do** trate offline e reconexão como estados compreensíveis.",
+      "**Do** adapte composição e densidade à largura e ao modo de interação.",
+      "**Do** combine cor com texto, ícone ou forma."
+    ],
+    "donts": [
+      "**Don't** reconstrua a experiência como um mosaico de cards de KPI.",
+      "**Don't** use papel creme, linhas de caderno ou skeuomorfismo literal.",
+      "**Don't** use sombra, gradiente ou vidro para substituir hierarquia.",
+      "**Don't** esconda valores e ações críticos por sobreposição ou rolagem horizontal acidental.",
+      "**Don't** obrigue o mobile a reproduzir a composição da Web."
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+export const nossoCaderninho = {
+  color: {
+    enamel: '#f2f5f4',
+    plate: '#ffffff',
+    graphite: '#202729',
+    graphiteSubdued: '#5d6a6d',
+    rail: '#b8c3c2',
+    railSoft: '#dfe6e4',
+    signalSoft: '#edf2f1',
+    partnership: '#26677a',
+    partnershipSoft: '#e4eff1',
+    balance: '#4c7a61',
+    balanceSoft: '#e8f0eb',
+    commitment: '#b96f00',
+    commitmentSoft: '#fff1db',
+    limit: '#b44238',
+    limitSoft: '#fbe9e7',
+    nav: '#10292f',
+    navHover: '#183a43',
+    navText: '#f3f7f6',
+    navTextSubdued: '#b8c8c8',
+    focusOnLight: '#26677a',
+    focusOnDark: '#58a7b8',
+  },
+  font: {
+    family:
+      'Aptos, "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  },
+  radius: {
+    control: 6,
+    panel: 10,
+    status: 999,
+  },
+  space: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    xxl: 32,
+  },
+  motion: {
+    duration: '180ms',
+    easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+  },
+} as const;

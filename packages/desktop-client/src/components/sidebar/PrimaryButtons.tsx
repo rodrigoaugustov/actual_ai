@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 
@@ -9,6 +9,7 @@ import {
   SvgCog,
   SvgCreditCard,
   SvgInboxFull,
+  SvgPiggyBank,
   SvgReports,
   SvgStoreFront,
   SvgTag,
@@ -24,87 +25,78 @@ import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import { Item } from './Item';
 import { SecondaryItem } from './SecondaryItem';
 
+const ORGANIZATION_ROUTES = [
+  '/schedules',
+  '/ai-pending-categorizations',
+  '/ai-usage',
+  '/payees',
+  '/rules',
+  '/bank-sync',
+  '/tags',
+  '/settings',
+];
+
 export function PrimaryButtons() {
   const { t } = useTranslation();
-  const [isOpen, setOpen] = useState(false);
-  const onToggle = useCallback(() => setOpen(open => !open), []);
   const location = useLocation();
-
+  const isOrganizationActive = ORGANIZATION_ROUTES.some(route =>
+    location.pathname.startsWith(route),
+  );
+  const [isOrganizationOpen, setOrganizationOpen] =
+    useState(isOrganizationActive);
   const syncServerStatus = useSyncServerStatus();
   const isTestEnv = useIsTestEnv();
   const isUsingServer = syncServerStatus !== 'no-server' || isTestEnv;
 
-  const isActive = [
-    '/payees',
-    '/rules',
-    '/bank-sync',
-    '/settings',
-    '/tools',
-  ].some(route => location.pathname.startsWith(route));
-
   useEffect(() => {
-    if (isActive) {
-      setOpen(true);
+    if (isOrganizationActive) {
+      setOrganizationOpen(true);
     }
-  }, [isActive, location.pathname]);
+  }, [isOrganizationActive]);
 
   return (
     <View style={{ flexShrink: 0 }}>
-      <Item title={t('Budget')} Icon={SvgWallet} to="/budget" />
+      <Item title={t('Today')} Icon={SvgCalendar3} to="/" />
+      <Item title={t('Movements')} Icon={SvgPiggyBank} to="/accounts" />
+      <Item title={t('Planning')} Icon={SvgWallet} to="/budget" />
+      <Item title={t('Assistant')} Icon={SvgChatBubbleDots} to="/advisor" />
+      <Item title={t('Analyses')} Icon={SvgReports} to="/reports" />
+
       <Item
-        title={t('Financial advisor')}
-        Icon={SvgChatBubbleDots}
-        to="/advisor"
+        title={t('Organization')}
+        Icon={isOrganizationOpen ? SvgCheveronDown : SvgCheveronRight}
+        onClick={() => setOrganizationOpen(isOpen => !isOpen)}
+        style={{ marginTop: 10 }}
+        forceActive={!isOrganizationOpen && isOrganizationActive}
       />
-      <Item
-        title={t('AI operations')}
-        Icon={SvgInboxFull}
-        to="/ai-pending-categorizations"
-      />
-      <Item title={t('Reports')} Icon={SvgReports} to="/reports" />
-      <Item title={t('Schedules')} Icon={SvgCalendar3} to="/schedules" />
-      <Item
-        title={t('More')}
-        Icon={isOpen ? SvgCheveronDown : SvgCheveronRight}
-        onClick={onToggle}
-        style={{ marginBottom: isOpen ? 8 : 0 }}
-        forceActive={!isOpen && isActive}
-      />
-      {isOpen && (
-        <>
+      {isOrganizationOpen && (
+        <View style={{ marginBottom: 8 }}>
+          <SecondaryItem
+            title={t('Commitments')}
+            Icon={SvgCalendar3}
+            to="/schedules"
+          />
+          <SecondaryItem
+            title={t('AI review')}
+            Icon={SvgInboxFull}
+            to="/ai-pending-categorizations"
+          />
           <SecondaryItem
             title={t('Payees')}
             Icon={SvgStoreFront}
             to="/payees"
-            indent={15}
           />
-          <SecondaryItem
-            title={t('Rules')}
-            Icon={SvgTuning}
-            to="/rules"
-            indent={15}
-          />
+          <SecondaryItem title={t('Rules')} Icon={SvgTuning} to="/rules" />
           {isUsingServer && (
             <SecondaryItem
-              title={t('Bank Sync')}
+              title={t('Bank sync')}
               Icon={SvgCreditCard}
               to="/bank-sync"
-              indent={15}
             />
           )}
-          <SecondaryItem
-            title={t('Tags')}
-            Icon={SvgTag}
-            to="/tags"
-            indent={15}
-          />
-          <SecondaryItem
-            title={t('Settings')}
-            Icon={SvgCog}
-            to="/settings"
-            indent={15}
-          />
-        </>
+          <SecondaryItem title={t('Tags')} Icon={SvgTag} to="/tags" />
+          <SecondaryItem title={t('Settings')} Icon={SvgCog} to="/settings" />
+        </View>
       )}
     </View>
   );

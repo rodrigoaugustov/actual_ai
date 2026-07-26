@@ -1,8 +1,7 @@
-import React, { useCallback, useState } from 'react';
-import type { ComponentProps, ComponentType, CSSProperties } from 'react';
-import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router';
-import { animated, config, useSpring } from 'react-spring';
+import { useEffect, useRef, useState } from 'react';
+import type { ComponentType, SVGProps } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
+import { NavLink, useLocation } from 'react-router';
 
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import {
@@ -10,341 +9,326 @@ import {
   SvgChatBubbleDots,
   SvgCog,
   SvgCreditCard,
+  SvgHome,
   SvgInboxFull,
   SvgPiggyBank,
   SvgReports,
   SvgStoreFront,
+  SvgTag,
   SvgTuning,
   SvgWallet,
 } from '@actual-app/components/icons/v1';
 import { SvgCalendar3 } from '@actual-app/components/icons/v2';
-import { styles } from '@actual-app/components/styles';
-import { theme } from '@actual-app/components/theme';
-import { View } from '@actual-app/components/view';
-import { useDrag } from '@use-gesture/react';
+import { css } from '@emotion/css';
 
 import { useIsTestEnv } from '#hooks/useIsTestEnv';
-import { useScrollListener } from '#hooks/useScrollListener';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
-const COLUMN_COUNT = 3;
-const PILL_HEIGHT = 28;
-const ROW_HEIGHT = 70;
-const OPEN_FULL_Y = 1;
+export const MOBILE_NAV_HEIGHT = 72;
 
-export const MOBILE_NAV_HEIGHT = ROW_HEIGHT + PILL_HEIGHT;
+const HOUSE_ROUTES = [
+  '/reports',
+  '/schedules',
+  '/ai-pending-categorizations',
+  '/payees',
+  '/rules',
+  '/bank-sync',
+  '/tags',
+  '/settings',
+];
+
+type NavIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+type NavigationItem = {
+  name: string;
+  path: string;
+  Icon: NavIcon;
+};
 
 export function MobileNavTabs() {
   const { t } = useTranslation();
   const { isNarrowWidth } = useResponsive();
+  const location = useLocation();
+  const houseButtonRef = useRef<HTMLButtonElement>(null);
+  const [isHouseOpen, setHouseOpen] = useState(false);
   const syncServerStatus = useSyncServerStatus();
   const isTestEnv = useIsTestEnv();
   const isUsingServer = syncServerStatus !== 'no-server' || isTestEnv;
-  const [navbarState, setNavbarState] = useState<'default' | 'open' | 'hidden'>(
-    'default',
+  const isHouseActive = HOUSE_ROUTES.some(route =>
+    location.pathname.startsWith(route),
   );
 
-  const navTabStyle = {
-    flex: `1 1 ${100 / COLUMN_COUNT}%`,
-    height: ROW_HEIGHT,
-    padding: 10,
-    maxWidth: `${100 / COLUMN_COUNT}%`,
-  };
+  useEffect(() => {
+    setHouseOpen(false);
+  }, [location.pathname]);
 
-  const secondaryNavTabs = [
+  useEffect(() => {
+    if (!isHouseOpen) {
+      return;
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setHouseOpen(false);
+        houseButtonRef.current?.focus();
+      }
+    }
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isHouseOpen]);
+
+  if (!isNarrowWidth) {
+    return null;
+  }
+
+  const primaryItems: NavigationItem[] = [
+    { name: t('Today'), path: '/', Icon: SvgCalendar3 },
+    { name: t('Movements'), path: '/accounts', Icon: SvgPiggyBank },
+    { name: t('Plan'), path: '/budget', Icon: SvgWallet },
+    { name: t('Assistant'), path: '/advisor', Icon: SvgChatBubbleDots },
+  ];
+  const houseItems: NavigationItem[] = [
+    { name: t('Analyses'), path: '/reports', Icon: SvgReports },
+    { name: t('New movement'), path: '/transactions/new', Icon: SvgAdd },
+    { name: t('Commitments'), path: '/schedules', Icon: SvgCalendar3 },
     {
-      name: t('Budget'),
-      path: '/budget',
-      style: navTabStyle,
-      Icon: SvgWallet,
+      name: t('AI review'),
+      path: '/ai-pending-categorizations',
+      Icon: SvgInboxFull,
     },
-    {
-      name: t('Transaction'),
-      path: '/transactions/new',
-      style: navTabStyle,
-      Icon: SvgAdd,
-    },
-    {
-      name: t('Accounts'),
-      path: '/accounts',
-      style: navTabStyle,
-      Icon: SvgPiggyBank,
-    },
-    {
-      name: t('Reports'),
-      path: '/reports',
-      style: navTabStyle,
-      Icon: SvgReports,
-    },
-    {
-      name: t('Schedules'),
-      path: '/schedules',
-      style: navTabStyle,
-      Icon: SvgCalendar3,
-    },
-    {
-      name: t('Payees'),
-      path: '/payees',
-      style: navTabStyle,
-      Icon: SvgStoreFront,
-    },
-    {
-      name: t('Rules'),
-      path: '/rules',
-      style: navTabStyle,
-      Icon: SvgTuning,
-    },
+    { name: t('Payees'), path: '/payees', Icon: SvgStoreFront },
+    { name: t('Rules'), path: '/rules', Icon: SvgTuning },
     ...(isUsingServer
       ? [
           {
-            name: t('Bank Sync'),
+            name: t('Bank sync'),
             path: '/bank-sync',
-            style: navTabStyle,
             Icon: SvgCreditCard,
           },
         ]
       : []),
+    { name: t('Tags'), path: '/tags', Icon: SvgTag },
+    { name: t('Settings'), path: '/settings', Icon: SvgCog },
   ];
-  const primaryNavTabs = [
-    {
-      name: t('AI operations'),
-      path: '/ai-pending-categorizations',
-      style: navTabStyle,
-      Icon: SvgInboxFull,
-    },
-    {
-      name: t('Financial advisor'),
-      path: '/advisor',
-      style: navTabStyle,
-      Icon: SvgChatBubbleDots,
-    },
-    {
-      name: t('Settings'),
-      path: '/settings',
-      style: navTabStyle,
-      Icon: SvgCog,
-    },
-  ];
-  const bufferTabsCount =
-    (COLUMN_COUNT - (secondaryNavTabs.length % COLUMN_COUNT)) % COLUMN_COUNT;
-  const rowsCount =
-    (secondaryNavTabs.length + bufferTabsCount + primaryNavTabs.length) /
-    COLUMN_COUNT;
-  const totalHeight = ROW_HEIGHT * rowsCount;
-  const openDefaultY = totalHeight - ROW_HEIGHT;
-  const hiddenY = totalHeight;
-
-  const [{ y }, api] = useSpring(
-    () => ({ from: { y: openDefaultY } }),
-    [openDefaultY],
-  );
-
-  const openFull = useCallback(
-    ({ canceled }: { canceled?: boolean }) => {
-      // when cancel is true, it means that the user passed the upwards threshold
-      // so we change the spring config to create a nice wobbly effect
-      setNavbarState('open');
-      void api.start({
-        to: { y: OPEN_FULL_Y },
-        immediate: isTestEnv,
-        config: canceled ? config.wobbly : config.stiff,
-      });
-    },
-    [api, isTestEnv],
-  );
-
-  const openDefault = useCallback(
-    (velocity = 0) => {
-      setNavbarState('default');
-      void api.start({
-        to: { y: openDefaultY },
-        immediate: isTestEnv,
-        config: { ...config.stiff, velocity },
-      });
-    },
-    [api, isTestEnv, openDefaultY],
-  );
-
-  const hide = useCallback(
-    (velocity = 0) => {
-      setNavbarState('hidden');
-      void api.start({
-        to: { y: hiddenY },
-        immediate: isTestEnv,
-        config: { ...config.stiff, velocity },
-      });
-    },
-    [api, hiddenY, isTestEnv],
-  );
-
-  const secondaryTabs = secondaryNavTabs.map(tab => (
-    <NavTab key={tab.path} onClick={() => openDefault()} {...tab} />
-  ));
-  const bufferTabs = Array.from({ length: bufferTabsCount }).map((_, idx) => (
-    <div key={idx} style={navTabStyle} />
-  ));
-  const primaryTabs = primaryNavTabs.map(tab => (
-    <NavTab key={tab.path} onClick={() => openDefault()} {...tab} />
-  ));
-
-  useScrollListener(
-    useCallback(
-      ({ isScrolling, hasScrolledToEnd }) => {
-        if (isScrolling('down') && !hasScrolledToEnd('up')) {
-          hide();
-        } else if (isScrolling('up') && !hasScrolledToEnd('down')) {
-          openDefault();
-        }
-      },
-      [hide, openDefault],
-    ),
-  );
-
-  const bind = useDrag(
-    ({
-      last,
-      velocity: [, vy],
-      direction: [, dy],
-      offset: [, oy],
-      cancel,
-      canceled,
-    }) => {
-      // if the user drags up passed a threshold, then we cancel
-      // the drag so that the sheet resets to its open position
-      if (oy < 0) {
-        cancel();
-      }
-
-      // when the user releases the sheet, we check whether it passed
-      // the threshold for it to close, or if we reset it to its open position
-      if (last) {
-        if (oy > ROW_HEIGHT * 0.5 || (vy > 0.5 && dy > 0)) {
-          openDefault(vy);
-        } else {
-          openFull({ canceled });
-        }
-      } else {
-        // when the user keeps dragging, we just move the sheet according to
-        // the cursor position
-        void api.start({ to: { y: oy }, immediate: true });
-      }
-    },
-    {
-      from: () => [0, y.get()],
-      filterTaps: true,
-      bounds: { top: -totalHeight, bottom: totalHeight - ROW_HEIGHT },
-      axis: 'y',
-      rubberband: true,
-    },
-  );
 
   return (
-    <animated.div
-      role="navigation"
-      {...bind()}
-      style={{
-        y,
-        touchAction: 'pan-x',
-        backgroundColor: theme.mobileNavBackground,
-        borderTop: `1px solid ${theme.menuBorder}`,
-        ...styles.shadow,
-        height: totalHeight + PILL_HEIGHT,
-        width: '100%',
-        position: 'fixed',
-        zIndex: 100,
-        bottom: 0,
-        ...(!isNarrowWidth && { display: 'none' }),
-      }}
-      data-navbar-state={navbarState}
-    >
-      <View>
-        <button
-          type="button"
-          aria-label={
-            navbarState === 'open'
-              ? t('Collapse navigation menu')
-              : t('Expand navigation menu')
-          }
-          onClick={() => {
-            if (navbarState === 'open') {
-              openDefault();
-            } else {
-              openFull({});
-            }
-          }}
-          style={{
-            appearance: 'none',
-            backgroundColor: 'transparent',
-            border: 0,
-            width: '100%',
-            height: PILL_HEIGHT,
-            padding: 0,
-            alignSelf: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              width: 30,
-              height: 4,
-              borderRadius: 10,
-              backgroundColor: theme.pillBorder,
-            }}
+    <>
+      {isHouseOpen && (
+        <>
+          <button
+            type="button"
+            className={backdropClass}
+            aria-label={t('Close House menu')}
+            onClick={() => setHouseOpen(false)}
           />
-        </button>
-        <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            height: totalHeight,
-            width: '100%',
-          }}
+          <nav
+            id="house-navigation"
+            className={houseSheetClass}
+            data-testid="house-navigation"
+            aria-label={t('House navigation')}
+          >
+            <div className={sheetHeaderClass}>
+              <strong>
+                <Trans>House</Trans>
+              </strong>
+              <span>
+                <Trans>Analyses and organization</Trans>
+              </span>
+            </div>
+            <div className={houseGridClass}>
+              {houseItems.map(item => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `${houseItemClass} ${isActive ? houseItemActiveClass : ''}`
+                  }
+                >
+                  <item.Icon width={19} height={19} />
+                  <span>{item.name}</span>
+                </NavLink>
+              ))}
+            </div>
+          </nav>
+        </>
+      )}
+
+      <nav className={navigationClass} aria-label={t('Main navigation')}>
+        {primaryItems.map(item => (
+          <PrimaryNavItem
+            key={item.path}
+            item={item}
+            onSelect={() => setHouseOpen(false)}
+          />
+        ))}
+        <button
+          ref={houseButtonRef}
+          type="button"
+          className={`${primaryItemClass} ${
+            isHouseActive || isHouseOpen ? primaryItemActiveClass : ''
+          }`}
+          aria-expanded={isHouseOpen}
+          aria-controls="house-navigation"
+          onClick={() => setHouseOpen(isOpen => !isOpen)}
         >
-          {[secondaryTabs, bufferTabs, primaryTabs]}
-        </View>
-      </View>
-    </animated.div>
+          <SvgHome width={21} height={21} />
+          <span>
+            <Trans>House</Trans>
+          </span>
+        </button>
+      </nav>
+    </>
   );
 }
 
-type NavTabIconProps = {
-  width: number;
-  height: number;
-  style?: CSSProperties;
-};
-
-type NavTabProps = {
-  name: string;
-  path: string;
-  Icon: ComponentType<NavTabIconProps>;
-  style?: CSSProperties;
-  onClick: ComponentProps<typeof NavLink>['onClick'];
-};
-
-function NavTab({ Icon: TabIcon, name, path, style, onClick }: NavTabProps) {
+function PrimaryNavItem({
+  item,
+  onSelect,
+}: {
+  item: NavigationItem;
+  onSelect: () => void;
+}) {
   return (
     <NavLink
-      to={path}
-      style={({ isActive }) => ({
-        ...styles.noTapHighlight,
-        alignItems: 'center',
-        color: isActive ? theme.mobileNavItemSelected : theme.mobileNavItem,
-        display: 'flex',
-        flexDirection: 'column',
-        textDecoration: 'none',
-        textAlign: 'center',
-        textWrap: 'balance',
-        userSelect: 'none',
-        ...style,
-      })}
-      onClick={onClick}
+      to={item.path}
+      end={item.path === '/'}
+      onClick={onSelect}
+      className={({ isActive }) =>
+        `${primaryItemClass} ${isActive ? primaryItemActiveClass : ''}`
+      }
     >
-      <TabIcon width={22} height={22} style={{ minHeight: '22px' }} />
-      {name}
+      <item.Icon width={21} height={21} />
+      <span>{item.name}</span>
     </NavLink>
   );
 }
+
+const navigationClass = css({
+  position: 'fixed',
+  right: 0,
+  bottom: 0,
+  left: 0,
+  zIndex: 101,
+  height: MOBILE_NAV_HEIGHT,
+  padding:
+    '7px max(6px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left))',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+  color: nossoCaderninho.color.navTextSubdued,
+  backgroundColor: nossoCaderninho.color.nav,
+  borderTop: `1px solid ${nossoCaderninho.color.navHover}`,
+});
+
+const primaryItemClass = css({
+  minWidth: 0,
+  padding: '5px 2px',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 4,
+  color: nossoCaderninho.color.navTextSubdued,
+  background: 'transparent',
+  border: 0,
+  borderRadius: nossoCaderninho.radius.control,
+  fontFamily: nossoCaderninho.font.family,
+  fontSize: 10,
+  fontWeight: 600,
+  lineHeight: 1,
+  textAlign: 'center',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  userSelect: 'none',
+  '& span': {
+    maxWidth: '100%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  '&:focus-visible': {
+    outline: `2px solid ${nossoCaderninho.color.focusOnDark}`,
+    outlineOffset: -2,
+  },
+});
+
+const primaryItemActiveClass = css({
+  color: nossoCaderninho.color.navText,
+  backgroundColor: nossoCaderninho.color.navHover,
+});
+
+const houseSheetClass = css({
+  position: 'fixed',
+  right: 0,
+  bottom: MOBILE_NAV_HEIGHT,
+  left: 0,
+  zIndex: 100,
+  maxHeight: 'min(62vh, 460px)',
+  paddingBottom: 'env(safe-area-inset-bottom)',
+  color: nossoCaderninho.color.graphite,
+  backgroundColor: nossoCaderninho.color.plate,
+  borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
+  overflowY: 'auto',
+});
+
+const backdropClass = css({
+  position: 'fixed',
+  inset: `0 0 ${MOBILE_NAV_HEIGHT}px`,
+  zIndex: 99,
+  padding: 0,
+  backgroundColor: 'rgba(16, 41, 47, 0.16)',
+  border: 0,
+});
+
+const sheetHeaderClass = css({
+  minHeight: 62,
+  padding: `${nossoCaderninho.space.md}px ${nossoCaderninho.space.lg}px`,
+  display: 'grid',
+  alignContent: 'center',
+  gap: 3,
+  borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+  fontFamily: nossoCaderninho.font.family,
+  '& strong': {
+    fontSize: 15,
+  },
+  '& span': {
+    color: nossoCaderninho.color.graphiteSubdued,
+    fontSize: 11,
+  },
+});
+
+const houseGridClass = css({
+  padding: nossoCaderninho.space.sm,
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 4,
+});
+
+const houseItemClass = css({
+  minHeight: 64,
+  minWidth: 0,
+  padding: nossoCaderninho.space.sm,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 6,
+  color: nossoCaderninho.color.graphiteSubdued,
+  borderRadius: nossoCaderninho.radius.control,
+  fontFamily: nossoCaderninho.font.family,
+  fontSize: 11,
+  textAlign: 'center',
+  textDecoration: 'none',
+  '&:hover': {
+    backgroundColor: nossoCaderninho.color.signalSoft,
+  },
+  '&:focus-visible': {
+    outline: `2px solid ${nossoCaderninho.color.focusOnLight}`,
+    outlineOffset: -2,
+  },
+});
+
+const houseItemActiveClass = css({
+  color: nossoCaderninho.color.partnership,
+  backgroundColor: nossoCaderninho.color.partnershipSoft,
+  fontWeight: 650,
+});

@@ -7,7 +7,6 @@ import { SvgExpandArrow } from '@actual-app/components/icons/v0';
 import { InitialFocus } from '@actual-app/components/initial-focus';
 import { Input } from '@actual-app/components/input';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { isElectron } from '@actual-app/core/shared/environment';
 import * as Platform from '@actual-app/core/shared/platform';
@@ -18,6 +17,7 @@ import { useMetadataPref } from '#hooks/useMetadataPref';
 import { useNavigate } from '#hooks/useNavigate';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type BudgetNameProps = {
   children?: ReactNode;
@@ -29,16 +29,14 @@ export function BudgetName({ children }: BudgetNameProps) {
   return (
     <View
       style={{
-        paddingTop: 35,
-        height: 30,
+        minHeight: 68,
+        padding: '14px 10px 14px 18px',
         flexDirection: 'row',
         alignItems: 'center',
-        margin: '0 8px 23px 20px',
+        borderTop: `1px solid ${nossoCaderninho.color.navHover}`,
         userSelect: 'none',
-        transition: 'padding .4s',
         ...(hasWindowButtons
           ? {
-              paddingTop: 20,
               justifyContent: 'flex-start',
             }
           : {}),
@@ -93,8 +91,12 @@ function EditableBudgetName() {
         <Input
           style={{
             maxWidth: 'calc(100% - 23px)',
-            fontSize: 16,
-            fontWeight: 500,
+            color: nossoCaderninho.color.graphite,
+            backgroundColor: nossoCaderninho.color.plate,
+            border: `1px solid ${nossoCaderninho.color.rail}`,
+            borderRadius: nossoCaderninho.radius.control,
+            fontSize: 13,
+            fontWeight: 600,
           }}
           defaultValue={budgetName}
           onEnter={newBudgetName => {
@@ -115,11 +117,11 @@ function EditableBudgetName() {
       data-testid="budget-name"
       variant="bare"
       style={{
-        color: theme.sidebarBudgetName,
-        fontSize: 16,
-        fontWeight: 500,
-        marginLeft: -5,
+        color: nossoCaderninho.color.navText,
+        fontSize: 13,
+        fontWeight: 650,
         flex: '0 auto',
+        minWidth: 0,
       }}
       onClick={handleContextMenu}
     >
