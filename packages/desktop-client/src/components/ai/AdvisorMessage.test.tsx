@@ -148,9 +148,13 @@ describe('AdvisorMessage', () => {
     );
 
     const toggle = screen.getByRole('button', {
-      name: /How this analysis was built/i,
+      name: /How I got there/i,
     });
+    const answer = screen.getByText('Resposta fundamentada.');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      answer.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     await user.click(toggle);
     expect(screen.getByText('150 source records examined')).toBeVisible();
@@ -186,9 +190,7 @@ describe('AdvisorMessage', () => {
     );
 
     expect(screen.queryByText('Consulted tools:')).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: 'How this analysis was built' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'How I got there' }));
     expect(screen.getAllByText('Running a financial analysis')).toHaveLength(1);
   });
 });

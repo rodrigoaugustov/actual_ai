@@ -2,13 +2,13 @@ import { Trans, useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { AiMessageEntity } from '@actual-app/core/types/models';
 import { css } from '@emotion/css';
 import rehypeExternalLinks from 'rehype-external-links';
 import remarkGfm from 'remark-gfm';
 
+import { nossoCaderninho } from '#style/nossoCaderninho';
 import { markdownBaseStyles, remarkBreaks } from '#util/markdown';
 
 import { AdvisorTrace, toolLabel } from './AdvisorTrace';
@@ -57,18 +57,22 @@ const assistantMarkdownStyles = css(markdownBaseStyles, {
     margin: '0.75rem 0',
     overflowX: 'auto',
     borderCollapse: 'collapse',
+    borderTop: `1px solid ${nossoCaderninho.color.rail}`,
+    fontVariantNumeric: 'tabular-nums',
   },
   '& th, & td': {
     padding: '0.4rem 0.6rem',
     textAlign: 'left',
     verticalAlign: 'top',
+    borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
   },
   '& th': {
-    backgroundColor: theme.markdownLight,
+    color: nossoCaderninho.color.graphiteSubdued,
+    backgroundColor: nossoCaderninho.color.signalSoft,
     fontWeight: 600,
   },
   '& a': {
-    color: theme.pageTextLink,
+    color: nossoCaderninho.color.partnership,
   },
 });
 
@@ -89,9 +93,9 @@ function MessageMetadata({
         gap: 4,
         marginTop: 10,
         paddingTop: 8,
-        borderTop: `1px solid ${theme.pillBorderDark}`,
-        color: theme.pageTextSubdued,
-        fontSize: 12,
+        borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
+        color: nossoCaderninho.color.graphiteSubdued,
+        fontSize: 11,
       }}
     >
       {tools.length > 0 && (
@@ -143,16 +147,20 @@ export function AdvisorMessage({
         alignSelf: isUser ? 'flex-end' : 'flex-start',
         flexShrink: 0,
         minWidth: 0,
-        maxWidth: 'min(760px, 92%)',
-        borderRadius: 10,
-        padding: '10px 12px',
+        width: isUser ? 'auto' : '100%',
+        maxWidth: isUser ? 'min(680px, 88%)' : '100%',
+        borderRadius: isUser ? nossoCaderninho.radius.panel : 0,
+        padding: isUser ? '10px 12px' : 0,
         overflow: 'hidden',
         overflowWrap: 'anywhere',
         backgroundColor: isUser
-          ? theme.buttonPrimaryBackground
-          : theme.tableBackground,
-        color: isUser ? theme.buttonPrimaryText : theme.pageText,
-        border: isUser ? undefined : `1px solid ${theme.pillBorderDark}`,
+          ? nossoCaderninho.color.partnershipSoft
+          : nossoCaderninho.color.plate,
+        color: nossoCaderninho.color.graphite,
+        border: isUser
+          ? `1px solid ${nossoCaderninho.color.railSoft}`
+          : undefined,
+        fontFamily: nossoCaderninho.font.family,
       }}
     >
       {isUser ? (
@@ -161,7 +169,9 @@ export function AdvisorMessage({
         </Text>
       ) : (
         <>
-          <AdvisorTrace trace={trace} isRunning={isStreaming} />
+          {isStreaming && (
+            <AdvisorTrace trace={trace} isRunning={isStreaming} />
+          )}
           {message.content && (
             <View className={assistantMarkdownStyles}>
               <ReactMarkdown
@@ -201,6 +211,9 @@ export function AdvisorMessage({
                 {message.content}
               </ReactMarkdown>
             </View>
+          )}
+          {!isStreaming && (
+            <AdvisorTrace trace={trace} isRunning={isStreaming} />
           )}
         </>
       )}

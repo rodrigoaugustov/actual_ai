@@ -1,6 +1,8 @@
 import { MemoryRouter, useLocation } from 'react-router';
 
-import { render, screen } from '@testing-library/react';
+import { listen } from '@actual-app/core/platform/client/connection';
+import type { AiAdvisorEvent } from '@actual-app/core/types/server-events';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { useNavigate } from '#hooks/useNavigate';
@@ -19,6 +21,12 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
             title: 'Household plan',
             createdAt: 1,
             updatedAt: 1,
+          },
+          {
+            id: 'conversation-2',
+            title: 'Second plan',
+            createdAt: 2,
+            updatedAt: 2,
           },
         ];
       case 'ai/advisor/list-messages':
@@ -85,6 +93,24 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
 }));
 
 describe('MobileAdvisorPage', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    vi.clearAllMocks();
+    Object.defineProperty(window.navigator, 'onLine', {
+      configurable: true,
+      value: true,
+    });
+  });
+
+  function emitAdvisorEvent(event: AiAdvisorEvent) {
+    const listenerCall = vi.mocked(listen).mock.calls.at(-1);
+    if (!listenerCall) {
+      throw new Error('Advisor listener was not registered.');
+    }
+
+    act(() => listenerCall[1](event));
+  }
+
   function RouterProbe() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -117,10 +143,10 @@ describe('MobileAdvisorPage', () => {
     renderPage();
 
     expect(
-      screen.getByRole('heading', { name: 'Financial advisor' }),
+      await screen.findByRole('heading', { name: 'Household plan' }),
     ).toBeVisible();
     expect(
-      await screen.findByRole('button', { name: 'Household plan' }),
+      await screen.findByText('What should we look at together?'),
     ).toBeVisible();
     expect(
       screen.getByRole('textbox', { name: 'Advisor message' }),
@@ -133,21 +159,108 @@ describe('MobileAdvisorPage', () => {
     renderPage();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Household plan' }),
+      await screen.findByRole('button', { name: 'Conversation history' }),
     );
 
     expect(
       screen.getByRole('heading', { name: 'Conversations' }),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'New' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'New conversation' }),
+    ).toBeVisible();
+  });
+
+  it('preserves the draft and blocks sending while offline', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Can we take on a new commitment?',
+      }),
+    );
+    const textbox = screen.getByRole('textbox', { name: 'Advisor message' });
+    await waitFor(() =>
+      expect(textbox).toHaveValue('Can we take on a new commitment?'),
+    );
+    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+
+    Object.defineProperty(window.navigator, 'onLine', {
+      configurable: true,
+      value: false,
+    });
+    act(() => window.dispatchEvent(new Event('offline')));
+
+    expect(textbox).toHaveValue('Can we take on a new commitment?');
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+    expect(
+      screen.getByText('The Assistant needs a connection to respond.'),
+    ).toBeVisible();
+
+    Object.defineProperty(window.navigator, 'onLine', {
+      configurable: true,
+      value: true,
+    });
+    act(() => window.dispatchEvent(new Event('online')));
+    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+  });
+
+  it('restores a conversation draft after the page remounts', async () => {
+    const user = userEvent.setup();
+    const page = renderPage('/advisor?conversation=conversation-1');
+    const textbox = await screen.findByRole('textbox', {
+      name: 'Advisor message',
+    });
+
+    await user.type(textbox, 'Compare our next three months');
+    expect(textbox).toHaveValue('Compare our next three months');
+
+    page.unmount();
+    renderPage('/advisor?conversation=conversation-1');
+
+    expect(
+      await screen.findByRole('textbox', { name: 'Advisor message' }),
+    ).toHaveValue('Compare our next three months');
+  });
+
+  it('blocks conversation switching while a response is active', async () => {
+    const user = userEvent.setup();
+    renderPage('/advisor?conversation=conversation-1');
+    await screen.findByRole('heading', { name: 'Household plan' });
+
+    emitAdvisorEvent({
+      type: 'started',
+      conversationId: 'conversation-1',
+      runId: 'run-1',
+    });
+    await user.click(
+      screen.getByRole('button', { name: 'Conversation history' }),
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'New conversation' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Second planOpen conversation/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Delete "Household plan"' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(
+        'Finish or stop the current response before changing conversations.',
+      ),
+    ).toBeVisible();
   });
 
   it('keeps profile actions reachable through the mobile section navigation', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole('tab', { name: 'Profile & memory' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Assistant context' }),
+    );
 
     expect(screen.getByText('Pending confirmations')).toBeVisible();
     expect(screen.getByText('Add a profile fact')).toBeVisible();
@@ -168,6 +281,9 @@ describe('MobileAdvisorPage', () => {
     const user = userEvent.setup();
     renderPage('/advisor?conversation=conversation-1');
 
+    await user.click(
+      await screen.findByRole('button', { name: 'Assistant context' }),
+    );
     await user.click(screen.getByRole('tab', { name: 'Goals' }));
     expect(screen.getByTestId('advisor-location')).toHaveTextContent(
       'section=goals',
@@ -176,8 +292,8 @@ describe('MobileAdvisorPage', () => {
     await user.click(screen.getByRole('button', { name: 'History back' }));
 
     expect(
-      await screen.findByRole('tab', { name: 'Conversation' }),
-    ).toHaveAttribute('aria-selected', 'true');
+      screen.queryByRole('dialog', { name: 'Assistant context' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Advisor message' }),
     ).toBeVisible();
@@ -190,12 +306,12 @@ describe('MobileAdvisorPage', () => {
     expect(await screen.findByText(/Next review:/)).toBeVisible();
 
     await user.click(screen.getByRole('tab', { name: 'Documents' }));
-    expect(screen.getByText(/…$/)).toBeVisible();
+    expect(screen.getByText(/^Policy context.*…$/)).toBeVisible();
     expect(screen.queryByText(/FULL DOCUMENT END$/)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'View more' }));
     expect(screen.getByText(/FULL DOCUMENT END$/)).toBeVisible();
 
-    await user.click(screen.getByRole('tab', { name: 'Plan' }));
+    await user.click(screen.getByRole('tab', { name: 'Plans' }));
     expect(screen.getByText(/Follow-up:/)).toBeVisible();
     expect(screen.getByText('Assumptions')).toBeVisible();
     expect(screen.getByText('Income remains stable.')).toBeVisible();

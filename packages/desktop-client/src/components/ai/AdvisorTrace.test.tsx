@@ -53,7 +53,7 @@ describe('AdvisorTrace', () => {
 
     rendered.rerender(<AdvisorTrace trace={trace} isRunning={false} />);
     const toggle = screen.getByRole('button', {
-      name: /How this analysis was built/i,
+      name: /How I got there/i,
     });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(

@@ -7,10 +7,11 @@ import {
   SvgCheveronRight,
 } from '@actual-app/components/icons/v1';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { AiTraceDetail, AiTracePart } from '@actual-app/core/types/models';
 import type { TFunction } from 'i18next';
+
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 export function toolLabel(toolName: string | undefined, t: TFunction): string {
   switch (toolName) {
@@ -162,7 +163,13 @@ function Detail({
   return (
     <View style={{ gap: 2, marginTop: 3 }}>
       {rows.map(row => (
-        <Text key={row} style={{ color: theme.pageTextSubdued, fontSize: 11 }}>
+        <Text
+          key={row}
+          style={{
+            color: nossoCaderninho.color.graphiteSubdued,
+            fontSize: 11,
+          }}
+        >
           {row}
         </Text>
       ))}
@@ -201,16 +208,16 @@ export function AdvisorTrace({
   const ExpandIcon = isExpanded ? SvgCheveronDown : SvgCheveronRight;
   const traceTitle = isRunning
     ? t('Working through your request')
-    : t('How this analysis was built');
+    : t('How I got there');
 
   return (
     <View
       data-testid="advisor-trace"
       style={{
         marginBottom: 10,
-        border: `1px solid ${theme.pillBorderDark}`,
-        borderRadius: 8,
-        backgroundColor: theme.pageBackground,
+        borderTop: `1px solid ${nossoCaderninho.color.rail}`,
+        borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+        backgroundColor: nossoCaderninho.color.signalSoft,
         overflow: 'hidden',
       }}
     >
@@ -233,7 +240,7 @@ export function AdvisorTrace({
           {!isExpanded && current && (
             <Text
               style={{
-                color: theme.pageTextSubdued,
+                color: nossoCaderninho.color.graphiteSubdued,
                 fontSize: 11,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -268,7 +275,7 @@ export function AdvisorTrace({
                     top: 10,
                     bottom: 0,
                     width: 1,
-                    backgroundColor: theme.pillBorderDark,
+                    backgroundColor: nossoCaderninho.color.rail,
                   }}
                 />
               )}
@@ -283,17 +290,22 @@ export function AdvisorTrace({
                   borderRadius: 999,
                   backgroundColor:
                     item.state === 'error'
-                      ? theme.errorText
+                      ? nossoCaderninho.color.limit
                       : item.state === 'running'
-                        ? theme.buttonPrimaryBackground
-                        : theme.noticeText,
+                        ? nossoCaderninho.color.partnership
+                        : nossoCaderninho.color.balance,
                 }}
               />
               <View style={{ minWidth: 0, flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: 500 }}>
                   {traceLabel(item, t)}
                 </Text>
-                <Text style={{ color: theme.pageTextSubdued, fontSize: 11 }}>
+                <Text
+                  style={{
+                    color: nossoCaderninho.color.graphiteSubdued,
+                    fontSize: 11,
+                  }}
+                >
                   {item.state === 'running'
                     ? t('In progress…')
                     : item.state === 'error'
