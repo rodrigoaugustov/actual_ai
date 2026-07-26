@@ -1,3 +1,10 @@
+/*
+THESIS — Movimentos são um extrato contínuo da casa, não um painel de cartões.
+OWN-WORLD — Esmalte frio, placas brancas, trilhos finos e Azul Parceria operacional.
+STORY — O casal escolhe o escopo, entende o saldo e trabalha no registro sem perder contexto.
+FIRST VIEWPORT — Identidade e saldo acima de um trilho de comandos; o livro-caixa ocupa o restante.
+FORM — Extrato Contínuo, estrutura 6, cronologia densa com comandos persistentes; seed d10bb5ad.
+*/
 import React, {
   createRef,
   PureComponent,
@@ -88,6 +95,7 @@ import { updateNewTransactions } from '#transactions/transactionsSlice';
 
 import { AccountEmptyMessage } from './AccountEmptyMessage';
 import { AccountHeader } from './Header';
+import { movementsLedgerClass, movementsSurfaceClass } from './movementsStyles';
 
 type ConditionEntity = Partial<RuleConditionEntity> | TransactionFilterEntity;
 
@@ -1772,7 +1780,7 @@ class AccountInternal extends PureComponent<
             registerDispatch={dispatch => (this.dispatchSelected = dispatch)}
             selectAllFilter={selectAllFilter}
           >
-            <View style={styles.page}>
+            <View className={movementsSurfaceClass} style={styles.page}>
               <AccountHeader
                 tableRef={this.table}
                 isNameEditable={isNameEditable ?? false}
@@ -1843,7 +1851,7 @@ class AccountInternal extends PureComponent<
                   />
                 )}
 
-              <View style={{ flex: 1 }}>
+              <View className={movementsLedgerClass}>
                 <TransactionList
                   headerContent={undefined}
                   // @ts-expect-error - fix me

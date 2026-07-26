@@ -8,6 +8,7 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type { TransactionEntity } from '@actual-app/core/types/models';
+import { css } from '@emotion/css';
 
 import { Search } from '#components/common/Search';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
@@ -16,6 +17,7 @@ import { DisplayPayeeProvider } from '#hooks/useDisplayPayee';
 import { SelectedProvider, useSelected } from '#hooks/useSelected';
 import { useSheetValue } from '#hooks/useSheetValue';
 import type { Binding, SheetFields, SheetNames } from '#spreadsheet';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { TransactionList } from './TransactionList';
 
@@ -31,15 +33,7 @@ function TransactionSearchInput({
   const [text, setText] = useState('');
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.mobilePageBackground,
-        padding: 10,
-        width: '100%',
-      }}
-    >
+    <View className={searchAreaClass}>
       <Search
         value={text}
         onChange={text => {
@@ -52,6 +46,7 @@ function TransactionSearchInput({
         style={{
           backgroundColor: theme.tableBackground,
           borderColor: theme.formInputBorder,
+          borderRadius: nossoCaderninho.radius.control,
         }}
       />
     </View>
@@ -111,18 +106,8 @@ export function TransactionListWithBalances({
   return (
     <DisplayPayeeProvider transactions={transactions}>
       <SelectedProvider instance={selectedInst}>
-        <View
-          style={{
-            flexShrink: 0,
-            marginTop: 10,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-evenly',
-            }}
-          >
+        <View className={summaryClass}>
+          <View className={balanceRailClass}>
             {balanceCleared && balanceUncleared ? (
               <BalanceWithCleared
                 balance={balance}
@@ -145,6 +130,9 @@ export function TransactionListWithBalances({
           style={{
             '& .ptr__children': {
               display: 'flex',
+              minHeight: 0,
+              backgroundColor: nossoCaderninho.color.plate,
+              borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
             },
           }}
         >
@@ -165,6 +153,39 @@ export function TransactionListWithBalances({
     </DisplayPayeeProvider>
   );
 }
+
+const summaryClass = css({
+  flexShrink: 0,
+  minWidth: 0,
+  backgroundColor: nossoCaderninho.color.enamel,
+});
+
+const balanceRailClass = css({
+  minHeight: 58,
+  padding: `${nossoCaderninho.space.sm}px ${nossoCaderninho.space.md}px`,
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-evenly',
+  backgroundColor: nossoCaderninho.color.plate,
+  borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+  '& > div + div': {
+    borderLeft: `1px solid ${nossoCaderninho.color.railSoft}`,
+  },
+  '& > div': {
+    minWidth: 0,
+    padding: `0 ${nossoCaderninho.space.sm}px`,
+  },
+});
+
+const searchAreaClass = css({
+  width: '100%',
+  padding: `${nossoCaderninho.space.sm}px ${nossoCaderninho.space.md}px`,
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: nossoCaderninho.color.enamel,
+});
 
 const TransactionListBalanceCellValue = <
   FieldName extends SheetFields<'account'> | SheetFields<'category'>,

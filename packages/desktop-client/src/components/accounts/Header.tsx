@@ -21,7 +21,6 @@ import { InitialFocus } from '@actual-app/components/initial-focus';
 import { Input } from '@actual-app/components/input';
 import { Menu } from '@actual-app/components/menu';
 import { Popover } from '@actual-app/components/popover';
-import { SpaceBetween } from '@actual-app/components/space-between';
 import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
@@ -33,6 +32,7 @@ import type {
   TransactionEntity,
   TransactionFilterEntity,
 } from '@actual-app/core/types/models';
+import { css } from '@emotion/css';
 import { format as formatDate } from 'date-fns';
 
 import { isAccountFailedSync } from '#accounts/syncStatus';
@@ -42,6 +42,7 @@ import { Search } from '#components/common/Search';
 import { FilterButton } from '#components/filters/FiltersMenu';
 import { FiltersStack } from '#components/filters/FiltersStack';
 import type { SavedFilter } from '#components/filters/SavedFilterMenuButton';
+import { AccountScopeButton } from '#components/mobile/accounts/AccountScopeButton';
 import { NotesButton } from '#components/NotesButton';
 import { SelectedTransactionsButton } from '#components/transactions/SelectedTransactionsButton';
 import { useDateFormat } from '#hooks/useDateFormat';
@@ -51,6 +52,7 @@ import { useSelectedItems } from '#hooks/useSelected';
 import { useSplitsExpanded } from '#hooks/useSplitsExpanded';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import type { TableRef } from './Account';
 import { Balances } from './Balance';
@@ -300,29 +302,10 @@ export function AccountHeader({
 
   return (
     <>
-      <View style={{ ...styles.pageContent, paddingBottom: 10, flexShrink: 0 }}>
-        <View
-          style={{
-            flexDirection: 'column',
-            marginTop: 2,
-            justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
-          <View
-            style={{
-              flexGrow: 1,
-              alignItems: 'flex-start',
-              gap: 10,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 3,
-              }}
-            >
+      <header className={headerClass}>
+        <div className={overviewClass}>
+          <div className={accountSummaryClass}>
+            <div className={accountIdentityClass}>
               {!!account?.bank && (
                 <AccountSyncSidebar
                   account={account}
@@ -336,7 +319,7 @@ export function AccountHeader({
                 saveNameError={saveNameError}
                 onSaveName={onSaveName}
               />
-            </View>
+            </div>
 
             <Balances
               balanceQuery={balanceQuery}
@@ -346,7 +329,7 @@ export function AccountHeader({
               isFiltered={isFiltered}
               filteredAmount={filteredAmount}
             />
-          </View>
+          </div>
 
           <BalanceHistoryGraph
             ref={graphRef}
@@ -357,8 +340,13 @@ export function AccountHeader({
               display: showNetWorthChart ? 'flex' : 'none',
             }}
           />
-        </View>
-        <SpaceBetween gap={10} style={{ marginTop: 12 }}>
+        </div>
+        <div className={commandRailClass}>
+          <AccountScopeButton
+            currentId={accountId}
+            currentName={accountName}
+            appearance="surface"
+          />
           {canSync && (
             <Button
               variant="bare"
@@ -405,14 +393,19 @@ export function AccountHeader({
               <MonthFilterButton onApply={onApplyFilter} />
             </View>
           )}
-          <View style={{ flex: 1 }} />
+          <div className={commandSpacerClass} />
 
-          <Search
-            placeholder={t('Search')}
-            value={search}
-            onChange={onSearch}
-            ref={searchInput}
-          />
+          <div className={searchClass}>
+            <Search
+              placeholder={t('Search')}
+              value={search}
+              width="100%"
+              height={36}
+              onChange={onSearch}
+              ref={searchInput}
+              style={{ borderColor: nossoCaderninho.color.rail }}
+            />
+          </div>
           {accountId === 'uncategorized' && (
             <ClassifyUncategorizedButton transactions={transactions} />
           )}
@@ -593,21 +586,23 @@ export function AccountHeader({
               </DialogTrigger>
             </View>
           )}
-        </SpaceBetween>
+        </div>
         {filterConditions?.length > 0 && (
-          <FiltersStack
-            conditions={filterConditions}
-            conditionsOp={filterConditionsOp}
-            onUpdateFilter={onUpdateFilter}
-            onDeleteFilter={onDeleteFilter}
-            onClearFilters={onClearFilters}
-            onReloadSavedFilter={onReloadSavedFilter}
-            filterId={filterId}
-            savedFilters={savedFilters}
-            onConditionsOpChange={onConditionsOpChange}
-          />
+          <div className={filtersClass}>
+            <FiltersStack
+              conditions={filterConditions}
+              conditionsOp={filterConditionsOp}
+              onUpdateFilter={onUpdateFilter}
+              onDeleteFilter={onDeleteFilter}
+              onClearFilters={onClearFilters}
+              onReloadSavedFilter={onReloadSavedFilter}
+              filterId={filterId}
+              savedFilters={savedFilters}
+              onConditionsOpChange={onConditionsOpChange}
+            />
+          </div>
         )}
-      </View>
+      </header>
       {reconcileAmount != null && (
         <ReconcilingMessage
           targetBalance={reconcileAmount}
@@ -619,6 +614,79 @@ export function AccountHeader({
     </>
   );
 }
+
+const headerClass = css({
+  flexShrink: 0,
+  minWidth: 0,
+  color: nossoCaderninho.color.graphite,
+  backgroundColor: nossoCaderninho.color.plate,
+  borderBottom: `1px solid ${nossoCaderninho.color.rail}`,
+});
+
+const overviewClass = css({
+  minWidth: 0,
+  padding: `${nossoCaderninho.space.lg}px ${nossoCaderninho.space.xl}px`,
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr)',
+  gap: nossoCaderninho.space.md,
+});
+
+const accountSummaryClass = css({
+  minWidth: 0,
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: nossoCaderninho.space.xl,
+  '@media (max-width: 899px)': {
+    flexDirection: 'column',
+    gap: nossoCaderninho.space.sm,
+  },
+});
+
+const accountIdentityClass = css({
+  minWidth: 0,
+  display: 'flex',
+  alignItems: 'center',
+  gap: nossoCaderninho.space.xs,
+});
+
+const commandRailClass = css({
+  minWidth: 0,
+  minHeight: 52,
+  padding: `${nossoCaderninho.space.sm}px ${nossoCaderninho.space.lg}px`,
+  display: 'flex',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: nossoCaderninho.space.xs,
+  backgroundColor: nossoCaderninho.color.signalSoft,
+  borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
+  '& button': {
+    minHeight: 36,
+    borderRadius: nossoCaderninho.radius.control,
+  },
+});
+
+const commandSpacerClass = css({
+  flex: '1 1 12px',
+  '@media (max-width: 1120px)': {
+    flexBasis: '100%',
+    height: 0,
+  },
+});
+
+const searchClass = css({
+  width: 280,
+  minWidth: 180,
+  '@media (max-width: 899px)': {
+    width: '100%',
+    order: -1,
+  },
+});
+
+const filtersClass = css({
+  padding: `0 ${nossoCaderninho.space.lg}px ${nossoCaderninho.space.sm}px`,
+  backgroundColor: nossoCaderninho.color.signalSoft,
+});
 
 type AccountSyncSidebarProps = {
   account: AccountEntity;

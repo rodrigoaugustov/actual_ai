@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams } from 'react-router';
 
 import { Button } from '@actual-app/components/button';
-import { styles } from '@actual-app/components/styles';
-import type { CSSProperties } from '@actual-app/components/styles';
-import { Text } from '@actual-app/components/text';
+import { SvgDotsHorizontalTriple } from '@actual-app/components/icons/v1';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
@@ -13,7 +11,7 @@ import type { AccountEntity } from '@actual-app/core/types/models';
 
 import { useReopenAccountMutation, useUpdateAccountMutation } from '#accounts';
 import { isAccountFailedSync } from '#accounts/syncStatus';
-import { MobileBackButton } from '#components/mobile/MobileBackButton';
+import { movementsSurfaceClass } from '#components/accounts/movementsStyles';
 import { AddTransactionButton } from '#components/mobile/transactions/AddTransactionButton';
 import { MobilePageHeader, Page } from '#components/Page';
 import { useAccount } from '#hooks/useAccount';
@@ -24,7 +22,9 @@ import {
   pushModal,
 } from '#modals/modalsSlice';
 import { useDispatch, useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
+import { AccountScopeButton } from './AccountScopeButton';
 import { AccountTransactions } from './AccountTransactions';
 import { AllAccountTransactions } from './AllAccountTransactions';
 import { OffBudgetAccountTransactions } from './OffBudgetAccountTransactions';
@@ -57,36 +57,46 @@ export function AccountPage() {
     },
     [t],
   );
+  const currentName = account ? account.name : nameFromId(accountIdParam);
 
   return (
     <Page
       header={
         <MobilePageHeader
+          style={{
+            backgroundColor: nossoCaderninho.color.nav,
+            borderBottom: `1px solid ${nossoCaderninho.color.navHover}`,
+          }}
           title={
-            account ? (
-              <AccountHeader account={account} />
-            ) : (
-              <NameOnlyHeader name={nameFromId(accountIdParam)} />
-            )
+            <AccountScopeButton
+              currentId={accountIdParam}
+              currentName={currentName}
+            />
           }
-          leftContent={<MobileBackButton />}
+          leftContent={account ? <AccountHeader account={account} /> : null}
           rightContent={<AddTransactionButton accountId={account?.id} />}
         />
       }
+      style={{
+        minHeight: 0,
+        backgroundColor: nossoCaderninho.color.enamel,
+      }}
       padding={0}
     >
-      {/* This key forces the whole table rerender when the number format changes */}
-      <Fragment key={numberFormat + hideFraction}>
-        {account ? (
-          <AccountTransactions account={account} />
-        ) : accountIdParam === 'onbudget' ? (
-          <OnBudgetAccountTransactions />
-        ) : accountIdParam === 'offbudget' ? (
-          <OffBudgetAccountTransactions />
-        ) : (
-          <AllAccountTransactions />
-        )}
-      </Fragment>
+      <View className={movementsSurfaceClass} style={{ flex: 1, minHeight: 0 }}>
+        {/* This key forces the whole table rerender when the number format changes */}
+        <Fragment key={numberFormat + hideFraction}>
+          {account ? (
+            <AccountTransactions account={account} />
+          ) : accountIdParam === 'onbudget' ? (
+            <OnBudgetAccountTransactions />
+          ) : accountIdParam === 'offbudget' ? (
+            <OffBudgetAccountTransactions />
+          ) : (
+            <AllAccountTransactions />
+          )}
+        </Fragment>
+      </View>
     </Page>
   );
 }
@@ -237,6 +247,7 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
     <View
       style={{
         flexDirection: 'row',
+        alignItems: 'center',
       }}
     >
       {account.bank && (
@@ -257,32 +268,18 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
           }}
         />
       )}
-      <Button variant="bare" onPress={onClick}>
-        <Text
-          style={{
-            fontSize: 17,
-            fontWeight: 500,
-            ...styles.underlinedText,
-            ...(styles.lineClamp(2) as CSSProperties),
-          }}
-        >
-          {account.closed
-            ? t('Closed: {{accountName}}', { accountName: account.name })
-            : account.name}
-        </Text>
+      <Button
+        variant="bare"
+        aria-label={t('Account menu')}
+        onPress={onClick}
+        style={{
+          minWidth: 38,
+          minHeight: 38,
+          color: nossoCaderninho.color.navText,
+        }}
+      >
+        <SvgDotsHorizontalTriple width={16} height={16} />
       </Button>
-    </View>
-  );
-}
-
-function NameOnlyHeader({ name }: { readonly name: string }) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-      }}
-    >
-      <Text style={{ ...(styles.lineClamp(2) as CSSProperties) }}>{name}</Text>
     </View>
   );
 }

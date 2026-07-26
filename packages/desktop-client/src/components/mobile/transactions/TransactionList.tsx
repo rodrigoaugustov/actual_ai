@@ -57,6 +57,7 @@ import {
   setNotificationInset,
 } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { ROW_HEIGHT, TransactionListItem } from './TransactionListItem';
 
@@ -241,7 +242,11 @@ export function TransactionList({
             selectionMode={
               selectedTransactions.size > 0 ? 'multiple' : 'single'
             }
-            style={{ flex: 1, overflow: 'auto' }}
+            style={{
+              flex: 1,
+              overflow: 'auto',
+              backgroundColor: nossoCaderninho.color.plate,
+            }}
             selectedKeys={selectedTransactions}
             dependencies={[
               selectedTransactions,
@@ -262,7 +267,9 @@ export function TransactionList({
                   style={{
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: theme.mobilePageBackground,
+                    minHeight: 180,
+                    color: nossoCaderninho.color.graphiteSubdued,
+                    backgroundColor: nossoCaderninho.color.plate,
                   }}
                 >
                   <Text style={{ fontSize: 15 }}>
@@ -278,16 +285,17 @@ export function TransactionList({
                 <Header
                   style={{
                     ...styles.smallText,
-                    backgroundColor: theme.pageBackground,
-                    color: theme.tableHeaderText,
+                    backgroundColor: nossoCaderninho.color.signalSoft,
+                    color: nossoCaderninho.color.graphiteSubdued,
                     display: 'flex',
-                    justifyContent: 'center',
-                    paddingBottom: 4,
-                    paddingTop: 4,
+                    justifyContent: 'flex-start',
+                    padding: `6px ${nossoCaderninho.space.md}px`,
                     position: 'sticky',
                     top: '0',
                     width: '100%',
                     zIndex: 10,
+                    borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+                    fontWeight: 600,
                   }}
                 >
                   {monthUtils.format(section.date, 'MMMM dd, yyyy', locale)}

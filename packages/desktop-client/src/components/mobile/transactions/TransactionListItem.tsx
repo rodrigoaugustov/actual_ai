@@ -49,6 +49,7 @@ import { useDisplayPayee } from '#hooks/useDisplayPayee';
 import { usePayee } from '#hooks/usePayee';
 import { NotesTagFormatter } from '#notes/NotesTagFormatter';
 import { useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { lookupName, Status } from './TransactionEdit';
 
@@ -189,24 +190,13 @@ export function TransactionListItem({
         width: '100%',
         height: ROW_HEIGHT,
         overflow: 'hidden',
-        ...(itemProps.isSelected
-          ? {
-              borderWidth: '0 0 0 4px',
-              borderColor: theme.mobileTransactionSelected,
-              borderStyle: 'solid',
-            }
-          : {
-              borderWidth: '0 0 1px 0',
-              borderColor: theme.tableBorder,
-              borderStyle: 'solid',
-            }),
-        ...(isPreview
-          ? {
-              backgroundColor: theme.tableRowHeaderBackground,
-            }
-          : {
-              backgroundColor: theme.tableBackground,
-            }),
+        borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
+        backgroundColor: itemProps.isSelected
+          ? nossoCaderninho.color.partnershipSoft
+          : isPreview
+            ? nossoCaderninho.color.signalSoft
+            : nossoCaderninho.color.plate,
+        transition: `background-color ${nossoCaderninho.motion.duration} ${nossoCaderninho.motion.easing}`,
       }}
     >
       <PressResponder {...mergeProps(pressProps, longPressProps)}>
@@ -219,13 +209,11 @@ export function TransactionListItem({
             borderRadius: 0,
             borderWidth: 0,
             ...(isReconciling && { paddingRight: 0 }),
-            ...(isPreview
-              ? {
-                  backgroundColor: theme.tableRowHeaderBackground,
-                }
-              : {
-                  backgroundColor: theme.tableBackground,
-                }),
+            backgroundColor: itemProps.isSelected
+              ? nossoCaderninho.color.partnershipSoft
+              : isPreview
+                ? nossoCaderninho.color.signalSoft
+                : nossoCaderninho.color.plate,
           }}
         >
           <View
@@ -246,7 +234,7 @@ export function TransactionListItem({
                 <TextOneLine
                   style={{
                     ...textStyle,
-                    fontWeight: isAdded ? '600' : '400',
+                    fontWeight: isAdded ? '650' : '500',
                     ...(!displayPayee && !isPreview
                       ? {
                           color: theme.pageTextLight,
@@ -360,9 +348,9 @@ export function TransactionListItem({
                 style={{
                   ...styles.tnum,
                   ...makeAmountFullStyle(amount, {
-                    positiveColor: theme.tableText,
-                    negativeColor: theme.tableText,
-                    zeroColor: theme.numberNeutral,
+                    positiveColor: nossoCaderninho.color.graphite,
+                    negativeColor: nossoCaderninho.color.graphite,
+                    zeroColor: nossoCaderninho.color.graphiteSubdued,
                   }),
                   ...textStyle,
                 }}

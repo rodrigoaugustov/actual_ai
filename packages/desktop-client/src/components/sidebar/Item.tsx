@@ -77,6 +77,7 @@ export function Item({
           ':hover': hoverStyle,
         }}
         forceActive={forceActive}
+        isExactPathMatch={to === '/'}
         activeStyle={{
           color: nossoCaderninho.color.navText,
           backgroundColor: nossoCaderninho.color.partnership,

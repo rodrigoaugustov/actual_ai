@@ -32,6 +32,7 @@
     "#i18n": "./src/i18n.ts",
     "#mocks": "./src/mocks.tsx",
     "#mocks/*": "./src/mocks/*.ts",
+    "#components/accounts/movementsStyles": "./src/components/accounts/movementsStyles.ts",
     "#components/forms": "./src/components/forms/index.tsx",
     "#components/banksync": "./src/components/banksync/index.tsx",
     "#components/banksync/bankSyncUtils": "./src/components/banksync/bankSyncUtils.ts",

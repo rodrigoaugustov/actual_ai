@@ -478,6 +478,7 @@ export function FinancesApp() {
                 <Route path="/" element={<MobileNavTabs />} />
                 <Route path="/budget" element={<MobileNavTabs />} />
                 <Route path="/accounts" element={<MobileNavTabs />} />
+                <Route path="/accounts/:id" element={<MobileNavTabs />} />
                 <Route path="/settings" element={<MobileNavTabs />} />
                 <Route path="/reports" element={<MobileNavTabs />} />
                 <Route
