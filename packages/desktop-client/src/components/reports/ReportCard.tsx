@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@actual-app/components/button';
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { SvgDotsHorizontalTriple } from '@actual-app/components/icons/v1';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
 import { useContextMenu } from '#hooks/useContextMenu';
@@ -17,6 +16,7 @@ import {
   useCopyDashboardWidgetMutation,
   useRemoveDashboardWidgetMutation,
 } from '#reports/mutations';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { NON_DRAGGABLE_AREA_CLASS_NAME } from './constants';
 
@@ -69,13 +69,18 @@ export function ReportCard({
     <View
       ref={ref}
       style={{
-        backgroundColor: theme.tableBackground,
-        borderBottomLeftRadius: 2,
-        borderBottomRightRadius: 2,
+        minWidth: 0,
+        minHeight: 0,
+        color: nossoCaderninho.color.graphite,
+        backgroundColor: nossoCaderninho.color.plate,
+        border: `1px solid ${nossoCaderninho.color.railSoft}`,
+        borderRadius: nossoCaderninho.radius.control,
         width: '100%',
         height: '100%',
-        boxShadow: '0 2px 6px rgba(0, 0, 0, .15)',
-        transition: 'box-shadow .25s',
+        boxShadow: 'none',
+        overflow: 'hidden',
+        fontFamily: nossoCaderninho.font.family,
+        transition: `border-color ${nossoCaderninho.motion.duration} ${nossoCaderninho.motion.easing}`,
         ...(isEditing
           ? {
               '& .recharts-surface:hover': {
@@ -83,7 +88,7 @@ export function ReportCard({
                 ':active': { cursor: 'grabbing' },
               },
               ':active': { cursor: 'grabbing' },
-              filter: 'grayscale(1)',
+              borderColor: nossoCaderninho.color.partnership,
             }
           : {
               '& .recharts-surface:hover': {
@@ -91,8 +96,8 @@ export function ReportCard({
               },
             }),
         ':hover': {
-          ...(to ? { boxShadow: '0 4px 6px rgba(0, 0, 0, .15)' } : null),
-          ...(isEditing ? { cursor: 'move', filter: 'grayscale(0)' } : null),
+          ...(to ? { borderColor: nossoCaderninho.color.partnership } : null),
+          ...(isEditing ? { cursor: 'move' } : null),
         },
         ...(to ? null : containerProps),
         ...style,
@@ -205,6 +210,11 @@ function Layout({
         },
         '&:hover .hover-visible': {
           opacity: 1,
+        },
+        '@media (hover: none)': {
+          '& .hover-visible': {
+            opacity: 1,
+          },
         },
       }}
     >

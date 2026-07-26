@@ -22,6 +22,7 @@ import { useLocale } from '#hooks/useLocale';
 type SummaryCardProps = {
   widgetId: string;
   isEditing?: boolean;
+  isCompact?: boolean;
   meta?: SummaryWidget['meta'];
   onMetaChange: (newMeta: SummaryWidget['meta']) => void;
 };
@@ -29,6 +30,7 @@ type SummaryCardProps = {
 export function SummaryCard({
   widgetId,
   isEditing,
+  isCompact = false,
   meta = {},
   onMetaChange,
 }: SummaryCardProps) {
@@ -96,7 +98,13 @@ export function SummaryCard({
       onRename={() => setNameMenuOpen(true)}
     >
       <View style={{ flex: 1, overflow: 'hidden' }}>
-        <View style={{ flexGrow: 0, flexShrink: 0, padding: 20 }}>
+        <View
+          style={{
+            flexGrow: 0,
+            flexShrink: 0,
+            padding: isCompact ? 12 : 20,
+          }}
+        >
           <ReportCardName
             name={meta?.name || t('Summary')}
             isEditing={nameMenuOpen}
@@ -126,6 +134,7 @@ export function SummaryCard({
               contentType={content.type}
               suffix={content.type === 'percentage' ? '%' : ''}
               loading={!data}
+              compact={isCompact}
               initialFontSize={content.fontSize}
               animate={isEditing ?? false}
             />

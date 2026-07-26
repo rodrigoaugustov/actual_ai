@@ -11,6 +11,9 @@ import type { DashboardPageEntity } from '@actual-app/core/types/models';
 
 import { useNavigate } from '#hooks/useNavigate';
 import { useCreateDashboardPageMutation } from '#reports/mutations';
+import { nossoCaderninho } from '#style/nossoCaderninho';
+
+import { reportsMenuClass } from './reportsStyles';
 
 type DashboardSelectorProps = {
   dashboards: readonly DashboardPageEntity[];
@@ -44,6 +47,9 @@ export function DashboardSelector({
     <DialogTrigger>
       <Button
         ref={triggerRef}
+        aria-label={t('Switch view, current: {{name}}', {
+          name: currentDashboard.name,
+        })}
         onPress={() => setMenuOpen(true)}
         style={{
           flexGrow: 1,
@@ -56,6 +62,13 @@ export function DashboardSelector({
           display: 'flex',
           alignItems: 'center',
           gap: '5px',
+          minHeight: 40,
+          padding: '0 12px',
+          color: nossoCaderninho.color.graphite,
+          backgroundColor: nossoCaderninho.color.plate,
+          border: `1px solid ${nossoCaderninho.color.rail}`,
+          borderRadius: nossoCaderninho.radius.control,
+          fontFamily: nossoCaderninho.font.family,
         }}
       >
         <View
@@ -93,6 +106,7 @@ export function DashboardSelector({
         >
           <Dialog>
             <Menu
+              className={reportsMenuClass}
               slot="close"
               onMenuSelect={item => {
                 if (item === 'add-new') {

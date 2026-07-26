@@ -5,11 +5,11 @@ import { Button } from '@actual-app/components/button';
 import { SvgPencil1 } from '@actual-app/components/icons/v2';
 import { InitialFocus } from '@actual-app/components/initial-focus';
 import { Input } from '@actual-app/components/input';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { DashboardPageEntity } from '@actual-app/core/types/models';
 
 import { useRenameDashboardPageMutation } from '#reports/mutations';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type DashboardHeaderProps = {
   dashboard: DashboardPageEntity;
@@ -44,8 +44,9 @@ export function DashboardHeader({ dashboard }: DashboardHeaderProps) {
         flexDirection: 'row',
         alignItems: 'center',
         whiteSpace: 'nowrap',
-        marginLeft: 20,
-        gap: 3,
+        gap: 6,
+        color: nossoCaderninho.color.graphite,
+        fontFamily: nossoCaderninho.font.family,
         '& .hover-visible': {
           opacity: 0,
           transition: 'opacity .25s',
@@ -53,7 +54,7 @@ export function DashboardHeader({ dashboard }: DashboardHeaderProps) {
         '&:hover .hover-visible': {
           opacity: 1,
         },
-        flexGrow: 1,
+        flexGrow: 0,
         flexShrink: 1,
         flexBasis: 'auto',
         minWidth: 0,
@@ -63,14 +64,15 @@ export function DashboardHeader({ dashboard }: DashboardHeaderProps) {
     >
       <View
         style={{
-          fontSize: 25,
-          fontWeight: 500,
+          color: nossoCaderninho.color.graphiteSubdued,
+          fontSize: 11,
+          fontWeight: 600,
           flexGrow: 0,
           flexShrink: 0,
           flexBasis: 'auto',
         }}
       >
-        <Trans>Reports</Trans>:
+        <Trans>Current view</Trans>:
       </View>
       {editingName ? (
         <InitialFocus>
@@ -80,12 +82,9 @@ export function DashboardHeader({ dashboard }: DashboardHeaderProps) {
             onUpdate={handleSaveName}
             onEscape={() => setEditingName(false)}
             style={{
-              fontSize: 25,
-              fontWeight: 500,
-              marginTop: -3,
-              marginBottom: -4,
-              paddingTop: 2,
-              paddingBottom: 2,
+              minHeight: 36,
+              fontSize: 14,
+              fontWeight: 600,
             }}
           />
         </InitialFocus>
@@ -93,9 +92,8 @@ export function DashboardHeader({ dashboard }: DashboardHeaderProps) {
         <>
           <View
             style={{
-              fontSize: 25,
-              fontWeight: 500,
-              marginRight: 5,
+              fontSize: 14,
+              fontWeight: 650,
               flexGrow: 0,
               flexShrink: 1,
               flexBasis: 'auto',
@@ -112,20 +110,13 @@ export function DashboardHeader({ dashboard }: DashboardHeaderProps) {
             aria-label={t('Rename dashboard')}
             className="hover-visible"
             style={{
-              marginRight: 5,
+              width: 36,
+              height: 36,
+              color: nossoCaderninho.color.graphiteSubdued,
             }}
             onPress={() => setEditingName(true)}
           >
-            <SvgPencil1
-              style={{
-                width: 11,
-                height: 11,
-                flexGrow: 0,
-                flexShrink: 0,
-                flexBasis: 'auto',
-                color: theme.pageTextSubdued,
-              }}
-            />
+            <SvgPencil1 style={{ width: 14, height: 14, flexShrink: 0 }} />
           </Button>
         </>
       )}

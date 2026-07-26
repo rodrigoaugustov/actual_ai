@@ -9,10 +9,13 @@ import { useLocation } from 'react-router';
 
 import { Button } from '@actual-app/components/button';
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
-import { SvgDotsHorizontalTriple } from '@actual-app/components/icons/v1';
+import {
+  SvgCog,
+  SvgDotsHorizontalTriple,
+  SvgMenu,
+} from '@actual-app/components/icons/v1';
 import { Menu } from '@actual-app/components/menu';
 import { Popover } from '@actual-app/components/popover';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type {
   CustomReportWidget,
@@ -22,7 +25,6 @@ import type {
   MarkdownWidget,
 } from '@actual-app/core/types/models';
 
-import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { MobilePageHeader, Page } from '#components/Page';
 import { useAccounts } from '#hooks/useAccounts';
 import {
@@ -48,12 +50,14 @@ import {
   useUpdateDashboardWidgetMutation,
   useUpdateDashboardWidgetsMutation,
 } from '#reports/mutations';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { NON_DRAGGABLE_AREA_CLASS_NAME } from './constants';
 import { DashboardHeader } from './DashboardHeader';
 import './overview.scss';
 import { DashboardSelector } from './DashboardSelector';
 import { LoadingIndicator } from './LoadingIndicator';
+import { moveDashboardWidget } from './reportLayout';
 import { AgeOfMoneyCard } from './reports/AgeOfMoneyCard';
 import { BalanceForecastCard } from './reports/BalanceForecastCard';
 import { BudgetAnalysisCard } from './reports/BudgetAnalysisCard';
@@ -68,6 +72,25 @@ import { NetWorthCard } from './reports/NetWorthCard';
 import { SankeyCard } from './reports/SankeyCard';
 import { SpendingCard } from './reports/SpendingCard';
 import { SummaryCard } from './reports/SummaryCard';
+import { ReportsSheet } from './ReportsSheet';
+import {
+  reportsCurrentViewClass,
+  reportsDesktopHeaderClass,
+  reportsEmptyStateClass,
+  reportsGridClass,
+  reportsGridItemClass,
+  reportsHeaderActionsClass,
+  reportsHeaderIdentityClass,
+  reportsMenuClass,
+  reportsMobileHeaderButtonClass,
+  reportsMobileWidgetToolbarClass,
+  reportsOrganizeClass,
+  reportsStageClass,
+  reportsStageHeadingClass,
+  reportsSurfaceClass,
+  reportsWorkbenchClass,
+} from './reportsStyles';
+import { ReportsWorkbenchNav } from './ReportsWorkbenchNav';
 
 function isCustomReportWidget(
   widget: DashboardWidgetEntity,
@@ -79,7 +102,8 @@ function getWidgetMinHeight(widget: DashboardWidgetEntity) {
   if (
     isCustomReportWidget(widget) ||
     widget.type === 'markdown-card' ||
-    widget.type === 'formula-card'
+    widget.type === 'formula-card' ||
+    widget.type === 'summary-card'
   ) {
     return 1;
   }
@@ -107,6 +131,13 @@ type OverviewProps = {
   dashboard: DashboardPageEntity;
 };
 
+/*
+THESIS — Análises é uma bancada de leitura; recusa o mosaico de KPIs como destino.
+OWN-WORLD — Esmalte frio, placas brancas e trilhos finos alinham gráficos, valores e provas.
+STORY — A família abre uma visão, entende o que mudou e aprofunda uma análise sem perder contexto.
+FIRST VIEWPORT — Biblioteca vertical, resumo compacto e widgets contínuos; organizar fica secundário.
+FORM — Oficina de relatórios, posição 5; composição B + visão geral A; seed 3d6425c9.
+*/
 export function Overview({ dashboard }: OverviewProps) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
@@ -119,11 +150,9 @@ export function Overview({ dashboard }: OverviewProps) {
 
   const [isImporting, setIsImporting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isOrganizerOpen, setIsOrganizerOpen] = useState(false);
   const { isNarrowWidth } = useResponsive();
-  const currentBreakpoint: 'mobile' | 'desktop' = isNarrowWidth
-    ? 'mobile'
-    : 'desktop';
-
   const { data: customReports = [], isPending: isCustomReportsLoading } =
     useReports();
 
@@ -148,6 +177,17 @@ export function Overview({ dashboard }: OverviewProps) {
   sessionStorage.setItem('url', location.pathname);
 
   const [containerWidth, setContainerWidth] = useState(0);
+  const [workbenchWidth, setWorkbenchWidth] = useState(0);
+  const handleWorkbenchResize = useCallback((contentRect: DOMRectReadOnly) => {
+    setWorkbenchWidth(Math.floor(contentRect.width));
+  }, []);
+  const workbenchRef = useResizeObserver<HTMLDivElement>(handleWorkbenchResize);
+  const isWorkbenchNarrow =
+    isNarrowWidth || (workbenchWidth > 0 && workbenchWidth < 900);
+  const currentBreakpoint: 'mobile' | 'desktop' =
+    isNarrowWidth || (containerWidth > 0 && containerWidth < 680)
+      ? 'mobile'
+      : 'desktop';
   const handleResize = useCallback((contentRect: DOMRectReadOnly) => {
     setContainerWidth(Math.floor(contentRect.width));
   }, []);
@@ -172,31 +212,44 @@ export function Overview({ dashboard }: OverviewProps) {
 
     let currentY = 0;
     return sortedDesktopItems.map(widget => {
+      const displayHeight =
+        !isEditing &&
+        (widget.type === 'formula-card' || widget.type === 'summary-card')
+          ? 1
+          : Math.max(getWidgetMinHeight(widget), widget.height);
       const itemY = currentY;
-      currentY += widget.height;
+      currentY += displayHeight;
 
       return {
         i: widget.id,
         x: 0,
         y: itemY, // Calculate correct y co-ordinate to prevent react-grid-layout's auto-compacting behaviour
         w: 1,
-        h: widget.height,
+        h: displayHeight,
       };
     });
-  }, [widgets]);
+  }, [isEditing, widgets]);
 
   const desktopLayout = useMemo(() => {
     if (!widgets) return [];
-    return widgets.map(widget => ({
-      i: widget.id,
-      x: widget.x,
-      y: widget.y,
-      w: widget.width,
-      h: widget.height,
-      minW: getWidgetMinWidth(widget),
-      minH: getWidgetMinHeight(widget),
-    }));
-  }, [widgets]);
+    return widgets.map(widget => {
+      const displayHeight =
+        !isEditing &&
+        (widget.type === 'formula-card' || widget.type === 'summary-card')
+          ? 1
+          : widget.height;
+
+      return {
+        i: widget.id,
+        x: widget.x,
+        y: widget.y,
+        w: widget.width,
+        h: displayHeight,
+        minW: getWidgetMinWidth(widget),
+        minH: getWidgetMinHeight(widget),
+      };
+    });
+  }, [isEditing, widgets]);
 
   const currentLayout = useMemo(
     () => (currentBreakpoint === 'desktop' ? desktopLayout : mobileLayout),
@@ -465,463 +518,691 @@ export function Overview({ dashboard }: OverviewProps) {
   };
 
   const { data: accounts = [] } = useAccounts();
+  const updateWidgetGeometry = (
+    geometry: Array<{
+      id: string;
+      width: number;
+      height: number;
+      x: number;
+      y: number;
+    }>,
+  ) => {
+    updateDashboardWidgetsMutation.mutate({ widgets: geometry });
+  };
+  const moveWidget = (widgetId: string, direction: -1 | 1) => {
+    const geometry = moveDashboardWidget(widgets, widgetId, direction);
+    if (geometry) {
+      updateWidgetGeometry(geometry);
+    }
+  };
+  const resizeWidget = (widgetId: string, direction: -1 | 1) => {
+    updateWidgetGeometry(
+      widgets.map(widget => ({
+        id: widget.id,
+        width: widget.width,
+        height:
+          widget.id === widgetId
+            ? Math.max(getWidgetMinHeight(widget), widget.height + direction)
+            : widget.height,
+        x: widget.x,
+        y: widget.y,
+      })),
+    );
+  };
 
   if (isLoading) {
     return <LoadingIndicator message={t('Loading reports...')} />;
   }
 
+  const addWidgetControl = (
+    <DialogTrigger>
+      <Button
+        variant="primary"
+        isDisabled={isImporting}
+        style={{
+          color: nossoCaderninho.color.navText,
+          backgroundColor: nossoCaderninho.color.partnership,
+          borderColor: nossoCaderninho.color.partnership,
+        }}
+      >
+        <Trans>Add analysis</Trans>
+      </Button>
+
+      <Popover>
+        <Dialog>
+          <Menu
+            className={reportsMenuClass}
+            slot="close"
+            onMenuSelect={item => {
+              if (item === 'custom-report') {
+                void navigate('/reports/custom');
+                return;
+              }
+
+              function isExistingCustomReport(
+                name: string,
+              ): name is `custom-report-${string}` {
+                return name.startsWith('custom-report-');
+              }
+              if (isExistingCustomReport(item)) {
+                const [, reportId] = item.split('custom-report-');
+                onAddWidget<CustomReportWidget>('custom-report', {
+                  id: reportId,
+                });
+                return;
+              }
+
+              if (item === 'markdown-card') {
+                onAddWidget<MarkdownWidget>(item, {
+                  content: `### ${t('Text Widget')}\n\n${t('Edit this widget to change the **markdown** content.')}`,
+                });
+                return;
+              }
+
+              onAddWidget(item);
+            }}
+            items={[
+              {
+                name: 'cash-flow-card' as const,
+                text: t('Cash flow graph'),
+              },
+              {
+                name: 'net-worth-card' as const,
+                text: t('Net worth graph'),
+              },
+              {
+                name: 'crossover-card' as const,
+                text: t('Crossover point'),
+              },
+              {
+                name: 'age-of-money-card' as const,
+                text: t('Age of Money'),
+              },
+              {
+                name: 'spending-card' as const,
+                text: t('Spending analysis'),
+              },
+              ...(budgetAnalysisReportEnabled
+                ? [
+                    {
+                      name: 'budget-analysis-card' as const,
+                      text: t('Budget analysis'),
+                    },
+                  ]
+                : []),
+              ...(balanceForecastReportEnabled
+                ? [
+                    {
+                      name: 'balance-forecast-card' as const,
+                      text: t('Balance forecast'),
+                    },
+                  ]
+                : []),
+              {
+                name: 'markdown-card' as const,
+                text: t('Text widget'),
+              },
+              {
+                name: 'summary-card' as const,
+                text: t('Summary card'),
+              },
+              {
+                name: 'calendar-card' as const,
+                text: t('Calendar card'),
+              },
+              ...(formulaMode
+                ? [
+                    {
+                      name: 'formula-card' as const,
+                      text: t('Formula card'),
+                    },
+                  ]
+                : []),
+              ...(sankeyFeatureFlag
+                ? [
+                    {
+                      name: 'sankey-card' as const,
+                      text: t('Sankey card'),
+                    },
+                  ]
+                : []),
+              {
+                name: 'custom-report' as const,
+                text: t('New custom report'),
+              },
+              ...(customReports.length
+                ? ([Menu.line] satisfies Array<typeof Menu.line>)
+                : []),
+              ...customReports.map(report => ({
+                name: `custom-report-${report.id}` as const,
+                text: report.name,
+              })),
+            ]}
+          />
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
+  );
+  const editControl = isEditing ? (
+    <Button
+      isDisabled={isImporting}
+      style={{
+        color: nossoCaderninho.color.graphite,
+        backgroundColor: nossoCaderninho.color.plate,
+        borderColor: nossoCaderninho.color.rail,
+      }}
+      onPress={() => {
+        setIsEditing(false);
+        if (isOrganizerOpen) {
+          setIsOrganizerOpen(false);
+        }
+      }}
+    >
+      <Trans>Finish organizing</Trans>
+    </Button>
+  ) : (
+    <Button
+      isDisabled={isImporting}
+      style={{
+        color: nossoCaderninho.color.graphite,
+        backgroundColor: nossoCaderninho.color.plate,
+        borderColor: nossoCaderninho.color.rail,
+      }}
+      onPress={() => {
+        setIsEditing(true);
+        if (isOrganizerOpen) {
+          setIsOrganizerOpen(false);
+        }
+      }}
+    >
+      <Trans>Organize</Trans>
+    </Button>
+  );
+  const dashboardMenuControl = (
+    <DialogTrigger>
+      <Button
+        variant="bare"
+        aria-label={t('More view options')}
+        style={{ color: nossoCaderninho.color.partnership }}
+      >
+        <SvgDotsHorizontalTriple
+          width={15}
+          height={15}
+          style={{ transform: 'rotateZ(90deg)' }}
+        />
+      </Button>
+      <Popover>
+        <Dialog>
+          <Menu
+            className={reportsMenuClass}
+            slot="close"
+            onMenuSelect={item => {
+              switch (item) {
+                case 'reset':
+                  void onResetDashboard();
+                  break;
+                case 'export':
+                  onExport();
+                  break;
+                case 'import':
+                  void onImport();
+                  break;
+                case 'delete':
+                  void onDeleteDashboard(dashboard.id);
+                  break;
+                default:
+                  throw new Error(`Unrecognized menu option: ${String(item)}`);
+              }
+            }}
+            items={[
+              {
+                name: 'reset',
+                text: t('Reset to default'),
+                disabled: isImporting,
+              },
+              Menu.line,
+              {
+                name: 'import',
+                text: t('Import'),
+                disabled: isImporting,
+              },
+              {
+                name: 'export',
+                text: t('Export'),
+                disabled: isImporting,
+              },
+              Menu.line,
+              {
+                name: 'delete',
+                text: t('Delete dashboard'),
+                disabled: isImporting || dashboardPages.length <= 1,
+              },
+            ]}
+          />
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
+  );
+  const dashboardControls = (
+    <div className={reportsHeaderActionsClass} data-mobile={isNarrowWidth}>
+      <DashboardSelector
+        dashboards={dashboardPages}
+        currentDashboard={dashboard}
+      />
+      {addWidgetControl}
+      {editControl}
+      {dashboardMenuControl}
+    </div>
+  );
+  const compactDesktopControls = (
+    <div className={reportsHeaderActionsClass}>
+      <Button
+        id="reports-library-trigger"
+        variant="bare"
+        aria-label={t('Browse analyses')}
+        aria-haspopup="dialog"
+        aria-expanded={isLibraryOpen}
+        className={reportsMobileHeaderButtonClass}
+        style={{ color: nossoCaderninho.color.partnership }}
+        onPress={() => setIsLibraryOpen(true)}
+      >
+        <SvgMenu width={18} height={18} />
+      </Button>
+      {addWidgetControl}
+      <Button
+        id="reports-organizer-trigger"
+        variant="bare"
+        aria-label={t('Organize analyses')}
+        aria-haspopup="dialog"
+        aria-expanded={isOrganizerOpen}
+        className={reportsMobileHeaderButtonClass}
+        style={{ color: nossoCaderninho.color.partnership }}
+        onPress={() => setIsOrganizerOpen(true)}
+      >
+        <SvgCog width={18} height={18} />
+      </Button>
+    </div>
+  );
+
   return (
     <Page
       header={
         isNarrowWidth ? (
-          <View>
-            <MobilePageHeader
-              title={
-                <View
-                  style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Trans>Reports</Trans>: {dashboard.name}
-                </View>
-              }
-            />
-            <View
-              style={{
-                padding: '5px',
-                borderBottom: '1px solid ' + theme.pillBorder,
-                backgroundColor: theme.mobilePageBackground,
-              }}
-            >
-              <DashboardSelector
-                dashboards={dashboardPages}
-                currentDashboard={dashboard}
-              />
-            </View>
-          </View>
-        ) : (
-          <View
+          <MobilePageHeader
+            title={t('Analyses')}
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              marginRight: 15,
-              alignItems: 'center',
+              backgroundColor: nossoCaderninho.color.nav,
+              color: nossoCaderninho.color.navText,
+              fontFamily: nossoCaderninho.font.family,
             }}
-          >
-            <DashboardHeader dashboard={dashboard} />
+            leftContent={
+              <Button
+                id="reports-library-trigger"
+                variant="bare"
+                aria-label={t('Browse analyses')}
+                aria-haspopup="dialog"
+                aria-expanded={isLibraryOpen}
+                className={reportsMobileHeaderButtonClass}
+                onPress={() => setIsLibraryOpen(true)}
+              >
+                <SvgMenu width={18} height={18} />
+              </Button>
+            }
+            rightContent={
+              <Button
+                id="reports-organizer-trigger"
+                variant="bare"
+                aria-label={t('Organize analyses')}
+                aria-haspopup="dialog"
+                aria-expanded={isOrganizerOpen}
+                className={reportsMobileHeaderButtonClass}
+                onPress={() => setIsOrganizerOpen(true)}
+              >
+                <SvgCog width={18} height={18} />
+              </Button>
+            }
+          />
+        ) : (
+          <View className={reportsDesktopHeaderClass}>
+            <div className={reportsHeaderIdentityClass}>
+              <h1>
+                <Trans>Analyses</Trans>
+              </h1>
+              <p>
+                <Trans>The financial history of our household</Trans>
+              </p>
+            </div>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                gap: 5,
-                alignItems: 'stretch',
-              }}
-            >
-              {currentBreakpoint === 'desktop' && (
-                <>
-                  {/* Dashboard Selector */}
-                  <DashboardSelector
-                    dashboards={dashboardPages}
-                    currentDashboard={dashboard}
-                  />
-
-                  <View
-                    style={{
-                      height: 'auto',
-                      borderLeft: `1.5px solid ${theme.pillBorderDark}`,
-                      borderRadius: 0.75,
-                      marginLeft: 7,
-                      marginRight: 7,
-                    }}
-                  />
-
-                  <DialogTrigger>
-                    <Button variant="primary" isDisabled={isImporting}>
-                      <Trans>Add new widget</Trans>
-                    </Button>
-
-                    <Popover>
-                      <Dialog>
-                        <Menu
-                          slot="close"
-                          onMenuSelect={item => {
-                            if (item === 'custom-report') {
-                              void navigate('/reports/custom');
-                              return;
-                            }
-
-                            function isExistingCustomReport(
-                              name: string,
-                            ): name is `custom-report-${string}` {
-                              return name.startsWith('custom-report-');
-                            }
-                            if (isExistingCustomReport(item)) {
-                              const [, reportId] = item.split('custom-report-');
-                              onAddWidget<CustomReportWidget>('custom-report', {
-                                id: reportId,
-                              });
-                              return;
-                            }
-
-                            if (item === 'markdown-card') {
-                              onAddWidget<MarkdownWidget>(item, {
-                                content: `### ${t('Text Widget')}\n\n${t('Edit this widget to change the **markdown** content.')}`,
-                              });
-                              return;
-                            }
-
-                            onAddWidget(item);
-                          }}
-                          items={[
-                            {
-                              name: 'cash-flow-card' as const,
-                              text: t('Cash flow graph'),
-                            },
-                            {
-                              name: 'net-worth-card' as const,
-                              text: t('Net worth graph'),
-                            },
-                            {
-                              name: 'crossover-card' as const,
-                              text: t('Crossover point'),
-                            },
-                            {
-                              name: 'age-of-money-card' as const,
-                              text: t('Age of Money'),
-                            },
-                            {
-                              name: 'spending-card' as const,
-                              text: t('Spending analysis'),
-                            },
-                            ...(budgetAnalysisReportEnabled
-                              ? [
-                                  {
-                                    name: 'budget-analysis-card' as const,
-                                    text: t('Budget analysis'),
-                                  },
-                                ]
-                              : []),
-                            ...(balanceForecastReportEnabled
-                              ? [
-                                  {
-                                    name: 'balance-forecast-card' as const,
-                                    text: t('Balance forecast'),
-                                  },
-                                ]
-                              : []),
-                            {
-                              name: 'markdown-card' as const,
-                              text: t('Text widget'),
-                            },
-                            {
-                              name: 'summary-card' as const,
-                              text: t('Summary card'),
-                            },
-                            {
-                              name: 'calendar-card' as const,
-                              text: t('Calendar card'),
-                            },
-                            ...(formulaMode
-                              ? [
-                                  {
-                                    name: 'formula-card' as const,
-                                    text: t('Formula card'),
-                                  },
-                                ]
-                              : []),
-                            ...(sankeyFeatureFlag
-                              ? [
-                                  {
-                                    name: 'sankey-card' as const,
-                                    text: t('Sankey card'),
-                                  },
-                                ]
-                              : []),
-                            {
-                              name: 'custom-report' as const,
-                              text: t('New custom report'),
-                            },
-                            ...(customReports.length
-                              ? ([Menu.line] satisfies Array<typeof Menu.line>)
-                              : []),
-                            ...customReports.map(report => ({
-                              name: `custom-report-${report.id}` as const,
-                              text: report.name,
-                            })),
-                          ]}
-                        />
-                      </Dialog>
-                    </Popover>
-                  </DialogTrigger>
-
-                  {/* The Editing Button */}
-                  {isEditing ? (
-                    <Button
-                      isDisabled={isImporting}
-                      onPress={() => setIsEditing(false)}
-                    >
-                      <Trans>Finish editing dashboard</Trans>
-                    </Button>
-                  ) : (
-                    <Button
-                      isDisabled={isImporting}
-                      onPress={() => setIsEditing(true)}
-                    >
-                      <Trans>Edit dashboard</Trans>
-                    </Button>
-                  )}
-
-                  {/* The Menu */}
-                  <DialogTrigger>
-                    <Button variant="bare" aria-label={t('Menu')}>
-                      <SvgDotsHorizontalTriple
-                        width={15}
-                        height={15}
-                        style={{ transform: 'rotateZ(90deg)' }}
-                      />
-                    </Button>
-                    <Popover>
-                      <Dialog>
-                        <Menu
-                          slot="close"
-                          onMenuSelect={item => {
-                            switch (item) {
-                              case 'reset':
-                                void onResetDashboard();
-                                break;
-                              case 'export':
-                                onExport();
-                                break;
-                              case 'import':
-                                void onImport();
-                                break;
-                              case 'delete':
-                                void onDeleteDashboard(dashboard.id);
-                                break;
-                              default:
-                                throw new Error(
-                                  `Unrecognized menu option: ${String(item)}`,
-                                );
-                            }
-                          }}
-                          items={[
-                            {
-                              name: 'reset',
-                              text: t('Reset to default'),
-                              disabled: isImporting,
-                            },
-                            Menu.line,
-                            {
-                              name: 'import',
-                              text: t('Import'),
-                              disabled: isImporting,
-                            },
-                            {
-                              name: 'export',
-                              text: t('Export'),
-                              disabled: isImporting,
-                            },
-                            Menu.line,
-                            {
-                              name: 'delete',
-                              text: t('Delete dashboard'),
-                              disabled:
-                                isImporting || dashboardPages.length <= 1,
-                            },
-                          ]}
-                        />
-                      </Dialog>
-                    </Popover>
-                  </DialogTrigger>
-                </>
-              )}
-            </View>
+            {isWorkbenchNarrow ? compactDesktopControls : dashboardControls}
           </View>
         )
       }
-      padding={10}
+      padding={0}
+      style={{
+        minHeight: 0,
+        overflow: 'hidden',
+        backgroundColor: nossoCaderninho.color.enamel,
+      }}
     >
-      {isImporting ? (
-        <LoadingIndicator message={t('Import is running...')} />
-      ) : (
-        <div>
-          <View
-            data-testid="reports-overview"
-            innerRef={containerRef}
-            style={{ userSelect: 'none', paddingBottom: MOBILE_NAV_HEIGHT }}
+      <div ref={workbenchRef} className={reportsSurfaceClass}>
+        <div
+          className={reportsWorkbenchClass}
+          data-library-hidden={isNarrowWidth || isWorkbenchNarrow}
+        >
+          {!isNarrowWidth && !isWorkbenchNarrow && (
+            <ReportsWorkbenchNav
+              dashboardId={dashboard.id}
+              hasBudgetAnalysis={budgetAnalysisReportEnabled}
+              hasBalanceForecast={balanceForecastReportEnabled}
+              hasSankey={sankeyFeatureFlag}
+            />
+          )}
+          <section
+            className={reportsStageClass}
+            aria-label={t('Current analysis')}
           >
-            {isMounted && (
-              <ReactGridLayout
-                width={containerWidth}
-                layout={currentLayout}
-                gridConfig={{
-                  cols: currentBreakpoint === 'desktop' ? 12 : 1,
-                  rowHeight: 100,
-                }}
-                dragConfig={{
-                  enabled: currentBreakpoint === 'desktop' && isEditing,
-                  cancel: `.${NON_DRAGGABLE_AREA_CLASS_NAME}`,
-                }}
-                resizeConfig={{
-                  enabled: currentBreakpoint === 'desktop' && isEditing,
-                }}
-                onLayoutChange={
-                  currentBreakpoint === 'desktop' ? onLayoutChange : undefined
-                }
-              >
-                {currentLayout.map(item => {
-                  const widget = widgetMap.get(item.i);
+            <div className={reportsStageHeadingClass}>
+              <div>
+                <h2>{dashboard.name}</h2>
+                <p>
+                  <Trans>A shared reading of the household finances</Trans>
+                </p>
+              </div>
+              {isEditing && (
+                <strong>
+                  <Trans>Organizing view</Trans>
+                </strong>
+              )}
+            </div>
+            {isImporting ? (
+              <LoadingIndicator message={t('Import is running...')} />
+            ) : widgets.length === 0 ? (
+              <div className={reportsEmptyStateClass}>
+                <h2>
+                  <Trans>This view is ready for its first analysis</Trans>
+                </h2>
+                <p>
+                  <Trans>
+                    Add a graph, comparison or saved report to start reading the
+                    household history.
+                  </Trans>
+                </p>
+                {addWidgetControl}
+              </div>
+            ) : (
+              <div className={`${reportsGridClass} reports-workshop-grid`}>
+                <View
+                  data-testid="reports-overview"
+                  innerRef={containerRef}
+                  style={{ userSelect: 'none' }}
+                >
+                  {isMounted && (
+                    <ReactGridLayout
+                      width={containerWidth}
+                      layout={currentLayout}
+                      gridConfig={{
+                        cols: currentBreakpoint === 'desktop' ? 12 : 1,
+                        rowHeight: 100,
+                      }}
+                      dragConfig={{
+                        enabled: currentBreakpoint === 'desktop' && isEditing,
+                        cancel: `.${NON_DRAGGABLE_AREA_CLASS_NAME}`,
+                      }}
+                      resizeConfig={{
+                        enabled: currentBreakpoint === 'desktop' && isEditing,
+                      }}
+                      onLayoutChange={
+                        currentBreakpoint === 'desktop'
+                          ? onLayoutChange
+                          : undefined
+                      }
+                    >
+                      {currentLayout.map((item, itemIndex) => {
+                        const widget = widgetMap.get(item.i);
 
-                  if (!widget) {
-                    return null;
-                  }
+                        if (!widget) {
+                          return null;
+                        }
 
-                  return (
-                    <div key={item.i}>
-                      <ErrorBoundary
-                        fallbackRender={() => (
-                          <MissingReportCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
+                        return (
+                          <div
+                            key={item.i}
+                            className={reportsGridItemClass}
+                            data-mobile-editing={
+                              currentBreakpoint === 'mobile' && isEditing
+                            }
                           >
-                            <Trans>This widget has failed to load.</Trans>
-                          </MissingReportCard>
-                        )}
-                      >
-                        {widget.type === 'net-worth-card' ? (
-                          <NetWorthCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            accounts={accounts}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'crossover-card' ? (
-                          <CrossoverCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            accounts={accounts}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'age-of-money-card' ? (
-                          <AgeOfMoneyCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'cash-flow-card' ? (
-                          <CashFlowCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'spending-card' ? (
-                          <SpendingCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'budget-analysis-card' &&
-                          budgetAnalysisReportEnabled ? (
-                          <BudgetAnalysisCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'balance-forecast-card' &&
-                          balanceForecastReportEnabled ? (
-                          <BalanceForecastCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            accounts={accounts}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'markdown-card' ? (
-                          <MarkdownCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'custom-report' ? (
-                          <CustomReportListCards
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            report={customReportMap.get(widget.meta.id)}
-                          />
-                        ) : widget.type === 'summary-card' ? (
-                          <SummaryCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'calendar-card' ? (
-                          <CalendarCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            firstDayOfWeekIdx={firstDayOfWeekIdx}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'formula-card' && formulaMode ? (
-                          <FormulaCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : widget.type === 'sankey-card' &&
-                          sankeyFeatureFlag ? (
-                          <SankeyCard
-                            widgetId={item.i}
-                            isEditing={isEditing}
-                            meta={widget.meta}
-                            onMetaChange={newMeta =>
-                              onMetaChange(item, newMeta)
-                            }
-                          />
-                        ) : null}
-                      </ErrorBoundary>
-                    </div>
-                  );
-                })}
-              </ReactGridLayout>
+                            {currentBreakpoint === 'mobile' && isEditing && (
+                              <div className={reportsMobileWidgetToolbarClass}>
+                                <span>
+                                  {t('Analysis {{current}} of {{total}}', {
+                                    current: itemIndex + 1,
+                                    total: currentLayout.length,
+                                  })}
+                                </span>
+                                <div>
+                                  <Button
+                                    variant="bare"
+                                    aria-label={t('Move analysis earlier')}
+                                    isDisabled={itemIndex === 0}
+                                    onPress={() => moveWidget(item.i, -1)}
+                                  >
+                                    ↑
+                                  </Button>
+                                  <Button
+                                    variant="bare"
+                                    aria-label={t('Move analysis later')}
+                                    isDisabled={
+                                      itemIndex === currentLayout.length - 1
+                                    }
+                                    onPress={() => moveWidget(item.i, 1)}
+                                  >
+                                    ↓
+                                  </Button>
+                                  <Button
+                                    variant="bare"
+                                    aria-label={t('Reduce analysis height')}
+                                    isDisabled={
+                                      widget.height <=
+                                      getWidgetMinHeight(widget)
+                                    }
+                                    onPress={() => resizeWidget(item.i, -1)}
+                                  >
+                                    −
+                                  </Button>
+                                  <Button
+                                    variant="bare"
+                                    aria-label={t('Increase analysis height')}
+                                    onPress={() => resizeWidget(item.i, 1)}
+                                  >
+                                    +
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            <ErrorBoundary
+                              fallbackRender={() => (
+                                <MissingReportCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                >
+                                  <Trans>This widget has failed to load.</Trans>
+                                </MissingReportCard>
+                              )}
+                            >
+                              {widget.type === 'net-worth-card' ? (
+                                <NetWorthCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  accounts={accounts}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'crossover-card' ? (
+                                <CrossoverCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  accounts={accounts}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'age-of-money-card' ? (
+                                <AgeOfMoneyCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'cash-flow-card' ? (
+                                <CashFlowCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'spending-card' ? (
+                                <SpendingCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'budget-analysis-card' &&
+                                budgetAnalysisReportEnabled ? (
+                                <BudgetAnalysisCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'balance-forecast-card' &&
+                                balanceForecastReportEnabled ? (
+                                <BalanceForecastCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  accounts={accounts}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'markdown-card' ? (
+                                <MarkdownCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'custom-report' ? (
+                                <CustomReportListCards
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  report={customReportMap.get(widget.meta.id)}
+                                />
+                              ) : widget.type === 'summary-card' ? (
+                                <SummaryCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  isCompact={
+                                    !isEditing || currentBreakpoint === 'mobile'
+                                  }
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'calendar-card' ? (
+                                <CalendarCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  firstDayOfWeekIdx={firstDayOfWeekIdx}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'formula-card' &&
+                                formulaMode ? (
+                                <FormulaCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : widget.type === 'sankey-card' &&
+                                sankeyFeatureFlag ? (
+                                <SankeyCard
+                                  widgetId={item.i}
+                                  isEditing={isEditing}
+                                  meta={widget.meta}
+                                  onMetaChange={newMeta =>
+                                    onMetaChange(item, newMeta)
+                                  }
+                                />
+                              ) : null}
+                            </ErrorBoundary>
+                          </div>
+                        );
+                      })}
+                    </ReactGridLayout>
+                  )}
+                </View>
+              </div>
             )}
-          </View>
+          </section>
         </div>
-      )}
+
+        <ReportsSheet
+          id="reports-library"
+          title={<Trans>Analyses library</Trans>}
+          subtitle={
+            <Trans>Choose what the household wants to understand</Trans>
+          }
+          isOpen={isLibraryOpen}
+          returnFocusId="reports-library-trigger"
+          onClose={() => setIsLibraryOpen(false)}
+        >
+          <ReportsWorkbenchNav
+            dashboardId={dashboard.id}
+            hasBudgetAnalysis={budgetAnalysisReportEnabled}
+            hasBalanceForecast={balanceForecastReportEnabled}
+            hasSankey={sankeyFeatureFlag}
+            onNavigate={() => setIsLibraryOpen(false)}
+          />
+        </ReportsSheet>
+
+        <ReportsSheet
+          id="reports-organizer"
+          title={<Trans>Organize analyses</Trans>}
+          subtitle={<Trans>Views, analyses and layout</Trans>}
+          isOpen={isOrganizerOpen}
+          returnFocusId="reports-organizer-trigger"
+          onClose={() => setIsOrganizerOpen(false)}
+        >
+          <div className={reportsOrganizeClass}>
+            <div className={reportsCurrentViewClass}>
+              <DashboardHeader dashboard={dashboard} />
+            </div>
+            {dashboardControls}
+          </div>
+        </ReportsSheet>
+      </div>
     </Page>
   );
 }

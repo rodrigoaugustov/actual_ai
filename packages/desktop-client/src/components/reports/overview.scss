@@ -4,15 +4,28 @@
   transition: none;
 }
 
-.react-grid-item:hover {
+.reports-workshop-grid .react-grid-item:hover {
   z-index: 1;
 }
 
-.react-grid-item.react-grid-placeholder {
-  background-color: #8719e0;
+.reports-workshop-grid .react-grid-layout {
+  background-color: #ffffff;
 }
 
-.react-grid-item > .react-resizable-handle::after {
-  border-right: 2px solid var(--color-pageTextLight);
-  border-bottom: 2px solid var(--color-pageTextLight);
+.reports-workshop-grid .react-grid-item.react-grid-placeholder {
+  background-color: #e4eff1;
+  border: 1px solid #26677a;
+  border-radius: 6px;
+  opacity: 1;
+}
+
+.reports-workshop-grid .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #26677a;
+  border-bottom: 2px solid #26677a;
+}
+
+@media (max-width: 729px) {
+  .reports-workshop-grid .react-grid-layout {
+    margin: 0 -10px;
+  }
 }
