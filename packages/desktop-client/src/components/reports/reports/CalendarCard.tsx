@@ -442,6 +442,9 @@ function CalendarCardInner({
         >
           <Button
             variant="bare"
+            aria-label={t('Open calendar for {{month}}', {
+              month: formatDate(calendar.start, 'MMMM yyyy'),
+            })}
             style={{
               visibility: monthNameVisible ? 'visible' : 'hidden',
               overflow: 'visible',

@@ -1,8 +1,8 @@
 {
   "name": "desktop-electron",
   "version": "26.7.0",
-  "description": "A simple and powerful personal finance system",
-  "author": "Actual",
+  "description": "As finanças da casa, cuidadas em conjunto.",
+  "author": "Nosso Caderninho",
   "main": "build/desktop-electron/index.js",
   "scripts": {
     "clean": "rm -rf dist",
@@ -32,7 +32,7 @@
     "typescript-strict-plugin": "^2.4.4"
   },
   "build": {
-    "appId": "com.actualbudget.actual",
+    "appId": "com.caderninhodigital.nosso",
     "files": [
       "build",
       "!node_modules/@actual-app/web",
@@ -53,7 +53,7 @@
     },
     "mac": {
       "category": "public.app-category.finance",
-      "icon": "icons/icon.icns",
+      "icon": "icons/icon.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "artifactName": "${productName}-mac-${arch}.${ext}",
@@ -68,6 +68,7 @@
       ]
     },
     "linux": {
+      "icon": "icons/icon.png",
       "target": [
         {
           "target": "flatpak",
@@ -93,7 +94,7 @@
           "Keywords": "Budget;Finance;Money;Expenses;Savings;"
         }
       },
-      "executableName": "actual"
+      "executableName": "nosso-caderninho"
     },
     "flatpak": {
       "runtimeVersion": "24.08",
@@ -122,12 +123,12 @@
       "artifactName": "${productName}-windows-${arch}.${ext}"
     },
     "appx": {
-      "identityName": "actualbudget.org.ActualBudget",
-      "publisherDisplayName": "actualbudget.org",
-      "displayName": "Actual Budget",
-      "publisher": "CN=19454997-90E1-4473-879D-96D6A77A6056"
+      "identityName": "CaderninhoDigital.NossoCaderninho",
+      "publisherDisplayName": "Nosso Caderninho",
+      "displayName": "Nosso Caderninho",
+      "publisher": "CN=Nosso Caderninho"
     },
     "npmRebuild": false
   },
-  "productName": "Actual"
+  "productName": "Nosso Caderninho"
 }

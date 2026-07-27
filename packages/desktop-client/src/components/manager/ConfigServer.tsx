@@ -506,7 +506,7 @@ export function ConfigServer() {
               style={{
                 fontSize: 15,
                 color: nossoCaderninho.color.navText,
-                backgroundColor: nossoCaderninho.color.partnership,
+                backgroundColor: nossoCaderninho.color.partnershipSurface,
                 borderColor: nossoCaderninho.color.partnership,
                 boxShadow: 'none',
               }}

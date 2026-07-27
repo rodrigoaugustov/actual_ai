@@ -1,7 +1,7 @@
 // @ts-strict-ignore
 import React, { memo, useRef, useState } from 'react';
 import type { ComponentProps, CSSProperties } from 'react';
-import { Trans } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { SvgCheveronDown } from '@actual-app/components/icons/v1';
@@ -16,7 +16,6 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 import { css } from '@emotion/css';
-import { t } from 'i18next';
 
 import type {
   CategoryGroupMonthProps,
@@ -202,6 +201,7 @@ export const CategoryMonth = memo(function CategoryMonth({
   onBudgetAction,
   onShowActivity,
 }: CategoryMonthProps) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerRef = useRef(null);
   const format = useFormat();
@@ -293,6 +293,7 @@ export const CategoryMonth = memo(function CategoryMonth({
               <Button
                 ref={triggerRef}
                 variant="bare"
+                aria-label={t('Open budget menu')}
                 onPress={() => setMenuOpen(true)}
                 style={{
                   padding: 3,
@@ -418,6 +419,7 @@ export const CategoryMonth = memo(function CategoryMonth({
             <View title={description}>
               <Button
                 variant="bare"
+                aria-label={description}
                 style={{
                   color:
                     scheduleStatus === 'missed'

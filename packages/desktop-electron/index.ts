@@ -302,7 +302,10 @@ async function startSyncServer() {
       syncServerProcess.on('message', msg => {
         switch (msg.type) {
           case 'server-started':
-            logMessage('info', 'Sync-Server: Actual Sync Server has started!');
+            logMessage(
+              'info',
+              'Sync-Server: Nosso Caderninho Sync Server has started!',
+            );
             syncServerStarted = true;
             resolve();
             break;
@@ -351,7 +354,7 @@ async function createWindow() {
     y: windowState.y,
     width: windowState.width,
     height: windowState.height,
-    title: 'Actual',
+    title: 'Nosso Caderninho',
     webPreferences: {
       nodeIntegration: false,
       nodeIntegrationInWorker: false,
@@ -453,7 +456,7 @@ function isExternalUrl(url: string) {
   return !url.includes('localhost:') && !url.includes('app://');
 }
 
-app.setAppUserModelId('com.actualbudget.actual');
+app.setAppUserModelId('com.caderninhodigital.nosso');
 
 app.on('ready', async () => {
   // Install an `app://` protocol that always returns the base HTML
@@ -463,7 +466,7 @@ app.on('ready', async () => {
   const globalPrefs = await loadGlobalPrefs();
 
   if (globalPrefs.syncServerConfig?.autoStart) {
-    // wait for the server to start before starting the Actual client to ensure server is available
+    // Wait for the server before starting the client.
     await startSyncServer();
   }
 

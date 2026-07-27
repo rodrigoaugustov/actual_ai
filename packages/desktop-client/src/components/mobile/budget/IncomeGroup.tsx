@@ -166,6 +166,7 @@ function IncomeGroupName({
   isCollapsed,
   onToggleCollapse,
 }: IncomeGroupNameProps) {
+  const { t } = useTranslation();
   const sidebarColumnWidth = getColumnWidth({
     isSidebar: true,
     offset: -13.5,
@@ -181,8 +182,15 @@ function IncomeGroupName({
     >
       <Button
         variant="bare"
+        aria-label={
+          isCollapsed(group.id)
+            ? t('Expand {{groupName}}', { groupName: group.name })
+            : t('Collapse {{groupName}}', { groupName: group.name })
+        }
         className={css({
           flexShrink: 0,
+          minWidth: 44,
+          minHeight: 44,
           color: nossoCaderninho.color.graphiteSubdued,
           '&[data-pressed]': {
             backgroundColor: 'transparent',
@@ -205,6 +213,7 @@ function IncomeGroupName({
         variant="bare"
         style={{
           maxWidth: sidebarColumnWidth,
+          minHeight: 44,
         }}
         onPress={() => onEdit(group.id)}
       >

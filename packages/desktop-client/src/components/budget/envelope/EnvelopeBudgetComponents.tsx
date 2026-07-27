@@ -331,6 +331,7 @@ export const ExpenseCategoryMonth = memo(function ExpenseCategoryMonth({
             >
               <Button
                 variant="bare"
+                aria-label={t('Open budget menu')}
                 onPress={() => {
                   resetBudgetPosition(2, -4);
                   setBudgetMenuOpen(true);
@@ -453,6 +454,7 @@ export const ExpenseCategoryMonth = memo(function ExpenseCategoryMonth({
             <View title={description}>
               <Button
                 variant="bare"
+                aria-label={description}
                 style={{
                   color:
                     scheduleStatus === 'missed'

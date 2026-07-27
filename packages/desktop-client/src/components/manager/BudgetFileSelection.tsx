@@ -674,7 +674,7 @@ export function BudgetFileSelection({
             onPress={() => onCreate()}
             style={{
               ...narrowButtonStyle,
-              backgroundColor: nossoCaderninho.color.partnership,
+              backgroundColor: nossoCaderninho.color.partnershipSurface,
             }}
           >
             <Trans>Start a new caderninho</Trans>
@@ -686,7 +686,7 @@ export function BudgetFileSelection({
               onPress={() => onCreate({ testMode: true })}
               style={{
                 ...narrowButtonStyle,
-                backgroundColor: nossoCaderninho.color.partnership,
+                backgroundColor: nossoCaderninho.color.partnershipSurface,
               }}
             >
               <Trans>Create test caderninho</Trans>

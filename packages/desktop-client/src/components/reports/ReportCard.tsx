@@ -47,6 +47,7 @@ export function ReportCard({
   const isInViewport = useIsInViewport(ref);
   const [hasRendered, setHasRendered] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isNarrowWidth } = useResponsive();
   const containerProps = {
     flex: isNarrowWidth ? '1 1' : `0 0 calc(${size * 100}% / 3 - 20px)`,
@@ -115,6 +116,7 @@ export function ReportCard({
       <Layout {...layoutProps}>
         <Button
           variant="bare"
+          aria-label={t('Open report')}
           onPress={() => navigate(to, { state: { goBack: true } })}
           style={{
             height: '100%',

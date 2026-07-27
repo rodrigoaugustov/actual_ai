@@ -1,6 +1,7 @@
 import React, { memo, useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { SvgArrowThinRight } from '@actual-app/components/icons/v1';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -37,6 +38,7 @@ type TagRowProps = {
 export const TagRow = memo(
   ({ tag, hovered, onHover, focusedField, onEdit }: TagRowProps) => {
     const { t } = useTranslation();
+    const { isNarrowWidth } = useResponsive();
     const dispatchSelected = useSelectedDispatch();
     const selectedIds = useSelectedItems();
     const selected = selectedIds.has(tag.id);
@@ -102,6 +104,7 @@ export const TagRow = memo(
     return (
       <Row
         ref={triggerRef}
+        height={isNarrowWidth ? 44 : undefined}
         data-test-id={tag.id}
         style={{
           borderColor,

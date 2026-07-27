@@ -561,7 +561,7 @@ export function Overview({ dashboard }: OverviewProps) {
         isDisabled={isImporting}
         style={{
           color: nossoCaderninho.color.navText,
-          backgroundColor: nossoCaderninho.color.partnership,
+          backgroundColor: nossoCaderninho.color.partnershipSurface,
           borderColor: nossoCaderninho.color.partnership,
         }}
       >

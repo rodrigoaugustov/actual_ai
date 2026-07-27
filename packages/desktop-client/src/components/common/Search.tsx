@@ -78,6 +78,7 @@ export function Search({
         onChangeValue={onChange}
         className={css({
           width: '100%',
+          height: height ? '100%' : undefined,
           '::placeholder': {
             color: theme.formInputTextPlaceholder,
             transition: 'color .25s',

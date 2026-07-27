@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">Nosso Caderninho</title>
+  <rect width="1024" height="1024" rx="224" fill="#10292f" />
+  <rect x="192" y="192" width="640" height="640" rx="128" fill="#f3f7f6" />
+  <path
+    d="M452 690H316V452h-82L512 174l278 278h-82v238H572V526H452z"
+    fill="#10292f"
+  />
+</svg>

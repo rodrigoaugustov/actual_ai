@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import type { ComponentPropsWithoutRef } from 'react';
 import { GridListItem } from 'react-aria-components';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { SvgExpandArrow } from '@actual-app/components/icons/v0';
@@ -180,6 +181,7 @@ function ExpenseGroupName({
   onToggleCollapse,
   show3Columns,
 }: ExpenseGroupNameProps) {
+  const { t } = useTranslation();
   const sidebarColumnWidth = getColumnWidth({
     show3Columns,
     isSidebar: true,
@@ -207,8 +209,15 @@ function ExpenseGroupName({
       />
       <Button
         variant="bare"
+        aria-label={
+          isCollapsed(group.id)
+            ? t('Expand {{groupName}}', { groupName: group.name })
+            : t('Collapse {{groupName}}', { groupName: group.name })
+        }
         className={css({
           flexShrink: 0,
+          minWidth: 44,
+          minHeight: 44,
           color: nossoCaderninho.color.graphiteSubdued,
           '&[data-pressed]': {
             backgroundColor: 'transparent',
@@ -231,6 +240,7 @@ function ExpenseGroupName({
         variant="bare"
         style={{
           maxWidth: sidebarColumnWidth,
+          minHeight: 44,
         }}
         onPress={() => onEditCategoryGroup(group.id)}
       >

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>com.caderninhodigital.nosso</id>
+  <name>Nosso Caderninho</name>
+  <summary>As finanças da casa, cuidadas em conjunto</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <content_rating type="oars-1.0" />
+  <description>
+    <p>Nosso Caderninho reúne o planejamento e os movimentos financeiros da família em um espaço compartilhado, claro e acolhedor.</p>
+    <p>O aplicativo funciona primeiro no dispositivo, inclusive sem internet, e sincroniza as mudanças quando a conexão volta.</p>
+    <p>Orçamentos, contas, categorias, análises e o Assistente ajudam a família a tomar decisões em conjunto sem perder o controle dos próprios dados.</p>
+  </description>
+  <branding>
+    <color type="primary" scheme_preference="light">#e4eff1</color>
+    <color type="primary" scheme_preference="dark">#10292f</color>
+  </branding>
+  <launchable type="desktop-id">com.caderninhodigital.nosso.desktop</launchable>
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </recommends>
+  <releases>
+    <release version="%RELEASE_VERSION%" date="%RELEASE_DATE%">
+      <description>
+        <p>Atualização do Nosso Caderninho.</p>
+      </description>
+    </release>
+  </releases>
+
+  <developer id="com.caderninhodigital">
+    <name>Nosso Caderninho</name>
+  </developer>
+</component>

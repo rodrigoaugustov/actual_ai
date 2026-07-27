@@ -97,7 +97,7 @@ export function ConfirmPasswordForm({
             surface === 'manager'
               ? {
                   color: nossoCaderninho.color.navText,
-                  backgroundColor: nossoCaderninho.color.partnership,
+                  backgroundColor: nossoCaderninho.color.partnershipSurface,
                   borderColor: nossoCaderninho.color.partnership,
                   boxShadow: 'none',
                 }

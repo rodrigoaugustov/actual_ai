@@ -72,7 +72,7 @@ const markClass = css({
   alignItems: 'center',
   justifyContent: 'center',
   color: nossoCaderninho.color.plate,
-  backgroundColor: nossoCaderninho.color.partnership,
+  backgroundColor: nossoCaderninho.color.partnershipSurface,
   borderRadius: nossoCaderninho.radius.control,
 });
 

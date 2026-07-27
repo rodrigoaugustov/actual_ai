@@ -116,7 +116,7 @@ const wordmarkIconClass = css({
   height: 30,
   placeItems: 'center',
   color: nossoCaderninho.color.navText,
-  backgroundColor: nossoCaderninho.color.partnership,
+  backgroundColor: nossoCaderninho.color.partnershipSurface,
   borderRadius: nossoCaderninho.radius.control,
 });
 

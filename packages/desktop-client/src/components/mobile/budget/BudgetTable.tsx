@@ -47,7 +47,8 @@ export const PILL_STYLE: CSSProperties = {
 };
 
 export const VALUE_BUTTON_STYLE: CSSProperties = {
-  minHeight: 36,
+  minWidth: 44,
+  minHeight: 44,
   padding: '4px 2px',
   color: nossoCaderninho.color.graphite,
   backgroundColor: 'transparent',

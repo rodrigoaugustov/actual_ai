@@ -80,7 +80,7 @@ export function Item({
         isExactPathMatch={to === '/'}
         activeStyle={{
           color: nossoCaderninho.color.navText,
-          backgroundColor: nossoCaderninho.color.partnership,
+          backgroundColor: nossoCaderninho.color.partnershipSurface,
           fontWeight: 650,
         }}
         to={to}

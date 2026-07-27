@@ -67,6 +67,7 @@ function ExpenseCategoryName({
         variant="bare"
         style={{
           maxWidth: sidebarColumnWidth,
+          minHeight: 44,
         }}
         onPress={() => onEditCategory?.(category.id)}
       >

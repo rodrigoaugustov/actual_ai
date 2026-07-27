@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { SvgDotsHorizontalTriple } from '@actual-app/components/icons/v1';
 import {
   SvgSearchAlternate,
@@ -17,6 +18,7 @@ import { useDiscoverTagsMutation } from '#tags';
 
 export function TagsMenuButton() {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const [open, setOpen] = useState(false);
   const { mutate: discoverTags } = useDiscoverTagsMutation();
   const [showHidden, setShowHidden] = useSyncedPref('show-hidden-tags');
@@ -28,6 +30,10 @@ export function TagsMenuButton() {
         ref={triggerRef}
         variant="bare"
         aria-label={t('Menu')}
+        style={{
+          minWidth: isNarrowWidth ? 44 : undefined,
+          minHeight: isNarrowWidth ? 44 : undefined,
+        }}
         onClick={() => setOpen(true)}
       >
         <SvgDotsHorizontalTriple width={17} height={17} />

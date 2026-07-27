@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 
 import { Button } from '@actual-app/components/button';
 import { ColorPicker } from '@actual-app/components/color-picker';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import type { TagEntity } from '@actual-app/core/types/models';
 
 import { useTagCSS } from '#hooks/useTagCSS';
@@ -13,7 +14,11 @@ type TagEditorProps = {
 };
 
 export const TagEditor = ({ tag, ref }: TagEditorProps) => {
-  const getTagCSS = useTagCSS({ ellipsis: true });
+  const { isNarrowWidth } = useResponsive();
+  const getTagCSS = useTagCSS({
+    ellipsis: true,
+    touchTarget: isNarrowWidth,
+  });
   const { mutate: updateTag } = useUpdateTagMutation();
 
   const formattedTag = <>#{tag.tag}</>;

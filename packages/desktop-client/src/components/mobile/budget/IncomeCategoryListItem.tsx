@@ -55,6 +55,7 @@ function IncomeCategoryName({ category, onEdit }: IncomeCategoryNameProps) {
         variant="bare"
         style={{
           maxWidth: sidebarColumnWidth,
+          minHeight: 44,
         }}
         onPress={() => onEdit?.(category.id)}
       >

@@ -1,7 +1,7 @@
 {
-  "name": "Actual",
-  "short_name": "Actual",
-  "description": "A local-first personal finance tool",
+  "name": "Nosso Caderninho",
+  "short_name": "Caderninho",
+  "description": "As finanças da casa, cuidadas em conjunto — inclusive sem internet.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -30,9 +30,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Add Transaction",
-      "short_name": "Add Transaction",
-      "description": "Add a new transaction",
+      "name": "Adicionar movimento",
+      "short_name": "Novo movimento",
+      "description": "Registre uma nova entrada ou saída",
       "url": "/transactions/new",
       "icons": [
         {
@@ -42,9 +42,9 @@
       ]
     },
     {
-      "name": "Accounts",
-      "short_name": "Accounts",
-      "description": "View all accounts",
+      "name": "Contas",
+      "short_name": "Contas",
+      "description": "Veja todas as contas da casa",
       "url": "/accounts",
       "icons": [
         {
@@ -54,9 +54,9 @@
       ]
     },
     {
-      "name": "Reports",
-      "short_name": "Reports",
-      "description": "View reports",
+      "name": "Análises",
+      "short_name": "Análises",
+      "description": "Entenda como estão as finanças da casa",
       "url": "/reports",
       "icons": [
         {
@@ -70,20 +70,20 @@
     {
       "src": "/screenshot_wide.png",
       "form_factor": "wide",
-      "label": "Actual Budget Homepage",
+      "label": "Visão geral do Nosso Caderninho",
       "type": "image/png",
       "sizes": "1280x720"
     },
     {
       "src": "/screenshot_narrow.png",
       "form_factor": "narrow",
-      "label": "Actual Budget Mobile Homepage",
+      "label": "Visão geral do Nosso Caderninho no celular",
       "type": "image/png",
       "sizes": "350x600"
     }
   ],
-  "theme_color": "#5c3dbb",
-  "background_color": "#5c3dbb",
+  "theme_color": "#10292f",
+  "background_color": "#f2f5f4",
   "display": "standalone",
   "start_url": "./"
 }

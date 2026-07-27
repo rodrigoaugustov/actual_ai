@@ -3,6 +3,7 @@ name: Nosso Caderninho
 description: As finanças da casa, cuidadas em conjunto.
 colors:
   partnership: "#26677a"
+  partnership-surface: "#26677a"
   partnership-soft: "#e4eff1"
   balance: "#4c7a61"
   balance-soft: "#e8f0eb"
@@ -23,6 +24,14 @@ colors:
   nav-text-subdued: "#b8c8c8"
   focus-on-light: "#26677a"
   focus-on-dark: "#58a7b8"
+  dark-enamel: "#10292f"
+  dark-plate: "#183a43"
+  dark-graphite: "#f3f7f6"
+  dark-graphite-subdued: "#b8c8c8"
+  dark-partnership-surface: "#26677a"
+  midnight-enamel: "#081c21"
+  midnight-plate: "#10292f"
+  midnight-partnership-surface: "#26677a"
 typography:
   headline:
     fontFamily: "Aptos, Segoe UI, system-ui, sans-serif"
@@ -140,6 +149,8 @@ A paleta é fria, restrita e operacional: neutros ocupam a maior parte da superf
 **The Color Has a Job Rule.** Toda cor deve indicar ação, relação, estado ou agrupamento; se puder ser removida sem perda de significado, ela não é necessária.
 
 **The Red Means Consequence Rule.** Vermelho não representa gasto comum por reflexo; aparece apenas quando há risco, erro ou consequência que exige atenção.
+
+Os modos escuros preservam os mesmos papéis em vez de trocar a identidade por uma paleta genérica. No modo escuro, Navegação Profunda se torna o campo principal e Navegação Profunda Elevada vira a placa de trabalho. No modo meia-noite, esses campos recuam mais um passo, mantendo Grafite Claro e Azul Parceria Visível com contraste equivalente.
 
 ## Typography
 

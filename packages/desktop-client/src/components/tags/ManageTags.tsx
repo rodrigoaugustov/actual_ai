@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { SvgAdd } from '@actual-app/components/icons/v1';
 import { SpaceBetween } from '@actual-app/components/space-between';
 import { styles } from '@actual-app/components/styles';
@@ -23,6 +24,7 @@ import { TagsMenuButton } from './TagsMenuButton';
 
 export function ManageTags() {
   const { t } = useTranslation();
+  const { isNarrowWidth } = useResponsive();
   const [filter, setFilter] = useState('');
   const [hoveredTag, setHoveredTag] = useState<string>();
   const [create, setCreate] = useState(false);
@@ -63,7 +65,11 @@ export function ManageTags() {
           </View>
         </View>
         <SpaceBetween gap={10} style={{ marginTop: 12, alignItems: 'center' }}>
-          <Button variant="bare" onPress={() => setCreate(true)}>
+          <Button
+            variant="bare"
+            style={{ minHeight: isNarrowWidth ? 44 : undefined }}
+            onPress={() => setCreate(true)}
+          >
             <SvgAdd width={10} height={10} style={{ marginRight: 3 }} />
             <Trans>Add New</Trans>
           </Button>
@@ -72,6 +78,7 @@ export function ManageTags() {
             placeholder={t('Filter tags...')}
             value={filter}
             onChange={setFilter}
+            height={isNarrowWidth ? 44 : undefined}
           />
           <SelectedTagsButton />
           <TagsMenuButton />

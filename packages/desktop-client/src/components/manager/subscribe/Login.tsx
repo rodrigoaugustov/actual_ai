@@ -81,7 +81,7 @@ function PasswordLogin({ setError, dispatch }) {
         style={{
           fontSize: 15,
           color: nossoCaderninho.color.navText,
-          backgroundColor: nossoCaderninho.color.partnership,
+          backgroundColor: nossoCaderninho.color.partnershipSurface,
           borderColor: nossoCaderninho.color.partnership,
           boxShadow: 'none',
           width: isNarrowWidth ? '100%' : 170,
@@ -181,7 +181,7 @@ function OpenIdLogin({ setError }) {
                 padding: 6,
                 fontSize: 14,
                 color: nossoCaderninho.color.navText,
-                backgroundColor: nossoCaderninho.color.partnership,
+                backgroundColor: nossoCaderninho.color.partnershipSurface,
                 borderColor: nossoCaderninho.color.partnership,
                 boxShadow: 'none',
                 width: 170,

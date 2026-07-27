@@ -218,7 +218,7 @@ const markClass = css({
   justifyContent: 'center',
   flexShrink: 0,
   color: nossoCaderninho.color.plate,
-  backgroundColor: nossoCaderninho.color.partnership,
+  backgroundColor: nossoCaderninho.color.partnershipSurface,
   borderRadius: nossoCaderninho.radius.control,
 });
 
