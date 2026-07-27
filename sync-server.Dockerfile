@@ -58,8 +58,8 @@ RUN apt-get update && apt-get install -y tini && apt-get clean -y && rm -rf /var
 # Build identity is exposed by /info and by OCI image metadata.
 ARG BUILD_REVISION=local
 ARG BUILD_CREATED=unknown
-ARG CLIENT_VERSION=1.0.0
-ARG SERVER_VERSION=1.0.0
+ARG CLIENT_VERSION=1.2.0
+ARG SERVER_VERSION=1.2.0
 ENV ACTUAL_BUILD_REVISION=$BUILD_REVISION
 ENV ACTUAL_BUILD_CREATED=$BUILD_CREATED
 LABEL org.opencontainers.image.title="Actual AI" \
