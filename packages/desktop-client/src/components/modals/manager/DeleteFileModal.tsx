@@ -7,10 +7,16 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
 import { deleteBudget } from '#budgetfiles/budgetfilesSlice';
-import { Modal, ModalCloseButton, ModalHeader } from '#components/common/Modal';
+import {
+  Modal,
+  ModalButtons,
+  ModalCloseButton,
+  ModalHeader,
+} from '#components/common/Modal';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import type { Modal as ModalType } from '#modals/modalsSlice';
 import { useDispatch, useSelector } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type DeleteFileModalProps = Extract<
   ModalType,
@@ -41,45 +47,62 @@ export function DeleteFileModal({ file }: DeleteFileModalProps) {
   );
 
   return (
-    <Modal name="delete-budget">
+    <Modal name="delete-budget" containerProps={{ style: { width: 520 } }}>
       {({ state }) => (
         <>
           <ModalHeader
-            title={t('Delete {{fileName}}', { fileName: file.name })}
+            title={t('Delete {{budgetName}}?', { budgetName: file.name })}
             rightContent={<ModalCloseButton onPress={() => state.close()} />}
           />
           <View
             style={{
-              padding: 15,
-              gap: 15,
-              paddingTop: 0,
-              paddingBottom: 25,
-              maxWidth: 512,
-              lineHeight: '1.5em',
+              gap: nossoCaderninho.space.lg,
+              lineHeight: 1.45,
             }}
           >
+            <Text style={{ color: theme.pageTextSubdued }}>
+              <Trans>
+                Choose where this budget should be removed. This action cannot
+                be undone.
+              </Trans>
+            </Text>
+
             {isCloudFile &&
               (canDeleteFromServer ? (
-                <>
-                  <Text>
-                    <Trans>
-                      This is a <strong>hosted file</strong> which means it is
-                      stored on your server to make it available for download on
-                      any device. You can delete it from the server, which will
-                      also remove it from all of your devices.
-                    </Trans>
-                  </Text>
-
+                <View
+                  style={{
+                    gap: nossoCaderninho.space.md,
+                    padding: nossoCaderninho.space.md,
+                    border: `1px solid ${theme.tableBorder}`,
+                    borderRadius: nossoCaderninho.radius.control,
+                  }}
+                >
+                  <View style={{ gap: nossoCaderninho.space.xs }}>
+                    <Text style={{ fontWeight: 650 }}>
+                      <Trans>On every device</Trans>
+                    </Text>
+                    <Text
+                      style={{
+                        color: theme.pageTextSubdued,
+                        fontSize: 11,
+                      }}
+                    >
+                      <Trans>
+                        Removes the synchronized budget and its copies from all
+                        family devices.
+                      </Trans>
+                    </Text>
+                  </View>
                   {serverStatus === 'online' ? (
                     <ButtonWithLoading
                       variant="primary"
                       isLoading={loadingState === 'cloud'}
                       style={{
-                        backgroundColor: theme.errorText,
-                        alignSelf: 'center',
+                        backgroundColor: nossoCaderninho.color.limit,
+                        alignSelf: 'flex-start',
                         border: 0,
-                        padding: '10px 30px',
-                        fontSize: 14,
+                        minHeight: 36,
+                        padding: '8px 14px',
                       }}
                       onPress={async () => {
                         setLoadingState('cloud');
@@ -94,57 +117,91 @@ export function DeleteFileModal({ file }: DeleteFileModalProps) {
                         state.close();
                       }}
                     >
-                      <Trans>Delete file from all devices</Trans>
+                      <Trans>Delete on every device</Trans>
                     </ButtonWithLoading>
                   ) : (
                     <Button
                       isDisabled
                       style={{
-                        alignSelf: 'center',
-                        padding: '10px 30px',
-                        fontSize: 14,
+                        alignSelf: 'flex-start',
+                        minHeight: 36,
+                        padding: '8px 14px',
                       }}
                     >
-                      <Trans>Server is not available</Trans>
+                      <Trans>Connect to delete on every device</Trans>
                     </Button>
                   )}
-                </>
+                </View>
               ) : (
-                <Text>
-                  <Trans>
-                    This is a <strong>hosted file</strong> shared with you. Only
-                    the file owner can delete it from the server.
-                  </Trans>
-                </Text>
+                <View
+                  style={{
+                    padding: nossoCaderninho.space.md,
+                    color: nossoCaderninho.color.graphite,
+                    borderRadius: nossoCaderninho.radius.control,
+                    backgroundColor: nossoCaderninho.color.signalSoft,
+                  }}
+                >
+                  <Text>
+                    <Trans>
+                      This synchronized budget was shared with you. Only its
+                      owner can remove it from every device.
+                    </Trans>
+                  </Text>
+                </View>
               ))}
 
             {'id' in file && (
-              <>
-                {isCloudFile ? (
-                  <Text>
-                    <Trans>
-                      You can also delete just the local copy. This will remove
-                      all local data and the file will be listed as available
-                      for download.
-                    </Trans>
+              <View
+                style={{
+                  gap: nossoCaderninho.space.md,
+                  padding: nossoCaderninho.space.md,
+                  border: `1px solid ${theme.tableBorder}`,
+                  borderRadius: nossoCaderninho.radius.control,
+                }}
+              >
+                <View style={{ gap: nossoCaderninho.space.xs }}>
+                  <Text style={{ fontWeight: 650 }}>
+                    {isCloudFile ? (
+                      <Trans>Only on this device</Trans>
+                    ) : (
+                      <Trans>Local budget and backups</Trans>
+                    )}
                   </Text>
-                ) : (
-                  <Text>
-                    {file.state === 'broken' ? (
+                  <Text
+                    style={{
+                      color: theme.pageTextSubdued,
+                      fontSize: 11,
+                    }}
+                  >
+                    {isCloudFile ? (
                       <Trans>
-                        This is a <strong>hosted file</strong> but it was
-                        created by another user. You can only delete the local
-                        copy.
+                        Clears this device. The budget remains available to
+                        download again.
+                      </Trans>
+                    ) : file.state === 'broken' ? (
+                      <Trans>
+                        This device has a copy created by another user. Only
+                        this local copy can be removed.
                       </Trans>
                     ) : (
                       <Trans>
-                        This a <strong>local file</strong> which is not stored
-                        on a server.
+                        This budget exists only on this device. Removing it also
+                        removes all of its backups.
                       </Trans>
-                    )}{' '}
+                    )}
+                  </Text>
+                </View>
+
+                {!isCloudFile && (
+                  <Text
+                    style={{
+                      color: nossoCaderninho.color.limit,
+                      fontSize: 11,
+                      fontWeight: 650,
+                    }}
+                  >
                     <Trans>
-                      Deleting it will remove it and all of its backups
-                      permanently.
+                      There will be no synchronized copy to restore.
                     </Trans>
                   </Text>
                 )}
@@ -153,18 +210,17 @@ export function DeleteFileModal({ file }: DeleteFileModalProps) {
                   variant={isCloudFile ? 'normal' : 'primary'}
                   isLoading={loadingState === 'local'}
                   style={{
-                    alignSelf: 'center',
-                    marginTop: 10,
-                    padding: '10px 30px',
-                    fontSize: 14,
+                    alignSelf: 'flex-start',
+                    minHeight: 36,
+                    padding: '8px 14px',
                     ...(isCloudFile
                       ? {
-                          color: theme.errorText,
-                          borderColor: theme.errorText,
+                          color: nossoCaderninho.color.limit,
+                          borderColor: nossoCaderninho.color.limit,
                         }
                       : {
                           border: 0,
-                          backgroundColor: theme.errorText,
+                          backgroundColor: nossoCaderninho.color.limit,
                         }),
                   }}
                   onPress={async () => {
@@ -175,10 +231,20 @@ export function DeleteFileModal({ file }: DeleteFileModalProps) {
                     state.close();
                   }}
                 >
-                  <Trans>Delete file locally</Trans>
+                  {isCloudFile ? (
+                    <Trans>Delete on this device</Trans>
+                  ) : (
+                    <Trans>Delete local budget</Trans>
+                  )}
                 </ButtonWithLoading>
-              </>
+              </View>
             )}
+
+            <ModalButtons style={{ marginTop: nossoCaderninho.space.sm }}>
+              <Button onPress={() => state.close()} style={{ minHeight: 36 }}>
+                <Trans>Cancel</Trans>
+              </Button>
+            </ModalButtons>
           </View>
         </>
       )}

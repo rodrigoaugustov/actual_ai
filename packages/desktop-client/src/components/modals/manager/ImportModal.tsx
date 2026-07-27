@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Block } from '@actual-app/components/block';
 import { Button } from '@actual-app/components/button';
-import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -11,12 +9,12 @@ import { View } from '@actual-app/components/view';
 import { Modal, ModalCloseButton, ModalHeader } from '#components/common/Modal';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 export function ImportModal() {
   const { t } = useTranslation();
 
   const dispatch = useDispatch();
-  const [error] = useState(false);
 
   function onSelectType(type: 'ynab4' | 'ynab5' | 'actual') {
     switch (type) {
@@ -33,68 +31,84 @@ export function ImportModal() {
     }
   }
 
-  function getErrorMessage(error: 'not-ynab4' | boolean) {
-    switch (error) {
-      case 'not-ynab4':
-        return t('This file is not valid. Please select a .ynab4 file');
-      default:
-        return t(
-          'An unknown error occurred while importing. Please report this as a new issue on GitHub.',
-        );
-    }
-  }
   const itemStyle = {
-    padding: 10,
-    border: '1px solid ' + theme.tableBorder,
-    borderRadius: 6,
-    marginBottom: 10,
-    display: 'block',
+    width: '100%',
+    minHeight: 62,
+    alignItems: 'flex-start',
+    padding: nossoCaderninho.space.md,
+    border: 0,
+    borderRadius: 0,
+    color: theme.pageText,
   };
 
   return (
-    <Modal name="import" containerProps={{ style: { width: 400 } }}>
+    <Modal name="import" containerProps={{ style: { width: 440 } }}>
       {({ state }) => (
         <>
           <ModalHeader
-            title={t('Import From')}
+            title={t('Import a budget')}
             rightContent={<ModalCloseButton onPress={() => state.close()} />}
           />
-          <View style={{ ...styles.smallText, lineHeight: 1.5 }}>
-            {error && (
-              <Block style={{ color: theme.errorText, marginBottom: 15 }}>
-                {getErrorMessage(error)}
-              </Block>
-            )}
-
-            <Text style={{ marginBottom: 15 }}>
+          <View style={{ gap: nossoCaderninho.space.lg }}>
+            <Text style={{ color: theme.pageTextSubdued, lineHeight: 1.45 }}>
               <Trans>
-                Select an app to import from, and we'll guide you through the
-                process.
+                Choose where the budget came from. We will guide you through the
+                required file.
               </Trans>
             </Text>
 
-            <Button style={itemStyle} onPress={() => onSelectType('ynab4')}>
-              <span style={{ fontWeight: 700 }}>YNAB4</span>
-              <View style={{ color: theme.pageTextLight }}>
-                <Trans>The old unsupported desktop app</Trans>
-              </View>
-            </Button>
-            <Button style={itemStyle} onPress={() => onSelectType('ynab5')}>
-              <span style={{ fontWeight: 700 }}>nYNAB</span>
-              <View style={{ color: theme.pageTextLight }}>
-                <div>
-                  <Trans>The newer web app</Trans>
-                </div>
-              </View>
-            </Button>
-            <Button style={itemStyle} onPress={() => onSelectType('actual')}>
-              <span style={{ fontWeight: 700 }}>Actual</span>
-              <View style={{ color: theme.pageTextLight }}>
-                <div>
-                  <Trans>Import a file exported from Actual</Trans>
-                </div>
-              </View>
-            </Button>
+            <View
+              style={{
+                overflow: 'hidden',
+                border: `1px solid ${theme.tableBorder}`,
+                borderRadius: nossoCaderninho.radius.control,
+              }}
+            >
+              <Button
+                variant="bare"
+                style={itemStyle}
+                onPress={() => onSelectType('ynab4')}
+              >
+                <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                  <Text style={{ fontWeight: 650 }}>YNAB 4</Text>
+                  <Text style={{ color: theme.pageTextSubdued }}>
+                    <Trans>Desktop budget folder</Trans>
+                  </Text>
+                </View>
+              </Button>
+              <Button
+                variant="bare"
+                style={{
+                  ...itemStyle,
+                  borderTop: `1px solid ${theme.tableBorder}`,
+                }}
+                onPress={() => onSelectType('ynab5')}
+              >
+                <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                  <Text style={{ fontWeight: 650 }}>YNAB</Text>
+                  <Text style={{ color: theme.pageTextSubdued }}>
+                    <Trans>Web budget export</Trans>
+                  </Text>
+                </View>
+              </Button>
+              <Button
+                variant="bare"
+                style={{
+                  ...itemStyle,
+                  borderTop: `1px solid ${theme.tableBorder}`,
+                }}
+                onPress={() => onSelectType('actual')}
+              >
+                <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                  <Text style={{ fontWeight: 650 }}>
+                    <Trans>Actual legacy export</Trans>
+                  </Text>
+                  <Text style={{ color: theme.pageTextSubdued }}>
+                    <Trans>Previously exported ZIP file</Trans>
+                  </Text>
+                </View>
+              </Button>
+            </View>
           </View>
         </>
       )}

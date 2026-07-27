@@ -8,7 +8,8 @@ import {
 
 import { AccountScopeButton } from './AccountScopeButton';
 
-const { navigateMock } = vi.hoisted(() => ({
+const { dispatchMock, navigateMock } = vi.hoisted(() => ({
+  dispatchMock: vi.fn(),
   navigateMock: vi.fn(),
 }));
 
@@ -25,7 +26,16 @@ vi.mock('#hooks/useNavigate', () => ({
   useNavigate: () => navigateMock,
 }));
 
+vi.mock('#redux', () => ({
+  useDispatch: () => dispatchMock,
+}));
+
 describe('AccountScopeButton', () => {
+  beforeEach(() => {
+    dispatchMock.mockReset();
+    navigateMock.mockReset();
+  });
+
   it('switches account scope and restores focus when dismissed', () => {
     render(
       <AccountScopeButton currentId={undefined} currentName="All Accounts" />,
@@ -62,6 +72,21 @@ describe('AccountScopeButton', () => {
     );
 
     expect(navigateMock).toHaveBeenCalledWith('/accounts/checking');
+
+    fireEvent.click(trigger);
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Choose account' })).getByRole(
+        'button',
+        { name: 'Add account' },
+      ),
+    );
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'modals/pushModal' }),
+    );
+    expect(
+      screen.queryByRole('dialog', { name: 'Choose account' }),
+    ).not.toBeInTheDocument();
   });
 
   it('marks a real account as current and restores focus from the backdrop', async () => {

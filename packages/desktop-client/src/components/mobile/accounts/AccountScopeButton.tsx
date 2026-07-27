@@ -9,6 +9,8 @@ import { css } from '@emotion/css';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { useAccounts } from '#hooks/useAccounts';
 import { useNavigate } from '#hooks/useNavigate';
+import { pushModal } from '#modals/modalsSlice';
+import { useDispatch } from '#redux';
 import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type AccountScopeButtonProps = {
@@ -30,6 +32,7 @@ export function AccountScopeButton({
 }: AccountScopeButtonProps) {
   const { t } = useTranslation();
   const { data: accounts = [] } = useAccounts();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -107,6 +110,11 @@ export function AccountScopeButton({
   function dismissSelector() {
     setOpen(false);
     requestAnimationFrame(() => triggerRef.current?.focus());
+  }
+
+  function addAccount() {
+    setOpen(false);
+    dispatch(pushModal({ modal: { name: 'add-account', options: {} } }));
   }
 
   return (
@@ -215,6 +223,16 @@ export function AccountScopeButton({
                   onSelect={selectScope}
                 />
               )}
+
+              <footer className={sheetFooterClass}>
+                <Button
+                  variant="primary"
+                  onPress={addAccount}
+                  style={{ width: '100%', minHeight: 40 }}
+                >
+                  <Trans>Add account</Trans>
+                </Button>
+              </footer>
             </dialog>
           </>,
           document.body,
@@ -401,4 +419,12 @@ const accountGroupClass = css({
     fontSize: 11,
     fontWeight: 600,
   },
+});
+
+const sheetFooterClass = css({
+  position: 'sticky',
+  bottom: 0,
+  padding: nossoCaderninho.space.md,
+  backgroundColor: nossoCaderninho.color.plate,
+  borderTop: `1px solid ${nossoCaderninho.color.railSoft}`,
 });

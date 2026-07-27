@@ -3,19 +3,18 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { InitialFocus } from '@actual-app/components/initial-focus';
-import { Paragraph } from '@actual-app/components/paragraph';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
 import { BuiltInProviders } from '#components/banksync/BuiltInProviders';
 import { useBuiltInBankSyncProviders } from '#components/banksync/useBuiltInBankSyncProviders';
-import { Link } from '#components/common/Link';
 import { Modal, ModalCloseButton, ModalHeader } from '#components/common/Modal';
 import { useNavigate } from '#hooks/useNavigate';
 import { pushModal, replaceModal } from '#modals/modalsSlice';
 import type { Modal as ModalType } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type CreateAccountModalProps = Extract<
   ModalType,
@@ -65,19 +64,22 @@ export function CreateAccountModal({
           <View
             style={{
               maxWidth: upgradingAccountId == null ? 500 : 720,
-              gap: 24,
+              gap: nossoCaderninho.space.lg,
               color: theme.pageText,
             }}
           >
             {upgradingAccountId != null ? (
               <>
-                <Paragraph
-                  style={{ fontSize: 15, color: theme.pageTextSubdued }}
+                <Text
+                  style={{
+                    color: theme.pageTextSubdued,
+                    lineHeight: 1.45,
+                  }}
                 >
                   <Trans>
                     Choose a bank sync provider to connect this account.
                   </Trans>
-                </Paragraph>
+                </Text>
                 <BuiltInProviders
                   providers={providers}
                   syncServerStatus={syncServerStatus}
@@ -86,60 +88,89 @@ export function CreateAccountModal({
               </>
             ) : (
               <>
-                <View style={{ gap: 10 }}>
+                <Text
+                  style={{
+                    color: theme.pageTextSubdued,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <Trans>
+                    Choose how this account will receive its transactions.
+                  </Trans>
+                </Text>
+
+                <View
+                  style={{
+                    overflow: 'hidden',
+                    border: `1px solid ${theme.tableBorder}`,
+                    borderRadius: nossoCaderninho.radius.control,
+                  }}
+                >
                   <InitialFocus>
                     <Button
-                      variant="primary"
+                      variant="bare"
                       style={{
-                        padding: '10px 0',
-                        fontSize: 15,
-                        fontWeight: 600,
+                        width: '100%',
+                        minHeight: 64,
+                        alignItems: 'flex-start',
+                        padding: nossoCaderninho.space.md,
+                        borderRadius: 0,
+                        backgroundColor: nossoCaderninho.color.partnershipSoft,
+                        color: nossoCaderninho.color.graphite,
                       }}
                       onPress={onCreateLocalAccount}
                     >
-                      <Trans>Create a local account</Trans>
+                      <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                        <Text style={{ fontWeight: 650 }}>
+                          <Trans>Create a local account</Trans>
+                        </Text>
+                        <Text
+                          style={{
+                            color: nossoCaderninho.color.graphiteSubdued,
+                            textAlign: 'left',
+                          }}
+                        >
+                          <Trans>
+                            Enter transactions manually or import them from a
+                            bank file.
+                          </Trans>
+                        </Text>
+                      </View>
                     </Button>
                   </InitialFocus>
-                  <View style={{ lineHeight: '1.4em', fontSize: 15 }}>
-                    <Text>
-                      <Trans>
-                        <strong>Create a local account</strong> if you want to
-                        add transactions manually. You can also{' '}
-                        <Link
-                          variant="external"
-                          to="https://actualbudget.org/docs/transactions/importing"
-                          linkColor="muted"
-                        >
-                          import QIF/OFX/QFX files into a local account
-                        </Link>
-                        .
-                      </Trans>
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={{ gap: 10 }}>
                   <Button
+                    variant="bare"
                     onPress={() => {
                       state.close();
                       void navigate('/bank-sync');
                     }}
                     style={{
-                      padding: '10px 0',
-                      fontSize: 15,
-                      fontWeight: 600,
+                      width: '100%',
+                      minHeight: 64,
+                      alignItems: 'flex-start',
+                      padding: nossoCaderninho.space.md,
+                      borderTop: `1px solid ${theme.tableBorder}`,
+                      borderRadius: 0,
+                      color: theme.pageText,
                     }}
                   >
-                    <Trans>Set up bank sync</Trans>
+                    <View style={{ alignItems: 'flex-start', gap: 2 }}>
+                      <Text style={{ fontWeight: 650 }}>
+                        <Trans>Set up bank sync</Trans>
+                      </Text>
+                      <Text
+                        style={{
+                          color: theme.pageTextSubdued,
+                          textAlign: 'left',
+                        }}
+                      >
+                        <Trans>
+                          Connect a provider and keep future transactions coming
+                          in automatically.
+                        </Trans>
+                      </Text>
+                    </View>
                   </Button>
-                  <Paragraph
-                    style={{ fontSize: 15, color: theme.pageTextSubdued }}
-                  >
-                    <Trans>
-                      Configure providers and link accounts from the Bank Sync
-                      page.
-                    </Trans>
-                  </Paragraph>
                 </View>
               </>
             )}

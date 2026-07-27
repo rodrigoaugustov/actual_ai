@@ -7,7 +7,6 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@actual-app/components/button';
 import { FormError } from '@actual-app/components/form-error';
 import { InitialFocus } from '@actual-app/components/initial-focus';
-import { InlineField } from '@actual-app/components/inline-field';
 import { Input } from '@actual-app/components/input';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
@@ -15,7 +14,6 @@ import { View } from '@actual-app/components/view';
 import { toRelaxedNumber } from '@actual-app/core/shared/util';
 
 import { useCreateAccountMutation } from '#accounts';
-import { Link } from '#components/common/Link';
 import {
   Modal,
   ModalButtons,
@@ -30,6 +28,7 @@ import { useNavigate } from '#hooks/useNavigate';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import { closeModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 export function CreateLocalAccountModal() {
   const { t } = useTranslation();
@@ -88,55 +87,58 @@ export function CreateLocalAccountModal() {
         <>
           <ModalHeader
             title={
-              <ModalTitle
-                title={
-                  isUsingServer ? t('Create Local Account') : t('Add account')
-                }
-                shrinkOnOverflow
-              />
+              <ModalTitle title={t('Create local account')} shrinkOnOverflow />
             }
             rightContent={<ModalCloseButton onPress={() => state.close()} />}
           />
-          <View>
-            {!isUsingServer && (
-              <Text
+          <View style={{ gap: nossoCaderninho.space.lg }}>
+            <Text
+              style={{
+                color: theme.pageTextSubdued,
+                lineHeight: 1.45,
+              }}
+            >
+              <Trans>
+                Add this account to the family records. You can enter
+                transactions manually or import a bank file after creating it.
+              </Trans>
+            </Text>
+            <Form onSubmit={onSubmit}>
+              <label
+                htmlFor="new-account-name"
                 style={{
-                  color: theme.pageTextSubdued,
-                  lineHeight: 1.5,
-                  marginBottom: 15,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: nossoCaderninho.space.sm,
+                  marginBottom: nossoCaderninho.space.lg,
                 }}
               >
-                <Trans>
-                  Once the account is created, you can also{' '}
-                  <Link
-                    variant="external"
-                    linkColor="muted"
-                    to="https://actualbudget.org/docs/transactions/importing"
-                  >
-                    import QIF/OFX/QFX files
-                  </Link>{' '}
-                  into it.
-                </Trans>
-              </Text>
-            )}
-            <Form onSubmit={onSubmit}>
-              <InlineField label={t('Name')} width="100%">
+                <Text style={{ fontSize: 11, fontWeight: 650 }}>
+                  <Trans>Account name</Trans>
+                </Text>
                 <InitialFocus>
                   <Input
+                    id="new-account-name"
                     name="name"
                     value={name}
-                    placeholder={t('e.g. Bank, Savings, Credit Card, Cash')}
+                    placeholder={t('e.g. Joint account or Credit card')}
                     onChangeValue={setName}
                     onUpdate={value => {
                       const name = value.trim();
                       validateAndSetName(name);
                     }}
-                    style={{ flex: 1 }}
+                    style={{ width: '100%', minHeight: 36 }}
                   />
                 </InitialFocus>
-              </InlineField>
+              </label>
               {nameError && (
-                <FormError style={{ marginLeft: 75, color: theme.warningText }}>
+                <FormError
+                  style={{
+                    marginTop: -nossoCaderninho.space.sm,
+                    marginBottom: nossoCaderninho.space.md,
+                    color: theme.warningText,
+                  }}
+                >
                   {nameError}
                 </FormError>
               )}
@@ -145,65 +147,62 @@ export function CreateLocalAccountModal() {
                 style={{
                   width: '100%',
                   flexDirection: 'row',
-                  justifyContent: 'flex-end',
+                  alignItems: 'flex-start',
+                  gap: nossoCaderninho.space.sm,
+                  marginBottom: nossoCaderninho.space.lg,
+                  padding: nossoCaderninho.space.md,
+                  border: `1px solid ${theme.tableBorder}`,
+                  borderRadius: nossoCaderninho.radius.control,
                 }}
               >
-                <View style={{ flexDirection: 'column' }}>
-                  <View
+                <Checkbox
+                  id="offbudget"
+                  name="offbudget"
+                  checked={offbudget}
+                  onChange={() => setOffbudget(!offbudget)}
+                />
+                <label
+                  htmlFor="offbudget"
+                  aria-label={t('Track outside the spending budget')}
+                  style={{
+                    display: 'flex',
+                    flex: 1,
+                    flexDirection: 'column',
+                    gap: nossoCaderninho.space.xs,
+                    userSelect: 'none',
+                  }}
+                >
+                  <Text style={{ fontWeight: 650 }}>
+                    <Trans>Track outside the spending budget</Trans>
+                  </Text>
+                  <Text
                     style={{
-                      flexDirection: 'row',
-                      justifyContent: 'flex-end',
+                      fontSize: 11,
+                      lineHeight: 1.4,
+                      color: theme.pageTextSubdued,
                     }}
                   >
-                    <Checkbox
-                      id="offbudget"
-                      name="offbudget"
-                      checked={offbudget}
-                      onChange={() => setOffbudget(!offbudget)}
-                    />
-                    <label
-                      htmlFor="offbudget"
-                      style={{
-                        userSelect: 'none',
-                        verticalAlign: 'center',
-                      }}
-                    >
-                      <Trans>Off budget</Trans>
-                    </label>
-                  </View>
-                  <div
-                    style={{
-                      textAlign: 'right',
-                      fontSize: '0.7em',
-                      color: theme.pageTextLight,
-                      marginTop: 3,
-                    }}
-                  >
-                    <Text style={{ display: 'block' }}>
-                      <Trans>
-                        Off-budget accounts (like investments, loans, or your
-                        house) are tracked but not part of your spending budget.
-                      </Trans>
-                    </Text>
-                    <Text style={{ display: 'block' }}>
-                      <Trans>
-                        This cannot be changed later. See{' '}
-                        <Link
-                          variant="external"
-                          linkColor="muted"
-                          to="https://actualbudget.org/docs/accounts/#off-budget-accounts"
-                        >
-                          Accounts Overview
-                        </Link>{' '}
-                        for more information.
-                      </Trans>
-                    </Text>
-                  </div>
-                </View>
+                    <Trans>
+                      Use this for investments, loans or property. This choice
+                      cannot be changed later.
+                    </Trans>
+                  </Text>
+                </label>
               </View>
 
-              <InlineField label={t('Balance')} width="100%">
+              <label
+                htmlFor="new-account-balance"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: nossoCaderninho.space.sm,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: 650 }}>
+                  <Trans>Current balance</Trans>
+                </Text>
                 <Input
+                  id="new-account-balance"
                   name="balance"
                   inputMode="decimal"
                   value={balance}
@@ -215,25 +214,25 @@ export function CreateLocalAccountModal() {
                       setBalanceError(false);
                     }
                   }}
-                  style={{ flex: 1 }}
+                  style={{ width: '100%', minHeight: 36 }}
                 />
-              </InlineField>
+              </label>
               {balanceError && (
-                <FormError style={{ marginLeft: 75 }}>
+                <FormError style={{ marginTop: nossoCaderninho.space.sm }}>
                   <Trans>Balance must be a number</Trans>
                 </FormError>
               )}
 
               <ModalButtons>
-                <Button onPress={() => state.close()}>
+                <Button onPress={() => state.close()} style={{ minHeight: 36 }}>
                   {isUsingServer ? <Trans>Back</Trans> : <Trans>Cancel</Trans>}
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
-                  style={{ marginLeft: 10 }}
+                  style={{ minWidth: 120, minHeight: 36 }}
                 >
-                  <Trans>Create</Trans>
+                  <Trans>Create account</Trans>
                 </Button>
               </ModalButtons>
             </Form>
