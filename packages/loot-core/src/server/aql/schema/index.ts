@@ -122,6 +122,7 @@ export const schema = {
     value: f('string', { required: true }),
     category_id: f('id', { ref: 'categories', required: true }),
     rationale: f('string', { required: true }),
+    confidence: f('float'),
     sample_transaction_ids: f('string'),
     status: f('string', { required: true }),
     hits: f('integer'),

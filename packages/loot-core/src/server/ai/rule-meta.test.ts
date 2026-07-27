@@ -63,6 +63,7 @@ describe('createRuleProposal / getRuleProposals', () => {
       op: 'contains',
       value: 'EXTRA',
       categoryId: 'groceries',
+      confidence: 0.9,
       status: 'proposed',
     });
     expect(proposals[0].sampleTransactionIds).toEqual(['t1', 't2']);

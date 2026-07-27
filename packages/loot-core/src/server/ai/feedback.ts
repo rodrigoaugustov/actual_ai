@@ -30,6 +30,13 @@ const SOURCE_WEIGHT: Record<AiFeedbackSource, number> = {
   rejected: 0,
 };
 const REJECTION_WEIGHT = 3;
+/** A single user click can produce two independent `recordFeedback` calls
+ * for the same transaction and final category — e.g. the register's inline
+ * category edit (manual) and the suggestion it auto-resolves (accepted)
+ * both fire for one click. Collapsing an immediate repeat of the same
+ * decision avoids double-counting it as evidence and double-scheduling a
+ * mining check. */
+const DEDUP_WINDOW_MS = 5_000;
 
 async function getFeedbackTransaction(
   transactionId: string,
@@ -57,6 +64,21 @@ export async function recordFeedback(params: {
 }): Promise<string | null> {
   const transaction = await getFeedbackTransaction(params.transactionId);
   if (!transaction) return null;
+
+  const recentDuplicate = await db.first<{ id: string }>(
+    `SELECT id FROM ai_feedback
+      WHERE transaction_id = ? AND tombstone = 0
+        AND final_category_id IS ?
+        AND created_at > ?
+      ORDER BY created_at DESC
+      LIMIT 1`,
+    [
+      transaction.id,
+      params.finalCategoryId ?? null,
+      Date.now() - DEDUP_WINDOW_MS,
+    ],
+  );
+  if (recentDuplicate) return recentDuplicate.id;
 
   const payeeName = transaction.payeeName ?? '';
   const id = await db.insertWithUUID('ai_feedback', {

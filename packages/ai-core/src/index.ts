@@ -40,6 +40,7 @@ export type {
   RuleMinerCategory,
   RuleMinerInput,
   RuleMinerOutput,
+  RuleMinerRejectedExample,
   RuleProposal,
 } from './agents/rule-miner';
 export { ruleMinerOutputSchema, ruleProposalSchema } from './agents/rule-miner';

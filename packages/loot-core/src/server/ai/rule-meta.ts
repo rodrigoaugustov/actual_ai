@@ -26,6 +26,7 @@ export async function createRuleProposal(params: {
     value: params.proposal.value,
     category_id: params.proposal.categoryId,
     rationale: params.proposal.rationale,
+    confidence: params.proposal.confidence,
     sample_transaction_ids: JSON.stringify(params.sampleTransactionIds),
     status: 'proposed',
     hits: 0,
@@ -45,6 +46,7 @@ const RULE_META_SELECT = [
   'value',
   { categoryId: 'category_id' },
   'rationale',
+  'confidence',
   { sampleTransactionIds: 'sample_transaction_ids' },
   'status',
   'hits',
@@ -53,6 +55,48 @@ const RULE_META_SELECT = [
   { runId: 'run_id' },
   { createdAt: 'created_at' },
 ] as const;
+
+/** Payees that already have a proposal awaiting user review — the miner
+ * must analyze these before proposing anything new for them, instead of
+ * piling on a second proposal while the first is still pending. */
+export async function getPendingProposalPayees(): Promise<Set<string>> {
+  const rows = await db.all<{ payeeName: string }>(
+    `SELECT DISTINCT payee_name AS payeeName
+       FROM ai_rule_meta
+      WHERE status = 'proposed' AND tombstone = 0`,
+  );
+  return new Set(rows.map(row => row.payeeName.toLowerCase()));
+}
+
+/** Exact (payee, category) pairs the user has already rejected as a mined
+ * proposal — keyed as `payeeName.toLowerCase()::categoryId` — so that exact
+ * pair is never proposed again, regardless of how the model phrases it. */
+export async function getRejectedProposalKeys(): Promise<Set<string>> {
+  const rows = await db.all<{ payeeName: string; categoryId: string }>(
+    `SELECT DISTINCT payee_name AS payeeName, category_id AS categoryId
+       FROM ai_rule_meta
+      WHERE status = 'rejected' AND tombstone = 0`,
+  );
+  return new Set(
+    rows.map(row => `${row.payeeName.toLowerCase()}::${row.categoryId}`),
+  );
+}
+
+/** Total rejection count per payee, across every category it was ever
+ * rejected for. A payee rejected repeatedly (even for different proposed
+ * categories) is dropped as a candidate entirely rather than reproposed
+ * forever. */
+export async function getRejectedProposalPayeeCounts(): Promise<
+  Map<string, number>
+> {
+  const rows = await db.all<{ payeeName: string; count: number }>(
+    `SELECT payee_name AS payeeName, COUNT(*) AS count
+       FROM ai_rule_meta
+      WHERE status = 'rejected' AND tombstone = 0
+      GROUP BY payee_name`,
+  );
+  return new Map(rows.map(row => [row.payeeName.toLowerCase(), row.count]));
+}
 
 function parseRuleMetaRows(
   data: Array<

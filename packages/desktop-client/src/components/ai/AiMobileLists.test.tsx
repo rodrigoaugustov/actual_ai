@@ -93,6 +93,7 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
             value: 'MARKET',
             categoryId: 'category-1',
             rationale: 'The last purchases used the same category.',
+            confidence: 0.9,
             sampleTransactionIds: ['transaction-1'],
             sampleTransactions: [
               {
@@ -118,6 +119,7 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
             value: 'TRANSIT',
             categoryId: 'category-1',
             rationale: 'The last rides used the same category.',
+            confidence: 0.85,
             sampleTransactionIds: ['transaction-2'],
             sampleTransactions: [
               {

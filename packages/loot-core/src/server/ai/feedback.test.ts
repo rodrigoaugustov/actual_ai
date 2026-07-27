@@ -68,6 +68,49 @@ it('exposes final decisions as few-shot examples', async () => {
   ]);
 });
 
+it('deduplicates an immediate repeat of the same decision on the same transaction', async () => {
+  // Mirrors the real race: the register's inline category edit (manual)
+  // and the suggestion it auto-resolves (accepted) can both fire
+  // `recordFeedback` for the same click.
+  await prepare();
+  const firstId = await recordFeedback({
+    transactionId: 'txn1',
+    source: 'manual',
+    finalCategoryId: 'groceries',
+  });
+  const secondId = await recordFeedback({
+    transactionId: 'txn1',
+    source: 'accepted',
+    suggestedCategoryId: 'groceries',
+    finalCategoryId: 'groceries',
+  });
+
+  expect(secondId).toBe(firstId);
+  expect(
+    await db.all('SELECT id FROM ai_feedback WHERE tombstone = 0'),
+  ).toHaveLength(1);
+});
+
+it('does not deduplicate a genuinely different decision on the same transaction', async () => {
+  await prepare();
+  const firstId = await recordFeedback({
+    transactionId: 'txn1',
+    source: 'manual',
+    finalCategoryId: 'groceries',
+  });
+  const secondId = await recordFeedback({
+    transactionId: 'txn1',
+    source: 'corrected',
+    suggestedCategoryId: 'groceries',
+    finalCategoryId: null,
+  });
+
+  expect(secondId).not.toBe(firstId);
+  expect(
+    await db.all('SELECT id FROM ai_feedback WHERE tombstone = 0'),
+  ).toHaveLength(2);
+});
+
 it('uses a rejection as negative evidence against a prior learned category', async () => {
   await prepare();
   await recordFeedback({

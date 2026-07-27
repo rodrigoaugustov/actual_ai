@@ -137,6 +137,9 @@ export type AiRuleMetaEntity = {
   value: string;
   categoryId: string;
   rationale: string;
+  /** The miner's own confidence in the proposal (0-1). Null for proposals
+   * created before this field existed. */
+  confidence: number | null;
   sampleTransactionIds: string[];
   sampleTransactions?: AiRuleSampleTransaction[];
   status: AiRuleMetaStatus;

@@ -1,0 +1,5 @@
+BEGIN TRANSACTION;
+
+ALTER TABLE ai_rule_meta ADD COLUMN confidence REAL;
+
+COMMIT;
