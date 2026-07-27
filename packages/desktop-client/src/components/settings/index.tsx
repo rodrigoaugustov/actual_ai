@@ -290,10 +290,15 @@ export function Settings() {
         marginInline: floatingSidebar && !isNarrowWidth ? 'auto' : 0,
         backgroundColor: nossoCaderninho.color.enamel,
       }}
+      contentStyle={{
+        minHeight: 0,
+        overflowY: isNarrowWidth ? 'auto' : 'hidden',
+      }}
     >
       <View
         data-testid="settings"
         className={organizationPageClass}
+        data-narrow={isNarrowWidth || undefined}
         style={
           {
             '--organization-bottom-space': isNarrowWidth
@@ -384,14 +389,24 @@ export function Settings() {
 
 const organizationPageClass = css({
   width: '100%',
+  height: '100%',
   maxWidth: 1180,
   minWidth: 0,
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
   containerType: 'inline-size',
   margin: '0 auto',
   paddingTop: nossoCaderninho.space.sm,
   paddingBottom: 'var(--organization-bottom-space)',
   color: nossoCaderninho.color.graphite,
   fontFamily: nossoCaderninho.font.family,
+  '&[data-narrow]': {
+    height: 'auto',
+    minHeight: '100%',
+    overflow: 'visible',
+  },
 });
 
 const organizationHeaderClass = css({
@@ -424,6 +439,8 @@ const organizationIntroClass = css({
 const organizationWorkspaceClass = css({
   width: '100%',
   minWidth: 0,
+  minHeight: 0,
+  flex: 1,
   display: 'grid',
   gridTemplateColumns: '280px minmax(0, 1fr)',
   alignItems: 'stretch',
@@ -443,6 +460,7 @@ const organizationWorkspaceClass = css({
   },
   '&[data-narrow]': {
     display: 'block',
+    flex: 'none',
     borderInline: 0,
     borderRadius: 0,
     '& > aside': {
@@ -453,8 +471,10 @@ const organizationWorkspaceClass = css({
 
 const chapterStageClass = css({
   minWidth: 0,
+  minHeight: 0,
   display: 'flex',
   flexDirection: 'column',
+  overflow: 'hidden',
   backgroundColor: nossoCaderninho.color.plate,
 });
 
@@ -492,10 +512,19 @@ const onlineNoticeClass = css({
 });
 
 const chapterContentClass = css({
+  flex: 1,
   minWidth: 0,
+  minHeight: 0,
   width: '100%',
+  overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  scrollbarGutter: 'stable',
   '& > :last-child': {
     borderBottom: 0,
+  },
+  [`.${organizationPageClass}[data-narrow] &`]: {
+    overflowY: 'visible',
+    scrollbarGutter: 'auto',
   },
 });
 

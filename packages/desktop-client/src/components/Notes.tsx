@@ -28,6 +28,8 @@ type NotesProps = {
   notes: string;
   editable?: boolean;
   focused?: boolean;
+  placeholder?: string;
+  maxLength?: number;
   onChange?: (value: string) => void;
   onBlur?: (value: string) => void;
   getStyle?: (editable: boolean) => CSSProperties;
@@ -37,6 +39,8 @@ export function Notes({
   notes,
   editable,
   focused,
+  placeholder,
+  maxLength,
   onChange,
   onBlur,
   getStyle,
@@ -65,9 +69,10 @@ export function Notes({
         ...getStyle?.(editable),
       })}
       value={notes || ''}
+      maxLength={maxLength}
       onChange={e => onChange?.(e.target.value)}
       onBlur={e => onBlur?.(e.target.value)}
-      placeholder={t('Notes (markdown supported)')}
+      placeholder={placeholder ?? t('Notes (markdown supported)')}
     />
   ) : (
     <Text className={css([markdownStyles, getStyle?.(false)])}>

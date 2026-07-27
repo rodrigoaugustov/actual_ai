@@ -2613,5 +2613,15 @@
   "This budget exists only on this device. Removing it also removes all of its backups.": "Este orçamento existe somente neste dispositivo. Excluí-lo também remove todas as suas cópias de segurança.",
   "There will be no synchronized copy to restore.": "Não haverá uma cópia sincronizada para restaurar.",
   "Delete on this device": "Excluir neste dispositivo",
-  "Delete local budget": "Excluir orçamento local"
+  "Delete local budget": "Excluir orçamento local",
+  "<0>Research unclear merchants on the web</0> — when local history is insufficient, send a redacted merchant query through the sync-server to Brave Search. Off by default.": "<0>Pesquisar estabelecimentos desconhecidos na Web</0> — quando o histórico local não for suficiente, envia uma busca anonimizada pelo servidor de sincronização para o Brave Search. Desativado por padrão.",
+  "Maximum web searches per classifier batch": "Máximo de buscas na Web por lote de classificação",
+  "Configured — leave blank to keep it": "Configurado — deixe em branco para manter",
+  "Brave Search API key": "Chave de API do Brave Search",
+  "Edit category description": "Editar descrição da categoria",
+  "Category description: {{name}}": "Descrição da categoria: {{name}}",
+  "This description helps your family and the Assistant categorize transactions.": "Esta descrição ajuda sua família e o Assistente a classificar as transações.",
+  "Describe what belongs in this category and what should use another category.": "Descreva o que pertence a esta categoria e o que deveria usar outra categoria.",
+  "No category description yet": "Esta categoria ainda não tem descrição",
+  "Save description": "Salvar descrição"
 }

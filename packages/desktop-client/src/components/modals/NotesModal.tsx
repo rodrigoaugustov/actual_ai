@@ -4,16 +4,27 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { SvgCheck } from '@actual-app/components/icons/v2';
+import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
 
 import { Modal, ModalCloseButton, ModalHeader } from '#components/common/Modal';
 import { Notes } from '#components/Notes';
 import { useNotes } from '#hooks/useNotes';
 import type { Modal as ModalType } from '#modals/modalsSlice';
+import { nossoCaderninho } from '#style/nossoCaderninho';
 
 type NotesModalProps = Extract<ModalType, { name: 'notes' }>['options'];
 
-export function NotesModal({ id, name, onSave }: NotesModalProps) {
+export function NotesModal({
+  id,
+  name,
+  title,
+  description,
+  placeholder,
+  saveLabel,
+  maxLength,
+  onSave,
+}: NotesModalProps) {
   const { t } = useTranslation();
   const originalNotes = useNotes(id);
 
@@ -36,7 +47,7 @@ export function NotesModal({ id, name, onSave }: NotesModalProps) {
       {({ state }) => (
         <>
           <ModalHeader
-            title={t('Notes: {{name}}', { name })}
+            title={title ?? t('Notes: {{name}}', { name })}
             rightContent={<ModalCloseButton onPress={() => state.close()} />}
           />
           <View
@@ -45,10 +56,22 @@ export function NotesModal({ id, name, onSave }: NotesModalProps) {
               flexDirection: 'column',
             }}
           >
+            {description && (
+              <Text
+                style={{
+                  color: nossoCaderninho.color.graphiteSubdued,
+                  marginBottom: nossoCaderninho.space.sm,
+                }}
+              >
+                {description}
+              </Text>
+            )}
             <Notes
               notes={notes}
               editable
               focused
+              placeholder={placeholder}
+              maxLength={maxLength}
               getStyle={() => ({
                 borderRadius: 6,
                 flex: 1,
@@ -78,7 +101,7 @@ export function NotesModal({ id, name, onSave }: NotesModalProps) {
                 }}
               >
                 <SvgCheck width={17} height={17} style={{ paddingRight: 5 }} />
-                <Trans>Save notes</Trans>
+                {saveLabel ?? <Trans>Save notes</Trans>}
               </Button>
             </View>
           </View>

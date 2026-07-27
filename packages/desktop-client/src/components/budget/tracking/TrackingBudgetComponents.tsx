@@ -273,8 +273,16 @@ export const CategoryMonth = memo(function CategoryMonth({
               }}
             >
               <NotesButton
-                id={`${category.id}-${month}`}
+                id={category.id}
                 defaultColor={theme.pageTextLight}
+                label={t('Edit category description')}
+                description={t(
+                  'This description helps your family and the Assistant categorize transactions.',
+                )}
+                placeholder={t(
+                  'Describe what belongs in this category and what should use another category.',
+                )}
+                maxLength={1000}
               />
             </View>
             <View

@@ -16,9 +16,9 @@ import type {
   AiProviderId,
   AiTier,
 } from '@actual-app/core/types/models';
+import { css } from '@emotion/css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { AiCategoryDictionary } from '#components/ai/AiCategoryDictionary';
 import { aiAgentLabel } from '#components/ai/labels';
 import { Link } from '#components/common/Link';
 import { FinancialText } from '#components/FinancialText';
@@ -254,14 +254,7 @@ export function AiSettings() {
         </ButtonWithLoading>
       }
     >
-      <View
-        style={{
-          flexDirection: isNarrowWidth ? 'column' : 'row',
-          alignItems: isNarrowWidth ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
+      <View className={toggleSettingClass}>
         <Text>
           <Trans>
             <strong>AI features</strong> — hybrid rule + AI transaction
@@ -271,19 +264,13 @@ export function AiSettings() {
         </Text>
         <Toggle
           id="ai-enabled"
+          className={toggleControlClass}
           isOn={config.enabled}
           onToggle={() => setConfig({ ...config, enabled: !config.enabled })}
         />
       </View>
 
-      <View
-        style={{
-          flexDirection: isNarrowWidth ? 'column' : 'row',
-          alignItems: isNarrowWidth ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
+      <View className={toggleSettingClass}>
         <Text>
           <Trans>
             <strong>Research unclear merchants on the web</strong> — when local
@@ -293,6 +280,7 @@ export function AiSettings() {
         </Text>
         <Toggle
           id="ai-web-search"
+          className={toggleControlClass}
           isOn={config.webSearchEnabled ?? false}
           onToggle={() =>
             setConfig({
@@ -408,14 +396,7 @@ export function AiSettings() {
         </FormField>
       </View>
 
-      <View
-        style={{
-          flexDirection: isNarrowWidth ? 'column' : 'row',
-          alignItems: isNarrowWidth ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
+      <View className={toggleSettingClass}>
         <Text>
           <Trans>
             <strong>Redact sensitive data</strong> — strip CPF/CNPJ, card
@@ -425,6 +406,7 @@ export function AiSettings() {
         </Text>
         <Toggle
           id="ai-redact-pii"
+          className={toggleControlClass}
           isOn={config.redactPii}
           onToggle={() =>
             setConfig({ ...config, redactPii: !config.redactPii })
@@ -432,14 +414,7 @@ export function AiSettings() {
         />
       </View>
 
-      <View
-        style={{
-          flexDirection: isNarrowWidth ? 'column' : 'row',
-          alignItems: isNarrowWidth ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
+      <View className={toggleSettingClass}>
         <Text>
           <Trans>
             <strong>Share sensitive advisor memories</strong> — include
@@ -450,6 +425,7 @@ export function AiSettings() {
         </Text>
         <Toggle
           id="ai-share-sensitive-memory"
+          className={toggleControlClass}
           isOn={config.shareSensitiveMemoryWithProvider ?? false}
           onToggle={() =>
             setConfig({
@@ -573,8 +549,6 @@ export function AiSettings() {
         </ButtonWithLoading>
       </View>
 
-      <AiCategoryDictionary />
-
       <View
         style={{
           width: '100%',
@@ -626,3 +600,20 @@ export function AiSettings() {
     </Setting>
   );
 }
+
+const toggleSettingClass = css({
+  width: '100%',
+  minWidth: 0,
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) 44px',
+  alignItems: 'center',
+  gap: nossoCaderninho.space.md,
+});
+
+const toggleControlClass = css({
+  width: 44,
+  height: 44,
+  flexShrink: 0,
+  alignItems: 'center',
+  justifyContent: 'center',
+});

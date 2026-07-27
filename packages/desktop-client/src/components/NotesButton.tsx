@@ -6,6 +6,7 @@ import { Button } from '@actual-app/components/button';
 import { SvgCustomNotesPaper } from '@actual-app/components/icons/v2';
 import { Popover } from '@actual-app/components/popover';
 import type { CSSProperties } from '@actual-app/components/styles';
+import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { Tooltip } from '@actual-app/components/tooltip';
 import { View } from '@actual-app/components/view';
@@ -23,6 +24,10 @@ type NotesButtonProps = {
   defaultColor?: string;
   tooltipPosition?: ComponentProps<typeof Tooltip>['placement'];
   showPlaceholder?: boolean;
+  label?: string;
+  description?: string;
+  placeholder?: string;
+  maxLength?: number;
   style?: CSSProperties;
 };
 export function NotesButton({
@@ -32,6 +37,10 @@ export function NotesButton({
   defaultColor = theme.buttonNormalText,
   tooltipPosition = 'bottom start',
   showPlaceholder = false,
+  label,
+  description,
+  placeholder,
+  maxLength,
   style,
 }: NotesButtonProps) {
   const { t } = useTranslation();
@@ -69,7 +78,7 @@ export function NotesButton({
         <Button
           ref={triggerRef}
           variant="bare"
-          aria-label={t('View notes')}
+          aria-label={label ?? t('View notes')}
           className={cx(
             css({
               color: defaultColor,
@@ -99,7 +108,23 @@ export function NotesButton({
         placement={tooltipPosition}
         style={{ padding: 4 }}
       >
-        <Notes notes={tempNotes} editable focused onChange={setTempNotes} />
+        <View style={{ gap: 6, maxWidth: 366 }}>
+          {description && (
+            <Text
+              style={{ color: theme.pageTextSubdued, padding: '4px 8px 0' }}
+            >
+              {description}
+            </Text>
+          )}
+          <Notes
+            notes={tempNotes}
+            editable
+            focused
+            placeholder={placeholder}
+            maxLength={maxLength}
+            onChange={setTempNotes}
+          />
+        </View>
       </Popover>
     </Tooltip>
   );

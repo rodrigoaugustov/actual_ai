@@ -126,7 +126,9 @@ export function CategoryMenuModal({
             >
               <Notes
                 notes={
-                  originalNotes?.length > 0 ? originalNotes : t('No notes')
+                  originalNotes?.length > 0
+                    ? originalNotes
+                    : t('No category description yet')
                 }
                 editable={false}
                 focused={false}
@@ -156,7 +158,7 @@ export function CategoryMenuModal({
                   height={20}
                   style={{ paddingRight: 5 }}
                 />
-                <Trans>Edit notes</Trans>
+                <Trans>Edit category description</Trans>
               </Button>
               {onEditAutomations && (
                 <Button style={buttonStyle} onPress={_onEditAutomations}>

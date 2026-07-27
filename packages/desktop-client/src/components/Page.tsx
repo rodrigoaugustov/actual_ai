@@ -155,12 +155,20 @@ export function MobilePageHeaderSlot({ style }: MobilePageHeaderSlotProps) {
 type PageProps = {
   header: ReactNode;
   style?: CSSProperties;
+  contentStyle?: CSSProperties;
   padding?: number;
   children: ReactNode;
   footer?: ReactNode;
 };
 
-export function Page({ header, style, padding, children, footer }: PageProps) {
+export function Page({
+  header,
+  style,
+  contentStyle,
+  padding,
+  children,
+  footer,
+}: PageProps) {
   const { isNarrowWidth } = useResponsive();
   const mobileHeaderSlot = useContext(MobilePageHeaderSlotContext);
   const childrenPadding = padding != null ? padding : isNarrowWidth ? 10 : 20;
@@ -183,6 +191,7 @@ export function Page({ header, style, padding, children, footer }: PageProps) {
         flex: 1,
         overflowY: isNarrowWidth ? 'auto' : undefined,
         padding: `0 ${childrenPadding}px`,
+        ...contentStyle,
       }}
     >
       {children}

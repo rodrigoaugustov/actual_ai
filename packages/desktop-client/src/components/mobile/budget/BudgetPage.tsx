@@ -374,13 +374,24 @@ export function BudgetPage() {
             options: {
               id,
               name: category.name,
+              title: t('Category description: {{name}}', {
+                name: category.name,
+              }),
+              description: t(
+                'This description helps your family and the Assistant categorize transactions.',
+              ),
+              placeholder: t(
+                'Describe what belongs in this category and what should use another category.',
+              ),
+              saveLabel: t('Save description'),
+              maxLength: 1000,
               onSave: onSaveNotes,
             },
           },
         }),
       );
     },
-    [categories, dispatch, onSaveNotes],
+    [categories, dispatch, onSaveNotes, t],
   );
 
   const onOpenCategoryGroupMenuModal = useCallback(

@@ -50,6 +50,28 @@ describe('AI category profiles', () => {
     expect(await listCategoryProfiles()).toEqual([]);
   });
 
+  it('uses the category note as the canonical classifier description', async () => {
+    await prepareCategory();
+    await upsertCategoryProfile({
+      categoryId: 'restaurants',
+      description: 'Legacy classifier description.',
+    });
+
+    await db.update('notes', {
+      id: 'restaurants',
+      note: 'Restaurants, delivery and meals away from home.',
+    });
+
+    expect(await getCategoryDescriptions()).toEqual(
+      new Map([
+        ['restaurants', 'Restaurants, delivery and meals away from home.'],
+      ]),
+    );
+
+    await db.update('notes', { id: 'restaurants', note: '' });
+    expect(await getCategoryDescriptions()).toEqual(new Map());
+  });
+
   it('rejects unknown categories and oversized descriptions', async () => {
     await expect(
       upsertCategoryProfile({

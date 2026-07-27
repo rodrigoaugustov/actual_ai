@@ -11,6 +11,11 @@ type CategoryProfileRow = {
   tombstone: number;
 };
 
+type CategoryDescriptionRow = {
+  categoryId: string;
+  description: string;
+};
+
 function toEntity(row: CategoryProfileRow): AiCategoryProfileEntity {
   return {
     id: row.id,
@@ -38,9 +43,32 @@ export async function listCategoryProfiles(): Promise<
 }
 
 export async function getCategoryDescriptions(): Promise<Map<string, string>> {
-  const profiles = await listCategoryProfiles();
+  const descriptions = await db.all<CategoryDescriptionRow>(
+    `SELECT categories.id AS categoryId,
+            CASE
+              WHEN notes.id IS NOT NULL
+                THEN NULLIF(TRIM(notes.note), '')
+              ELSE NULLIF(TRIM(ai_category_profiles.description), '')
+            END AS description
+       FROM categories
+       LEFT JOIN notes
+              ON notes.id = categories.id
+       LEFT JOIN ai_category_profiles
+              ON ai_category_profiles.category_id = categories.id
+             AND ai_category_profiles.tombstone = 0
+      WHERE categories.tombstone = 0
+        AND CASE
+              WHEN notes.id IS NOT NULL
+                THEN NULLIF(TRIM(notes.note), '')
+              ELSE NULLIF(TRIM(ai_category_profiles.description), '')
+            END IS NOT NULL`,
+  );
+
   return new Map(
-    profiles.map(profile => [profile.categoryId, profile.description]),
+    descriptions.map(({ categoryId, description }) => [
+      categoryId,
+      description.slice(0, MAX_DESCRIPTION_LENGTH),
+    ]),
   );
 }
 

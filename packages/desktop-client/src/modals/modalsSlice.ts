@@ -452,6 +452,11 @@ export type Modal =
       options: {
         id: NoteEntity['id'];
         name: string;
+        title?: string;
+        description?: string;
+        placeholder?: string;
+        saveLabel?: string;
+        maxLength?: number;
         onSave: (id: NoteEntity['id'], contents: string) => void;
       };
     }

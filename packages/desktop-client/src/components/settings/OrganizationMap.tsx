@@ -174,6 +174,10 @@ export function OrganizationMap({
 
 const mapClass = css({
   minWidth: 0,
+  minHeight: 0,
+  overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  scrollbarGutter: 'stable',
   backgroundColor: nossoCaderninho.color.plate,
 });
 
