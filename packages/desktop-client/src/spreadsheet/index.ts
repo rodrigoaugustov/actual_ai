@@ -42,6 +42,7 @@ export type Spreadsheets = {
     'total-budgeted': number;
     'total-income': number;
     'total-spent': number;
+    'total-transfers': number;
     'total-leftover': number;
     'group-sum-amount': number;
     'group-budget': number;
@@ -64,6 +65,7 @@ export type Spreadsheets = {
     'total-saved': number;
     'total-income': number;
     'total-spent': number;
+    'total-transfers': number;
     'real-saved': number;
     'total-leftover': number;
     'group-sum-amount': number;

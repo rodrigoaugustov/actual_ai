@@ -10,7 +10,6 @@ import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { tokens } from '@actual-app/components/tokens';
 import { View } from '@actual-app/components/view';
-import { listen } from '@actual-app/core/platform/client/connection';
 import { isElectron } from '@actual-app/core/shared/environment';
 import { css } from '@emotion/css';
 
@@ -47,6 +46,7 @@ import {
 import type { OrganizationSectionId } from './OrganizationMap';
 import { RepairTransactions } from './RepairTransactions';
 import { ResetCache, ResetSync } from './Reset';
+import { SpendingDisplaySettings } from './SpendingDisplaySettings';
 import { ThemeSettings } from './Themes';
 import { AdvancedToggle, Setting } from './UI';
 
@@ -194,12 +194,7 @@ export function Settings() {
   };
 
   useEffect(() => {
-    const unlisten = listen('prefs-updated', () => {
-      void dispatch(loadPrefs());
-    });
-
     void dispatch(loadPrefs());
-    return () => unlisten();
   }, [dispatch]);
 
   useEffect(() => {
@@ -234,6 +229,7 @@ export function Settings() {
           <>
             <BudgetTypeSettings />
             <BudgetRegimeSettings />
+            <SpendingDisplaySettings />
           </>
         );
       case 'appearance':

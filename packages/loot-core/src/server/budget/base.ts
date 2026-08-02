@@ -3,8 +3,11 @@ import {
   getEffectiveBudgetMonth,
   getSumAmountQuery,
   getSumAmountsByMonthQuery,
+  getTotalTransfersByMonthQuery,
+  getTotalTransfersQuery,
   handleStatementChange,
 } from '#server/credit-cards/budget-queries';
+import { getBudgetRegime } from '#server/credit-cards/regime';
 import * as db from '#server/db';
 import * as sheet from '#server/sheet';
 import { resolveName } from '#server/spreadsheet/util';
@@ -69,6 +72,169 @@ function getSumAmountsByMonth(
   return sums;
 }
 
+function getTotalTransfersByMonth(
+  budgetType,
+  rangeStart: number,
+  rangeEnd: number,
+): Map<number, number> {
+  const rows = db.runQuery<{ month: number; amount: number }>(
+    getTotalTransfersByMonthQuery(budgetType, rangeStart, rangeEnd),
+    [],
+    true,
+  );
+
+  return new Map(rows.map(row => [row.month, row.amount || 0]));
+}
+
+const TOTAL_TRANSFERS_TRANSACTION_FIELDS = new Set([
+  'date',
+  'acct',
+  'amount',
+  'category',
+  'tombstone',
+  'isParent',
+  'isChild',
+  'parent_id',
+  'pluggy_bill_id',
+  'transferred_id',
+]);
+const TOTAL_TRANSFERS_STATEMENT_FIELDS = new Set([
+  'acct',
+  'start_date',
+  'end_date',
+  'budget_month',
+  'tombstone',
+  'pluggy_bill_id',
+]);
+const TOTAL_TRANSFERS_CATEGORY_FIELDS = new Set([
+  'cat_group',
+  'tombstone',
+  'is_income',
+]);
+const TOTAL_TRANSFERS_TRACKING_CATEGORY_FIELDS = new Set([
+  ...TOTAL_TRANSFERS_CATEGORY_FIELDS,
+  'hidden',
+]);
+const TOTAL_TRANSFERS_CATEGORY_GROUP_FIELDS = new Set([
+  'tombstone',
+  'is_income',
+]);
+const TOTAL_TRANSFERS_TRACKING_CATEGORY_GROUP_FIELDS = new Set([
+  ...TOTAL_TRANSFERS_CATEGORY_GROUP_FIELDS,
+  'hidden',
+]);
+
+// Broad invalidations precompute all loaded months in one grouped query. The
+// dynamic cells consume these one-shot values when they are recomputed, which
+// keeps the spreadsheet's normal cache, notification, and dependency flow
+// without falling back to one SQL query per month.
+const precomputedTotalTransfers = new Map<string, number>();
+
+export function resetPrecomputedTotalTransfers(): void {
+  precomputedTotalTransfers.clear();
+}
+
+function hasChangedField(changedFields, fields: Set<string>): boolean {
+  for (const field of changedFields) {
+    if (fields.has(field)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function reseedTotalTransfers(months, budgetType): void {
+  if (months.size === 0) {
+    return;
+  }
+
+  let firstMonth: string | null = null;
+  let lastMonth: string | null = null;
+  for (const month of months) {
+    if (firstMonth == null || month < firstMonth) {
+      firstMonth = month;
+    }
+    if (lastMonth == null || month > lastMonth) {
+      lastMonth = month;
+    }
+  }
+
+  if (firstMonth == null || lastMonth == null) {
+    return;
+  }
+
+  const totals = getTotalTransfersByMonth(
+    budgetType,
+    monthUtils.bounds(firstMonth).start,
+    monthUtils.bounds(lastMonth).end,
+  );
+
+  for (const month of months) {
+    const sheetName = monthUtils.sheetForMonth(month);
+    const name = resolveName(sheetName, 'total-transfers');
+    if (sheet.get().hasCell(name)) {
+      const dbMonth = parseInt(month.replace('-', ''));
+      precomputedTotalTransfers.set(name, totals.get(dbMonth) ?? 0);
+      sheet.get().recompute(name);
+    }
+  }
+}
+
+function createTotalTransfers(
+  budgetType,
+  sheetName: string,
+  start: number,
+  end: number,
+) {
+  const name = resolveName(sheetName, 'total-transfers');
+  sheet.get().createDynamic(sheetName, 'total-transfers', {
+    initialValue: 0,
+    run: () => {
+      if (precomputedTotalTransfers.has(name)) {
+        const amount = precomputedTotalTransfers.get(name) ?? 0;
+        precomputedTotalTransfers.delete(name);
+        return amount;
+      }
+
+      const rows = db.runQuery<{ amount: number }>(
+        getTotalTransfersQuery(budgetType, start, end),
+        [],
+        true,
+      );
+      return rows[0]?.amount || 0;
+    },
+  });
+}
+
+function handleTotalTransfersTransactionChange(
+  months,
+  oldValue,
+  newValue,
+  changedFields,
+) {
+  if (!hasChangedField(changedFields, TOTAL_TRANSFERS_TRANSACTION_FIELDS)) {
+    return;
+  }
+
+  const affectedMonths = new Set<string>();
+  for (const transaction of [oldValue, newValue]) {
+    if (transaction?.date != null) {
+      affectedMonths.add(getEffectiveBudgetMonth(transaction));
+    }
+  }
+
+  for (const month of affectedMonths) {
+    if (months.has(month)) {
+      const sheetName = monthUtils.sheetForMonth(month);
+      const name = resolveName(sheetName, 'total-transfers');
+      // A newer narrow change must never consume a grouped value left behind
+      // by an earlier computation queue that failed before reaching this cell.
+      precomputedTotalTransfers.delete(name);
+      sheet.get().recompute(name);
+    }
+  }
+}
+
 export function createCategory(cat, sheetName, prevSheetName, start, end) {
   sheet.get().createDynamic(sheetName, 'sum-amount-' + cat.id, {
     initialValue: 0,
@@ -123,6 +289,8 @@ function handleTransactionChange(transaction, changedFields) {
       changedFields.has('category') ||
       changedFields.has('tombstone') ||
       changedFields.has('isParent') ||
+      changedFields.has('isChild') ||
+      changedFields.has('parent_id') ||
       // A Pluggy bill link arriving or changing after the fact (e.g. a
       // pending installment's bill just closed) can change the
       // effective month under the payment regime on its own, with no
@@ -183,6 +351,7 @@ function handleBudgetChange(budget) {
 export function triggerBudgetChanges(oldValues, newValues) {
   const { createdMonths = new Set() } = sheet.get().meta();
   const budgetType = getBudgetType();
+  let shouldReseedTotalTransfers = false;
   sheet.startTransaction();
 
   try {
@@ -191,22 +360,30 @@ export function triggerBudgetChanges(oldValues, newValues) {
 
       items.forEach(newValue => {
         const oldValue = old && old.get(newValue.id);
+        const changed = new Set(
+          Object.keys(getChangedValues(oldValue || {}, newValue) || {}),
+        );
 
         if (table === 'zero_budget_months') {
           handleBudgetMonthChange(newValue);
         } else if (table === 'zero_budgets' || table === 'reflect_budgets') {
           handleBudgetChange(newValue);
         } else if (table === 'transactions') {
-          const changed = new Set(
-            Object.keys(getChangedValues(oldValue || {}, newValue) || {}),
-          );
-
           if (oldValue) {
             handleTransactionChange(oldValue, changed);
           }
           handleTransactionChange(newValue, changed);
+          handleTotalTransfersTransactionChange(
+            createdMonths,
+            oldValue,
+            newValue,
+            changed,
+          );
         } else if (table === 'category_mapping') {
           handleCategoryMappingChange(createdMonths, oldValue, newValue);
+          if (changed.has('transferId')) {
+            shouldReseedTotalTransfers = true;
+          }
         } else if (table === 'categories') {
           if (budgetType === 'envelope') {
             envelopeBudget.handleCategoryChange(
@@ -220,6 +397,13 @@ export function triggerBudgetChanges(oldValues, newValues) {
               oldValue,
               newValue,
             );
+          }
+          const relevantCategoryFields =
+            budgetType === 'tracking'
+              ? TOTAL_TRANSFERS_TRACKING_CATEGORY_FIELDS
+              : TOTAL_TRANSFERS_CATEGORY_FIELDS;
+          if (hasChangedField(changed, relevantCategoryFields)) {
+            shouldReseedTotalTransfers = true;
           }
         } else if (table === 'category_groups') {
           if (budgetType === 'envelope') {
@@ -235,13 +419,32 @@ export function triggerBudgetChanges(oldValues, newValues) {
               newValue,
             );
           }
+          const relevantGroupFields =
+            budgetType === 'tracking'
+              ? TOTAL_TRANSFERS_TRACKING_CATEGORY_GROUP_FIELDS
+              : TOTAL_TRANSFERS_CATEGORY_GROUP_FIELDS;
+          if (hasChangedField(changed, relevantGroupFields)) {
+            shouldReseedTotalTransfers = true;
+          }
         } else if (table === 'accounts') {
           handleAccountChange(createdMonths, oldValue, newValue);
+          if (!oldValue || changed.has('offbudget')) {
+            shouldReseedTotalTransfers = true;
+          }
         } else if (table === 'statements') {
           handleStatementChange(sheet.get(), createdMonths, oldValue, newValue);
+          if (
+            getBudgetRegime() === 'payment' &&
+            hasChangedField(changed, TOTAL_TRANSFERS_STATEMENT_FIELDS)
+          ) {
+            shouldReseedTotalTransfers = true;
+          }
         }
       });
     });
+    if (shouldReseedTotalTransfers) {
+      reseedTotalTransfers(createdMonths, budgetType);
+    }
   } finally {
     sheet.endTransaction();
   }
@@ -316,6 +519,27 @@ export async function createBudget(months) {
     }
     return sumAmounts;
   };
+  let totalTransfers: Map<number, number> | null = null;
+  const getTotalTransfers = () => {
+    if (!totalTransfers) {
+      let firstMonth = monthsToCreate[0];
+      let lastMonth = monthsToCreate[0];
+      for (const month of monthsToCreate) {
+        if (month < firstMonth) {
+          firstMonth = month;
+        }
+        if (month > lastMonth) {
+          lastMonth = month;
+        }
+      }
+      totalTransfers = getTotalTransfersByMonth(
+        budgetType,
+        monthUtils.bounds(firstMonth).start,
+        monthUtils.bounds(lastMonth).end,
+      );
+    }
+    return totalTransfers;
+  };
   const seededCells: string[] = [];
 
   monthsToCreate.forEach(month => {
@@ -339,6 +563,15 @@ export async function createBudget(months) {
       }
       createCategory(cat, sheetName, prevSheetName, start, end);
     });
+
+    const totalTransfersCell = 'total-transfers';
+    if (sheet.get().getCellValueLoose(sheetName, totalTransfersCell) == null) {
+      const name = resolveName(sheetName, totalTransfersCell);
+      sheet.get().load(name, getTotalTransfers().get(dbMonth) ?? 0);
+      seededCells.push(name);
+    }
+    createTotalTransfers(budgetType, sheetName, start, end);
+
     groups.forEach(group => {
       if (budgetType === 'envelope') {
         envelopeBudget.createCategoryGroup(group, sheetName);
@@ -409,6 +642,9 @@ export async function createAllBudgets() {
 // a global setting that changes how the cells are computed (budget
 // type, budget regime) is modified.
 export async function refreshAllBudgets() {
+  // A refresh replaces the dynamic cells themselves, so no one-shot value
+  // queued for the previous graph may survive into the rebuilt graph.
+  resetPrecomputedTotalTransfers();
   const meta = sheet.get().meta();
   meta.createdMonths = new Set();
 

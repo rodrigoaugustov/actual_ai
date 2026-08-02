@@ -353,7 +353,7 @@ function GraphModeSelector({ mode, onChange }: GraphModeSelectorProps) {
           onChange('spent');
         }}
       >
-        <Trans>Spent</Trans>
+        <Trans>Activity</Trans>
       </ModeButton>
       <ModeButton
         selected={mode === 'budgeted'}
@@ -377,7 +377,7 @@ type OptionsButtonProps = {
   onToggleGroupAccounts: () => void;
 };
 
-function OptionsButton({
+export function OptionsButton({
   showPercentages,
   onTogglePercentages,
   groupAccounts,
@@ -410,7 +410,7 @@ function OptionsButton({
             },
             {
               name: 'group-accounts',
-              text: t('Group accounts in Spent view'),
+              text: t('Group accounts in Activity view'),
               toggle: groupAccounts,
             },
           ]}
@@ -1008,8 +1008,9 @@ function SankeyInner({ widget }: SankeyInnerProps) {
                       <Paragraph>
                         <ul style={{ marginTop: 0, paddingLeft: 20 }}>
                           <li style={{ marginBottom: 5 }}>
-                            <strong>Spent:</strong> Displays actual spending by
-                            category from transactions.
+                            <strong>Activity:</strong> Displays the total
+                            categorized activity from transactions, including
+                            transfers.
                           </li>
                           <li style={{ marginBottom: 5 }}>
                             <strong>Budgeted:</strong> Shows how your budget is

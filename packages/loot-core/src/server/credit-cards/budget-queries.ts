@@ -8,6 +8,7 @@
 // SQL used before credit card support existed, so behavior and
 // performance are byte-identical for existing budgets.
 import * as db from '#server/db';
+import type { BudgetType } from '#server/prefs';
 import { resolveName } from '#server/spreadsheet/util';
 import * as monthUtils from '#shared/months';
 
@@ -39,6 +40,84 @@ function paymentJoin(): string {
 function lookbackStart(start: number): number {
   const month = intToMonth(Math.floor(start / 100));
   return monthUtils.bounds(monthUtils.subMonths(month, LOOKBACK_MONTHS)).start;
+}
+
+type TotalTransfersQueryOptions = {
+  budgetType: BudgetType;
+  rangeStart: number;
+  rangeEnd: number;
+  groupByMonth: boolean;
+};
+
+function buildTotalTransfersQuery({
+  budgetType,
+  rangeStart,
+  rangeEnd,
+  groupByMonth,
+}: TotalTransfersQueryOptions): string {
+  const isPayment = getBudgetRegime() === 'payment';
+  const effectiveMonth = isPayment
+    ? 'COALESCE(s.budget_month, t.date / 100)'
+    : 't.date / 100';
+  const dateStart = isPayment ? lookbackStart(rangeStart) : rangeStart;
+  const firstMonth = Math.floor(rangeStart / 100);
+  const lastMonth = Math.floor(rangeEnd / 100);
+  const select = groupByMonth
+    ? `${effectiveMonth} AS month, SUM(t.amount) AS amount`
+    : 'SUM(t.amount) AS amount';
+  const effectiveMonthFilter = groupByMonth
+    ? `${effectiveMonth} >= ${firstMonth} AND ${effectiveMonth} <= ${lastMonth}`
+    : `${effectiveMonth} = ${firstMonth}`;
+  const hiddenFilter =
+    budgetType === 'tracking'
+      ? `AND IFNULL(c.hidden, 0) = 0
+         AND IFNULL(g.hidden, 0) = 0`
+      : '';
+  const groupBy = groupByMonth ? `GROUP BY ${effectiveMonth}` : '';
+
+  return `SELECT ${select}
+     FROM v_transactions_internal_alive t
+     LEFT JOIN accounts a ON a.id = t.account
+     ${isPayment ? paymentJoin() : ''}
+     JOIN categories c ON c.id = t.category
+     JOIN category_groups g ON g.id = c.cat_group
+    WHERE t.date >= ${dateStart} AND t.date <= ${rangeEnd}
+      AND ${effectiveMonthFilter}
+      AND t.transfer_id IS NOT NULL
+      AND a.offbudget = 0
+      AND g.is_income = 0
+      AND IFNULL(c.tombstone, 0) = 0
+      AND IFNULL(g.tombstone, 0) = 0
+      ${hiddenFilter}
+    ${groupBy}`;
+}
+
+/** SQL for the monthly `total-transfers` cell. */
+export function getTotalTransfersQuery(
+  budgetType: BudgetType,
+  start: number,
+  end: number,
+): string {
+  return buildTotalTransfersQuery({
+    budgetType,
+    rangeStart: start,
+    rangeEnd: end,
+    groupByMonth: false,
+  });
+}
+
+/** SQL for cold-seeding `total-transfers`, grouped by effective month. */
+export function getTotalTransfersByMonthQuery(
+  budgetType: BudgetType,
+  rangeStart: number,
+  rangeEnd: number,
+): string {
+  return buildTotalTransfersQuery({
+    budgetType,
+    rangeStart,
+    rangeEnd,
+    groupByMonth: true,
+  });
 }
 
 /**

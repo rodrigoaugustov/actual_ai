@@ -78,6 +78,9 @@ function SpendingInternal({ widget }: SpendingInternalProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const [budgetTypePref] = useSyncedPref('budgetType');
+  const [separateTransfersFromSpending] = useSyncedPref(
+    'separateTransfersFromSpending',
+  );
   const budgetType: 'envelope' | 'tracking' =
     budgetTypePref === 'tracking' ? 'tracking' : 'envelope';
 
@@ -157,8 +160,17 @@ function SpendingInternal({ widget }: SpendingInternalProps) {
         compareTo,
         averageRange,
         budgetType,
+        separateTransfersFromSpending,
       }),
-    [conditions, conditionsOp, compare, compareTo, averageRange, budgetType],
+    [
+      conditions,
+      conditionsOp,
+      compare,
+      compareTo,
+      averageRange,
+      budgetType,
+      separateTransfersFromSpending,
+    ],
   );
 
   const data = useReport('default', getGraphData);

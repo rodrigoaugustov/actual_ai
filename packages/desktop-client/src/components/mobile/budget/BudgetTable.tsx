@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
@@ -21,6 +21,7 @@ import { AutoTextSize } from 'auto-text-size';
 
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
 import { useTrackingSheetValue } from '#components/budget/tracking/TrackingBudgetComponents';
+import { getSpendingBreakdown } from '#components/budget/util';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -438,18 +439,30 @@ function BudgetTableHeader({
   const { t } = useTranslation();
   const format = useFormat();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
   const envelopePlanned =
     Math.abs(useEnvelopeSheetValue(envelopeBudget.totalBudgeted) ?? 0) || 0;
-  const envelopeUsed =
-    Math.abs(useEnvelopeSheetValue(envelopeBudget.totalSpent) ?? 0) || 0;
+  const envelopeTotalSpent =
+    useEnvelopeSheetValue(envelopeBudget.totalSpent) ?? 0;
+  const envelopeTransfers =
+    useEnvelopeSheetValue(envelopeBudget.totalTransfers) ?? 0;
   const trackingPlanned =
     Math.abs(useTrackingSheetValue(trackingBudget.totalBudgetedExpense) ?? 0) ||
     0;
-  const trackingUsed =
-    Math.abs(useTrackingSheetValue(trackingBudget.totalSpent) ?? 0) || 0;
+  const trackingTotalSpent =
+    useTrackingSheetValue(trackingBudget.totalSpent) ?? 0;
+  const trackingTransfers =
+    useTrackingSheetValue(trackingBudget.totalTransfers) ?? 0;
   const plannedAmount =
     budgetType === 'tracking' ? trackingPlanned : envelopePlanned;
-  const usedAmount = budgetType === 'tracking' ? trackingUsed : envelopeUsed;
+  const totalTransfers =
+    budgetType === 'tracking' ? trackingTransfers : envelopeTransfers;
+  const totalSpent =
+    budgetType === 'tracking' ? trackingTotalSpent : envelopeTotalSpent;
+  const breakdown = getSpendingBreakdown(totalSpent, totalTransfers);
+  const usedAmount = Math.abs(
+    separateTransfers === 'true' ? breakdown.spending : totalSpent,
+  );
   const isOverPlan = plannedAmount > 0 && usedAmount > plannedAmount;
   const usedRatio =
     plannedAmount > 0
@@ -643,8 +656,24 @@ function BudgetTableHeader({
                           paddingRight: 4,
                         }}
                       >
-                        {format(value, type)}
+                        {separateTransfers === 'true'
+                          ? format(breakdown.spending, type)
+                          : format(value, type)}
                       </AutoTextSize>
+                      {separateTransfers === 'true' && (
+                        <Text
+                          style={{
+                            ...amountStyle,
+                            paddingRight: 4,
+                            fontSize: 9,
+                          }}
+                        >
+                          <Trans>Transfers</Trans>:{' '}
+                          {format(breakdown.transfers, type)} ·{' '}
+                          <Trans>Net spending</Trans>:{' '}
+                          {format(breakdown.net, type)}
+                        </Text>
+                      )}
                     </PrivacyFilter>
                   </View>
                 </View>

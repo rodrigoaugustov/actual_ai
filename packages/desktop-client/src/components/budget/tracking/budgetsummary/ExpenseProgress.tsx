@@ -1,7 +1,10 @@
 import React from 'react';
 
 import { useTrackingSheetValue } from '#components/budget/tracking/TrackingBudgetComponents';
+import { getSpendingBreakdown } from '#components/budget/util';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import type { Binding } from '#spreadsheet';
+import { trackingBudget } from '#spreadsheet/bindings';
 import { nossoCaderninho } from '#style/nossoCaderninho';
 
 import { fraction } from './fraction';
@@ -13,7 +16,14 @@ type ExpenseProgressProps = {
 };
 export function ExpenseProgress({ current, target }: ExpenseProgressProps) {
   let totalSpent = useTrackingSheetValue(current) || 0;
+  const totalTransfers =
+    useTrackingSheetValue(trackingBudget.totalTransfers) || 0;
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
   const totalBudgeted = useTrackingSheetValue(target) || 0;
+
+  if (separateTransfers === 'true') {
+    totalSpent = getSpendingBreakdown(totalSpent, totalTransfers).spending;
+  }
 
   // Reverse total spent, and also set a bottom boundary of 0 (in case
   // income goes into an expense category and it's "positive", don't

@@ -58,6 +58,7 @@ export type createCustomSpreadsheetProps = {
   accounts?: AccountEntity[];
   graphType?: string;
   firstDayOfWeekIdx?: SyncedPrefs['firstDayOfWeekIdx'];
+  separateTransfersFromSpending?: SyncedPrefs['separateTransfersFromSpending'];
 };
 
 export function createCustomSpreadsheet({
@@ -80,6 +81,7 @@ export function createCustomSpreadsheet({
   accounts = [],
   graphType,
   firstDayOfWeekIdx,
+  separateTransfersFromSpending,
 }: createCustomSpreadsheetProps) {
   const [categoryList, categoryGroup] = categoryLists(categories);
 
@@ -129,6 +131,7 @@ export function createCustomSpreadsheet({
       conditionsOpKey,
       filters,
       budgetType,
+      excludeTransfers: separateTransfersFromSpending === 'true',
     }));
 
     if (interval === 'Weekly' && balanceTypeOp !== 'totalBudgeted') {

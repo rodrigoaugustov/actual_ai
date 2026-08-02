@@ -20,6 +20,10 @@ import type { AppStore } from './redux/store';
 import * as syncEvents from './sync-events';
 
 export function handleGlobalEvents(store: AppStore, queryClient: QueryClient) {
+  const unlistenPrefsUpdated = listen('prefs-updated', () => {
+    void store.dispatch(loadPrefs());
+  });
+
   const unlistenServerError = listen('server-error', () => {
     store.dispatch(addGenericErrorNotification());
   });
@@ -179,6 +183,7 @@ export function handleGlobalEvents(store: AppStore, queryClient: QueryClient) {
   });
 
   return () => {
+    unlistenPrefsUpdated();
     unlistenServerError();
     unlistenOrphanedPayees();
     unlistenSchedulesOffline();

@@ -166,7 +166,7 @@ export function SankeyCard({
     dateDescription = formattedEndDate;
   }
 
-  const modeLabel = mode === 'budgeted' ? t('Budgeted') : t('Spent');
+  const modeLabel = mode === 'budgeted' ? t('Budgeted') : t('Activity');
 
   dateDescription += ` (${modeLabel})`;
 

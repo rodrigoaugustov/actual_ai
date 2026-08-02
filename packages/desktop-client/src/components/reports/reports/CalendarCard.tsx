@@ -214,7 +214,9 @@ export function CalendarCard({
                               marginRight: 4,
                             }}
                           >
-                            <Trans>Income:</Trans>
+                            <Trans i18nKey="Calendar inflow label">
+                              Inflow:
+                            </Trans>
                           </View>
                           <View style={{ color: theme.reportsNumberPositive }}>
                             {totalIncome !== 0 ? (
@@ -237,7 +239,9 @@ export function CalendarCard({
                               marginRight: 4,
                             }}
                           >
-                            <Trans>Expenses:</Trans>
+                            <Trans i18nKey="Calendar outflow label">
+                              Outflow:
+                            </Trans>
                           </View>
                           <View style={{ color: theme.reportsNumberNegative }}>
                             {totalExpense !== 0 ? (
@@ -481,7 +485,9 @@ function CalendarCardInner({
               fontSize: '10px',
               marginRight: 10,
             }}
-            aria-label={t('Income')}
+            aria-label={t('Calendar inflow', {
+              defaultValue: 'Inflow',
+            })}
           >
             {calendar.totalIncome !== 0 ? (
               <>
@@ -506,7 +512,9 @@ function CalendarCardInner({
               flexDirection: 'row',
               fontSize: '10px',
             }}
-            aria-label={t('Expenses')}
+            aria-label={t('Calendar outflow', {
+              defaultValue: 'Outflow',
+            })}
           >
             {calendar.totalExpense !== 0 ? (
               <>

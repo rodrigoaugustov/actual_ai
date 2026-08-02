@@ -22,7 +22,7 @@ import type {
   CategoryMonthProps,
 } from '#components/budget';
 import { BalanceWithCarryover } from '#components/budget/BalanceWithCarryover';
-import { makeAmountGrey } from '#components/budget/util';
+import { getSpendingBreakdown, makeAmountGrey } from '#components/budget/util';
 import { NotesButton } from '#components/NotesButton';
 import { CellValue, CellValueText } from '#components/spreadsheet/CellValue';
 import { Field, SheetCell } from '#components/table';
@@ -31,6 +31,7 @@ import { useCategoryScheduleGoalTemplateIndicator } from '#hooks/useCategorySche
 import { useFormat } from '#hooks/useFormat';
 import { useNavigate } from '#hooks/useNavigate';
 import { useSheetValue } from '#hooks/useSheetValue';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useUndo } from '#hooks/useUndo';
 import type { Binding, SheetFields } from '#spreadsheet';
 import { trackingBudget } from '#spreadsheet/bindings';
@@ -70,6 +71,14 @@ const cellStyle: CSSProperties = {
 };
 
 export const BudgetTotalsMonth = memo(function BudgetTotalsMonth() {
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
+  const totalSpent = useTrackingSheetValue(trackingBudget.totalSpent) ?? 0;
+  const totalTransfers =
+    useTrackingSheetValue(trackingBudget.totalTransfers) ?? 0;
+  const format = useFormat();
+  const isSeparatingTransfers = separateTransfers === 'true';
+  const breakdown = getSpendingBreakdown(totalSpent, totalTransfers);
+
   return (
     <View
       style={{
@@ -92,12 +101,43 @@ export const BudgetTotalsMonth = memo(function BudgetTotalsMonth() {
         </TrackingCellValue>
       </View>
       <View style={headerLabelStyle}>
-        <Text style={{ color: theme.tableHeaderText }}>
-          <Trans>Spent</Trans>
-        </Text>
-        <TrackingCellValue binding={trackingBudget.totalSpent} type="financial">
-          {props => <CellValueText {...props} style={cellStyle} />}
-        </TrackingCellValue>
+        {isSeparatingTransfers ? (
+          <View style={{ gap: 2 }}>
+            {[
+              ['Spent', breakdown.spending],
+              ['Transfers', breakdown.transfers],
+              ['Net spending', breakdown.net],
+            ].map(([label, value]) => (
+              <View
+                key={label}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  gap: 6,
+                }}
+              >
+                <Text style={{ color: theme.tableHeaderText }}>
+                  <Trans>{label}</Trans>
+                </Text>
+                <Text style={{ ...cellStyle, ...styles.tnum }}>
+                  {format(value as number, 'financial')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <>
+            <Text style={{ color: theme.tableHeaderText }}>
+              <Trans>Spent</Trans>
+            </Text>
+            <TrackingCellValue
+              binding={trackingBudget.totalSpent}
+              type="financial"
+            >
+              {props => <CellValueText {...props} style={cellStyle} />}
+            </TrackingCellValue>
+          </>
+        )}
       </View>
       <View style={headerLabelStyle}>
         <Text style={{ color: theme.tableHeaderText }}>

@@ -511,7 +511,7 @@ function BudgetAnalysisInternal({ widget }: BudgetAnalysisInternalProps) {
                           style={{ marginBottom: 5, minWidth: 210 }}
                           left={
                             <Block>
-                              <Trans>Spent:</Trans>
+                              <Trans>Activity:</Trans>
                             </Block>
                           }
                           right={
@@ -574,7 +574,8 @@ function BudgetAnalysisInternal({ widget }: BudgetAnalysisInternalProps) {
                     <strong>Understanding the Chart</strong>
                     <br />• <strong>Budgeted:</strong> The amount you allocated
                     each month
-                    <br />• <strong>Spent:</strong> Your actual spending
+                    <br />• <strong>Activity:</strong> The total of your
+                    categorized activity, including transfers
                     <br />• <strong>Overspending Adjustment:</strong> Amounts
                     from categories without rollover that were reset
                     <br />• <strong>Balance:</strong> Your cumulative budget
@@ -585,8 +586,8 @@ function BudgetAnalysisInternal({ widget }: BudgetAnalysisInternalProps) {
                     <strong>Understanding the Budget Summary</strong>
                     <br />
                     The balance starts from the month before your selected
-                    period. Budgeted, spent, and overspending adjustments show
-                    totals over the period. Ending balance shows the final
+                    period. Budgeted, activity, and overspending adjustments
+                    show totals over the period. Ending balance shows the final
                     balance at period end. You can filter by categories to track
                     changes in a specific area.
                   </Paragraph>

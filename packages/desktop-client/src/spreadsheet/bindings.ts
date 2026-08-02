@@ -161,6 +161,7 @@ export const envelopeBudget = {
   autoBuffered: 'buffered-auto',
   totalIncome: 'total-income',
   totalSpent: 'total-spent',
+  totalTransfers: 'total-transfers',
   totalBalance: 'total-leftover',
 
   groupSumAmount: envelopeParametrizedField('group-sum-amount'),
@@ -184,6 +185,7 @@ export const trackingBudget = {
 
   totalIncome: 'total-income',
   totalSpent: 'total-spent',
+  totalTransfers: 'total-transfers',
   totalSaved: 'real-saved',
 
   totalLeftover: 'total-leftover',

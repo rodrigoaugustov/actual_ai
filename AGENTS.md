@@ -1,16 +1,52 @@
-# AGENTS.md - Guide for AI Agents Working with Actual Budget
+# AGENTS.md - Guide for AI Agents Working with This Repository
 
-This guide provides comprehensive information for AI agents (like Cursor) working with the Actual Budget codebase.
+This guide provides comprehensive information for AI agents working with this
+codebase.
 
 ## Project Overview
 
-**Actual Budget** is a local-first personal finance tool written in TypeScript/JavaScript. It's 100% free and open-source with synchronization capabilities across devices.
+**Nosso Caderninho** is a local-first personal finance tool written in
+TypeScript/JavaScript, with synchronization across devices. It began as a fork
+of Actual Budget and has since diverged into its own product, with its own
+design system, product decisions and release train (`actualAiVersion`, published
+as the `actual-ai` container image).
 
-- **Repository**: https://github.com/actualbudget/actual
-- **Community Docs**: Documentation is part of the monorepo at `packages/docs/`. Published at https://actualbudget.org/docs
+- **Repository**: https://github.com/rodrigoaugustov/actual_ai
+- **Product identity**: `packages/desktop-client/PRODUCT.md` and `DESIGN.md`
 - **License**: MIT
 - **Primary Language**: TypeScript (with React)
 - **Build System**: Yarn 4 workspaces (monorepo)
+
+### ⚠️ The fork has its own identity — remove pre-fork branding on sight
+
+This project is **no longer Actual Budget**. Whenever you touch code,
+documentation, configuration, UI copy or metadata and find something still
+carrying the pre-fork identity, **change it as part of that work** — do not
+leave it for later and do not treat it as out of scope.
+
+This covers, among others:
+
+- user-facing copy, translations and product names;
+- README files, contributing docs and comments that describe "Actual" as if it
+  were this project;
+- links pointing to `actualbudget.org`, `github.com/actualbudget/*`, the
+  upstream Discord or upstream install instructions, when an in-repo or
+  fork-owned equivalent exists;
+- image labels, package metadata and deployment descriptions.
+
+Two deliberate exceptions, because they are load-bearing rather than
+identity:
+
+- **Package names** (`@actual-app/*`) and the `actual-ai` image name are wired
+  into build, imports and deployment. Renaming them is a migration of its own,
+  not an incidental cleanup.
+- **Genuine references to the upstream project** — for example explaining that
+  a behaviour was inherited from upstream, or linking upstream source for
+  technical context — are fine, as long as they read as references to a
+  _different_ project, not as this project's own identity.
+
+When you are unsure whether something is identity or plumbing, flag it rather
+than renaming something load-bearing.
 
 ## Quick Start Commands
 
@@ -571,10 +607,16 @@ Run `yarn lint` to check. All rules — including the custom `actual/*` rules
 
 ## Additional Resources
 
-- **Community Documentation**: https://actualbudget.org/docs/contributing/
-- **Discord Community**: https://discord.gg/pRYNYr4W5A
-- **GitHub Issues**: https://github.com/actualbudget/actual/issues
-- **Feature Requests**: Label "needs votes" sorted by reactions
+- **Product and design intent**: `packages/desktop-client/PRODUCT.md` and
+  `packages/desktop-client/DESIGN.md`
+- **Contributing and docs conventions**: `packages/docs/docs/contributing/`
+- **Issues**: https://github.com/rodrigoaugustov/actual_ai/issues
+
+Upstream Actual Budget resources (a _different_ project — useful only for
+tracing inherited behaviour, never as this project's identity):
+
+- Upstream repository: https://github.com/actualbudget/actual
+- Upstream documentation: https://actualbudget.org/docs
 
 ## Code Quality Checklist
 

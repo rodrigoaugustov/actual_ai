@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { css } from '@emotion/css';
@@ -27,13 +27,23 @@ export function CapacityRail({
   isOverPlan,
 }: CapacityRailProps) {
   const { t } = useTranslation();
+  const itemCount = metrics.length + (action ? 1 : 0);
+  const gridStyle: CapacityRailGridStyle = {
+    '--capacity-rail-columns': itemCount,
+  };
 
   return (
     <section
       className={railClass}
       aria-label={t('Household capacity for this month')}
     >
-      <div className={metricsClass}>
+      <div
+        className={metricsClass}
+        data-layout-items={itemCount}
+        data-narrow-columns={2}
+        data-wide-columns={itemCount}
+        style={gridStyle}
+      >
         {metrics.map(metric => (
           <div className={metricClass} key={metric.label}>
             <span>{metric.label}</span>
@@ -73,6 +83,10 @@ export function CapacityRail({
   );
 }
 
+type CapacityRailGridStyle = CSSProperties & {
+  '--capacity-rail-columns': number;
+};
+
 const railClass = css({
   minWidth: 0,
   containerType: 'inline-size',
@@ -84,7 +98,7 @@ const metricsClass = css({
   minWidth: 0,
   minHeight: 68,
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(var(--capacity-rail-columns), minmax(0, 1fr))',
   alignItems: 'stretch',
   '& > * + *': {
     borderLeft: `1px solid ${nossoCaderninho.color.railSoft}`,
@@ -92,10 +106,14 @@ const metricsClass = css({
   '@container (max-width: 520px)': {
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     '& > *': {
+      borderLeft: 0,
       borderBottom: `1px solid ${nossoCaderninho.color.railSoft}`,
     },
-    '& > :nth-child(3)': {
-      borderLeft: 0,
+    '& > :nth-child(even)': {
+      borderLeft: `1px solid ${nossoCaderninho.color.railSoft}`,
+    },
+    '& > :nth-last-child(-n + 2)': {
+      borderBottom: 0,
     },
   },
 });

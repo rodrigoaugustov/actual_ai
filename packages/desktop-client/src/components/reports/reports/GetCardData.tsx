@@ -22,7 +22,7 @@ import { LoadingIndicator } from '#components/reports/LoadingIndicator';
 import { ReportOptions } from '#components/reports/ReportOptions';
 import { createCustomSpreadsheet } from '#components/reports/spreadsheets/custom-spreadsheet';
 import { createGroupedSpreadsheet } from '#components/reports/spreadsheets/grouped-spreadsheet';
-import { useReport } from '#components/reports/useReport';
+import { useReportPair } from '#components/reports/useReport';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
 function ErrorFallback() {
@@ -85,6 +85,9 @@ export function GetCardData({
 }) {
   const { isNarrowWidth } = useResponsive();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
+  const [separateTransfersFromSpending] = useSyncedPref(
+    'separateTransfersFromSpending',
+  );
 
   let startDate = report.startDate;
   let endDate = report.endDate;
@@ -138,8 +141,17 @@ export function GetCardData({
       balanceTypeOp: ReportOptions.balanceTypeMap.get(report.balanceType),
       firstDayOfWeekIdx,
       sortByOp: report.sortBy,
+      separateTransfersFromSpending,
     });
-  }, [report, categories, startDate, endDate, firstDayOfWeekIdx, budgetType]);
+  }, [
+    report,
+    categories,
+    startDate,
+    endDate,
+    firstDayOfWeekIdx,
+    budgetType,
+    separateTransfersFromSpending,
+  ]);
   const getGraphData = useMemo(() => {
     return createCustomSpreadsheet({
       startDate,
@@ -161,6 +173,7 @@ export function GetCardData({
       graphType: report.graphType,
       firstDayOfWeekIdx,
       sortByOp: report.sortBy,
+      separateTransfersFromSpending,
     });
   }, [
     report,
@@ -171,12 +184,21 @@ export function GetCardData({
     endDate,
     firstDayOfWeekIdx,
     budgetType,
+    separateTransfersFromSpending,
   ]);
-  const graphData = useReport('default' + report.name, getGraphData);
-  const groupedData = useReport('grouped' + report.name, getGroupData);
+  const reportPair = useReportPair(getGraphData, getGroupData);
 
   const data =
-    graphData && groupedData ? { ...graphData, groupedData } : graphData;
+    reportPair.status === 'ready'
+      ? {
+          ...reportPair.data.first,
+          groupedData: reportPair.data.second,
+        }
+      : null;
+
+  if (reportPair.status === 'error') {
+    return <ErrorFallback />;
+  }
 
   return data?.data ? (
     <ErrorBoundary FallbackComponent={ErrorFallback}>

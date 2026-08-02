@@ -70,6 +70,7 @@ export type ApiHandlers = {
     fromLastMonth: number;
     totalIncome: number;
     totalSpent: number;
+    totalTransfers: number;
     totalBalance: number;
     categoryGroups: Array<
       Record<string, unknown> & { categories?: Record<string, unknown>[] }
