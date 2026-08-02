@@ -413,6 +413,7 @@ handlers['api/budget-month'] = async function ({ month }) {
     fromLastMonth: value('from-last-month') as number,
     totalIncome: value('total-income') as number,
     totalSpent: value('total-spent') as number,
+    totalTransfers: value('total-transfers') as number,
     totalBalance: value('total-leftover') as number,
 
     categoryGroups: groups.map(group => {

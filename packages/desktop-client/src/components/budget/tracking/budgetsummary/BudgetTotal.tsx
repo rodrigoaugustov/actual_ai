@@ -7,7 +7,9 @@ import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
 
+import { FinancialText } from '#components/FinancialText';
 import { CellValue } from '#components/spreadsheet/CellValue';
+import { useFormat } from '#hooks/useFormat';
 import type { Binding, SheetFields } from '#spreadsheet';
 import { nossoCaderninho } from '#style/nossoCaderninho';
 
@@ -19,6 +21,7 @@ type BudgetTotalProps<
   current: Binding<'tracking-budget', CurrentField>;
   target: Binding<'tracking-budget', TargetField>;
   ProgressComponent: ComponentType<{ current; target }>;
+  currentValue?: number;
   style?: CSSProperties;
 };
 export function BudgetTotal<
@@ -29,8 +32,10 @@ export function BudgetTotal<
   current,
   target,
   ProgressComponent,
+  currentValue,
   style,
 }: BudgetTotalProps<CurrentField, TargetField>) {
+  const format = useFormat();
   return (
     <View
       style={{
@@ -54,7 +59,14 @@ export function BudgetTotal<
           <Trans
             i18nKey="<allocatedAmount /> <italic>of <totalAmount /></italic>"
             components={{
-              allocatedAmount: <CellValue binding={current} type="financial" />,
+              allocatedAmount:
+                currentValue == null ? (
+                  <CellValue binding={current} type="financial" />
+                ) : (
+                  <FinancialText>
+                    {format(currentValue, 'financial')}
+                  </FinancialText>
+                ),
               italic: (
                 <Text
                   style={{

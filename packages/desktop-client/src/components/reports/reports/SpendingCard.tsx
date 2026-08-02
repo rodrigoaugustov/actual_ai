@@ -41,6 +41,9 @@ export function SpendingCard({
   const { t } = useTranslation();
   const format = useFormat();
   const [budgetTypePref] = useSyncedPref('budgetType');
+  const [separateTransfersFromSpending] = useSyncedPref(
+    'separateTransfersFromSpending',
+  );
   const budgetType: 'envelope' | 'tracking' =
     budgetTypePref === 'tracking' ? 'tracking' : 'envelope';
 
@@ -63,6 +66,7 @@ export function SpendingCard({
       compareTo,
       averageRange,
       budgetType,
+      separateTransfersFromSpending,
     });
   }, [
     meta?.conditions,
@@ -71,6 +75,7 @@ export function SpendingCard({
     compareTo,
     averageRange,
     budgetType,
+    separateTransfersFromSpending,
   ]);
 
   const data = useReport('default', getGraphData);

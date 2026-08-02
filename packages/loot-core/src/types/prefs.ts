@@ -19,6 +19,7 @@ export type SyncedPrefs = Partial<
   Record<
     | 'budgetType'
     | 'budgetRegime'
+    | 'separateTransfersFromSpending'
     | 'aiConfig'
     | 'upcomingScheduledTransactionLength'
     | 'firstDayOfWeekIdx'

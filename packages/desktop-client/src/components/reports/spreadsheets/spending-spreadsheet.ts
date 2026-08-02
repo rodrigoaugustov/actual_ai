@@ -9,6 +9,7 @@ import type {
   SpendingEntity,
   SpendingMonthEntity,
 } from '@actual-app/core/types/models';
+import type { SyncedPrefs } from '@actual-app/core/types/prefs';
 // @ts-strict-ignore
 import { keyBy } from 'es-toolkit';
 
@@ -29,7 +30,8 @@ type createSpendingSpreadsheetProps = {
   compare?: string;
   compareTo?: string;
   averageRange?: SpendingAverageRange;
-  budgetType?: 'envelope' | 'tracking';
+  budgetType?: SyncedPrefs['budgetType'];
+  separateTransfersFromSpending?: SyncedPrefs['separateTransfersFromSpending'];
 };
 
 export function getSpendingBudgetFilters({
@@ -74,6 +76,7 @@ export function createSpendingSpreadsheet({
   compareTo,
   averageRange,
   budgetType = 'envelope',
+  separateTransfersFromSpending,
 }: createSpendingSpreadsheetProps) {
   const compareMonth = compare ?? monthUtils.currentMonth();
   const compareToMonth = compareTo ?? monthUtils.subMonths(compareMonth, 1);
@@ -85,6 +88,7 @@ export function createSpendingSpreadsheet({
     compareMonth + '-01',
     endDate,
   );
+  const excludeTransfers = separateTransfersFromSpending === 'true';
 
   return async (
     spreadsheet: ReturnType<typeof useSpreadsheet>,
@@ -120,6 +124,7 @@ export function createSpendingSpreadsheet({
           interval,
           conditionsOpKey,
           filters,
+          excludeTransfers,
         ),
       ).then(({ data }) => data),
       aqlQuery(
@@ -130,6 +135,7 @@ export function createSpendingSpreadsheet({
           interval,
           conditionsOpKey,
           filters,
+          excludeTransfers,
         ),
       ).then(({ data }) => data),
     ]);
@@ -143,6 +149,7 @@ export function createSpendingSpreadsheet({
           interval,
           conditionsOpKey,
           filters,
+          excludeTransfers,
         ),
       ).then(({ data }) => data),
       aqlQuery(
@@ -153,6 +160,7 @@ export function createSpendingSpreadsheet({
           interval,
           conditionsOpKey,
           filters,
+          excludeTransfers,
         ),
       ).then(({ data }) => data),
     ]);

@@ -225,6 +225,7 @@ async function envelopeBudgetMonth({ month }: { month: string }) {
     value('from-last-month'),
     value('total-income'),
     value('total-spent'),
+    value('total-transfers'),
     value('total-leftover'),
   ];
 
@@ -275,6 +276,7 @@ async function trackingBudgetMonth({ month }: { month: string }) {
     value('total-saved'),
     value('total-income'),
     value('total-spent'),
+    value('total-transfers'),
     value('real-saved'),
     value('total-leftover'),
   ];

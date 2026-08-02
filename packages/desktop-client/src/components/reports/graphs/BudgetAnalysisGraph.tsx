@@ -142,7 +142,7 @@ function CustomTooltip({
                       display: 'inline-block',
                     }}
                   />
-                  <Trans>Spent:</Trans>
+                  <Trans>Activity:</Trans>
                 </span>
               }
               right={
@@ -216,7 +216,7 @@ export function BudgetAnalysisGraph({
 
   // Centralize translated labels to avoid repetition
   const budgetedLabel = t('Budgeted');
-  const spentLabel = t('Spent');
+  const spentLabel = t('Activity');
   const balanceLabel = t('Balance');
   const overspendingLabel = t('Overspending Adjustment');
 

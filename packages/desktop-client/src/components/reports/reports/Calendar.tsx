@@ -875,7 +875,9 @@ function CalendarWithHeader({
               flexGrow: 1,
               justifyContent: 'start',
             }}
-            aria-label={t('Income')}
+            aria-label={t('Calendar inflow', {
+              defaultValue: 'Inflow',
+            })}
           >
             <PrivacyFilter>
               <FinancialText>
@@ -895,7 +897,9 @@ function CalendarWithHeader({
               flexGrow: 1,
               justifyContent: 'start',
             }}
-            aria-label={t('Expenses')}
+            aria-label={t('Calendar outflow', {
+              defaultValue: 'Outflow',
+            })}
           >
             <PrivacyFilter>
               <FinancialText>
@@ -990,7 +994,7 @@ function CalendarCardHeader({
                 marginRight: 4,
               }}
             >
-              <Trans>Income:</Trans>
+              <Trans i18nKey="Calendar inflow label">Inflow:</Trans>
             </View>
             <View style={{ color: theme.reportsNumberPositive }}>
               <PrivacyFilter>{format(totalIncome, 'financial')}</PrivacyFilter>
@@ -1002,7 +1006,7 @@ function CalendarCardHeader({
                 marginRight: 4,
               }}
             >
-              <Trans>Expenses:</Trans>
+              <Trans i18nKey="Calendar outflow label">Outflow:</Trans>
             </View>
             <View style={{ color: theme.reportsNumberNegative }}>
               <PrivacyFilter>{format(totalExpense, 'financial')}</PrivacyFilter>

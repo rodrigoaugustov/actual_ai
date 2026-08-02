@@ -1,11 +1,36 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 
-import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { TestProviders } from '#mocks';
 
 import { BudgetAnalysisGraph } from './BudgetAnalysisGraph';
+
+vi.mock('#components/reports/Container', () => ({
+  Container: ({
+    children,
+  }: {
+    children: (width: number, height: number) => ReactNode;
+  }) => children(800, 400),
+}));
+
+vi.mock('recharts', () => ({
+  Bar: ({ dataKey, name }: { dataKey: string; name: string }) => (
+    <g data-testid={`series-${dataKey}`} data-series-name={name} />
+  ),
+  CartesianGrid: () => null,
+  ComposedChart: ({ children }: { children: ReactNode }) => (
+    <svg>{children}</svg>
+  ),
+  Line: ({ dataKey, name }: { dataKey: string; name: string }) => (
+    <g data-testid={`series-${dataKey}`} data-series-name={name} />
+  ),
+  LineChart: ({ children }: { children: ReactNode }) => <svg>{children}</svg>,
+  Tooltip: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+}));
 
 const sampleData = {
   intervalData: [
@@ -93,5 +118,25 @@ describe('BudgetAnalysisGraph – balanceOnly', () => {
       </TestProviders>,
     );
     expect(document.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('uses Activity as the visible name for every raw spent series', () => {
+    render(
+      <TestProviders>
+        <BudgetAnalysisGraph
+          data={sampleData}
+          graphType="Line"
+          balanceOnly={false}
+          showBalance
+        />
+      </TestProviders>,
+    );
+
+    const spentSeries = screen.getAllByTestId('series-spent');
+    expect(spentSeries).not.toHaveLength(0);
+    spentSeries.forEach(series => {
+      expect(series).toHaveAttribute('data-series-name', 'Activity');
+      expect(series).not.toHaveAttribute('data-series-name', 'Spent');
+    });
   });
 });

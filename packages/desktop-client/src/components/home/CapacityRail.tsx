@@ -2,9 +2,11 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { css } from '@emotion/css';
 
+import { getSpendingBreakdown } from '#components/budget/util';
 import { FinancialText } from '#components/FinancialText';
 import { useFormat } from '#hooks/useFormat';
 import { useSheetValue } from '#hooks/useSheetValue';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 import { nossoCaderninho } from '#style/nossoCaderninho';
 
@@ -27,6 +29,7 @@ export function CapacityRail({ budgetType }: CapacityRailProps) {
 }
 
 function EnvelopeCapacityRail() {
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
   const totalBudgeted =
     useSheetValue<'envelope-budget', 'total-budgeted'>(
       envelopeBudget.totalBudgeted,
@@ -35,17 +38,29 @@ function EnvelopeCapacityRail() {
     useSheetValue<'envelope-budget', 'total-spent'>(
       envelopeBudget.totalSpent,
     ) ?? 0;
+  const totalTransfers =
+    useSheetValue<'envelope-budget', 'total-transfers'>(
+      envelopeBudget.totalTransfers,
+    ) ?? 0;
   const toBudget =
     useSheetValue<'envelope-budget', 'to-budget'>(envelopeBudget.toBudget) ?? 0;
 
   return (
     <CapacityRailView
-      values={deriveCapacityValues(totalBudgeted, totalSpent, toBudget)}
+      values={deriveCapacityValues(
+        totalBudgeted,
+        separateTransfers === 'true'
+          ? getSpendingBreakdown(totalSpent, totalTransfers).spending
+          : totalSpent,
+        toBudget,
+      )}
+      committedLabel={separateTransfers === 'true' ? 'Spent' : 'Committed'}
     />
   );
 }
 
 function TrackingCapacityRail() {
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
   const totalBudgeted =
     useSheetValue<'tracking-budget', 'total-budgeted'>(
       trackingBudget.totalBudgetedExpense,
@@ -54,6 +69,10 @@ function TrackingCapacityRail() {
     useSheetValue<'tracking-budget', 'total-spent'>(
       trackingBudget.totalSpent,
     ) ?? 0;
+  const totalTransfers =
+    useSheetValue<'tracking-budget', 'total-transfers'>(
+      trackingBudget.totalTransfers,
+    ) ?? 0;
   const totalLeftover =
     useSheetValue<'tracking-budget', 'total-leftover'>(
       trackingBudget.totalLeftover,
@@ -61,12 +80,25 @@ function TrackingCapacityRail() {
 
   return (
     <CapacityRailView
-      values={deriveCapacityValues(totalBudgeted, totalSpent, totalLeftover)}
+      values={deriveCapacityValues(
+        totalBudgeted,
+        separateTransfers === 'true'
+          ? getSpendingBreakdown(totalSpent, totalTransfers).spending
+          : totalSpent,
+        totalLeftover,
+      )}
+      committedLabel={separateTransfers === 'true' ? 'Spent' : 'Committed'}
     />
   );
 }
 
-function CapacityRailView({ values }: { values: CapacityValues }) {
+export function CapacityRailView({
+  values,
+  committedLabel,
+}: {
+  values: CapacityValues;
+  committedLabel: 'Committed' | 'Spent';
+}) {
   const { t } = useTranslation();
   const format = useFormat();
   const total =
@@ -75,7 +107,7 @@ function CapacityRailView({ values }: { values: CapacityValues }) {
   const segments = [
     {
       key: 'committed',
-      label: t('Committed'),
+      label: t(committedLabel),
       value: values.committed,
       color: nossoCaderninho.color.commitment,
     },
@@ -95,6 +127,24 @@ function CapacityRailView({ values }: { values: CapacityValues }) {
           : nossoCaderninho.color.balance,
     },
   ];
+  const capacityAriaLabel =
+    committedLabel === 'Spent'
+      ? t(
+          'Month capacity: {{spent}} spent, {{planned}} planned, {{available}} available',
+          {
+            spent: format(values.committed, 'financial'),
+            planned: format(values.planned, 'financial'),
+            available: format(values.available, 'financial'),
+          },
+        )
+      : t(
+          'Month capacity: {{committed}} committed, {{planned}} planned, {{available}} available',
+          {
+            committed: format(values.committed, 'financial'),
+            planned: format(values.planned, 'financial'),
+            available: format(values.available, 'financial'),
+          },
+        );
 
   return (
     <section className={containerClass} aria-labelledby="capacity-title">
@@ -123,17 +173,7 @@ function CapacityRailView({ values }: { values: CapacityValues }) {
 
       {hasCapacity ? (
         <>
-          <figure
-            className={railClass}
-            aria-label={t(
-              'Month capacity: {{committed}} committed, {{planned}} planned, {{available}} available',
-              {
-                committed: format(values.committed, 'financial'),
-                planned: format(values.planned, 'financial'),
-                available: format(values.available, 'financial'),
-              },
-            )}
-          >
+          <figure className={railClass} aria-label={capacityAriaLabel}>
             {segments.map(segment => (
               <div
                 key={segment.key}

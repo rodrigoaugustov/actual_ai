@@ -22,6 +22,7 @@ function useRenderResults() {
       numCleared,
       numDeleted,
       numTransfersFixed,
+      numTransfersInIncomeCategories,
       mismatchedSplits,
       numNonParentErrorsFixed,
       numParentTransactionsWithCategoryFixed,
@@ -33,6 +34,7 @@ function useRenderResults() {
       numCleared === 0 &&
       numDeleted === 0 &&
       numTransfersFixed === 0 &&
+      numTransfersInIncomeCategories === 0 &&
       numNonParentErrorsFixed === 0 &&
       mismatchedSplits.length === 0 &&
       numParentTransactionsWithCategoryFixed === 0
@@ -71,6 +73,13 @@ function useRenderResults() {
         result.push(
           t('Fixed {{count}} transfers.', {
             count: numTransfersFixed,
+          }),
+        );
+      }
+      if (numTransfersInIncomeCategories > 0) {
+        result.push(
+          t('Found {{count}} transfers categorized as income.', {
+            count: numTransfersInIncomeCategories,
           }),
         );
       }

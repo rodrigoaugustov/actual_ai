@@ -138,5 +138,68 @@ describe('API handlers', () => {
       expect(group?.categories?.[0]).toHaveProperty('balance', 1000);
       expect(group?.categories?.[0]).toHaveProperty('carryover', false);
     });
+
+    it('adds totalTransfers without changing gross API values when the display preference changes', async () => {
+      await db.insertCategoryGroup({ id: 'expense-group', name: 'Expenses' });
+      await db.insertCategory({
+        id: 'expense-cat',
+        name: 'Rent',
+        cat_group: 'expense-group',
+      });
+      await createBudget(['2026-02', '2026-03']);
+      await db.insertTransaction({
+        id: 'income',
+        date: '2026-03-15',
+        account: 'acct1',
+        amount: 500,
+        category: 'income-cat',
+      });
+      await db.insertTransaction({
+        id: 'transfer',
+        date: '2026-03-15',
+        account: 'acct1',
+        amount: -100,
+        category: 'expense-cat',
+        transfer_id: 'other-side-of-transfer',
+      });
+      await db.insertTransaction({
+        id: 'spending',
+        date: '2026-03-15',
+        account: 'acct1',
+        amount: -200,
+        category: 'expense-cat',
+      });
+      await sheet.waitOnSpreadsheet();
+
+      const before = await handlers['api/budget-month']({ month: '2026-03' });
+      const beforeExpenseGroup = before.categoryGroups.find(
+        group => group.id === 'expense-group',
+      );
+      const beforeIncomeGroup = before.categoryGroups.find(
+        group => group.id === 'income-group',
+      );
+
+      await db.update('preferences', {
+        id: 'separateTransfersFromSpending',
+        value: 'true',
+      });
+
+      const after = await handlers['api/budget-month']({ month: '2026-03' });
+      const afterExpenseGroup = after.categoryGroups.find(
+        group => group.id === 'expense-group',
+      );
+      const afterIncomeGroup = after.categoryGroups.find(
+        group => group.id === 'income-group',
+      );
+
+      expect(before.totalTransfers).toBe(-100);
+      expect(after.totalTransfers).toBe(-100);
+      expect(after.totalSpent).toBe(before.totalSpent);
+      expect(afterExpenseGroup?.spent).toBe(beforeExpenseGroup?.spent);
+      expect(afterIncomeGroup?.received).toBe(beforeIncomeGroup?.received);
+      expect(before).toMatchObject({ totalSpent: -300 });
+      expect(beforeExpenseGroup).toMatchObject({ spent: -300 });
+      expect(beforeIncomeGroup).toMatchObject({ received: 500 });
+    });
   });
 });

@@ -2,9 +2,10 @@ import { useTranslation } from 'react-i18next';
 
 import { CapacityRail as CapacityRailFrame } from '#components/budget/CapacityRail';
 import { useTrackingSheetValue } from '#components/budget/tracking/TrackingBudgetComponents';
+import { getSpendingBreakdown } from '#components/budget/util';
 import { useFormat } from '#hooks/useFormat';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { trackingBudget } from '#spreadsheet/bindings';
-
 type CapacityRailProps = {
   isProjected: boolean;
 };
@@ -12,11 +13,17 @@ type CapacityRailProps = {
 export function CapacityRail({ isProjected }: CapacityRailProps) {
   const { t } = useTranslation();
   const format = useFormat();
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
   const planned =
     Math.abs(useTrackingSheetValue(trackingBudget.totalBudgetedExpense) ?? 0) ||
     0;
-  const used =
-    Math.abs(useTrackingSheetValue(trackingBudget.totalSpent) ?? 0) || 0;
+  const totalSpent = useTrackingSheetValue(trackingBudget.totalSpent) ?? 0;
+  const totalTransfers =
+    useTrackingSheetValue(trackingBudget.totalTransfers) ?? 0;
+  const breakdown = getSpendingBreakdown(totalSpent, totalTransfers);
+  const used = Math.abs(
+    separateTransfers === 'true' ? breakdown.spending : totalSpent,
+  );
   const remainingInPlan = planned - used;
   const projectedSavings =
     useTrackingSheetValue(
@@ -37,10 +44,27 @@ export function CapacityRail({ isProjected }: CapacityRailProps) {
           tone: 'partnership',
         },
         {
-          label: t('Used'),
-          value: format(used, 'financial'),
+          label: t(separateTransfers === 'true' ? 'Spent' : 'Used'),
+          value: format(
+            separateTransfers === 'true' ? breakdown.spending : used,
+            'financial',
+          ),
           tone: isOverPlan ? 'limit' : 'commitment',
         },
+        ...(separateTransfers === 'true'
+          ? [
+              {
+                label: t('Transfers'),
+                value: format(breakdown.transfers, 'financial'),
+                tone: 'partnership' as const,
+              },
+              {
+                label: t('Net spending'),
+                value: format(breakdown.net, 'financial'),
+                tone: 'commitment' as const,
+              },
+            ]
+          : []),
         {
           label: t('Remaining in plan'),
           value: format(remainingInPlan, 'financial'),

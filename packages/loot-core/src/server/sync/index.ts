@@ -396,9 +396,16 @@ export const applyMessages = sequential(async (messages: Message[]) => {
     clock.merkle = currentMerkle;
   }
 
-  // Save any synced prefs
+  const hasSyncedPreferences = messages.some(
+    message => !message.old && message.dataset === 'preferences',
+  );
+
+  // Synced preferences are already stored in the database by `apply`, but the
+  // client still needs this event to reload their new value after remote sync.
   if (Object.keys(prefsToSet).length > 0) {
     void prefs.savePrefs(prefsToSet, { avoidSync: true });
+  }
+  if (Object.keys(prefsToSet).length > 0 || hasSyncedPreferences) {
     connection.send('prefs-updated');
   }
 

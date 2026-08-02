@@ -20,6 +20,7 @@ async function fixSplitTransactions(): Promise<{
   numCleared: number;
   numDeleted: number;
   numTransfersFixed: number;
+  numTransfersInIncomeCategories: number;
   numNonParentErrorsFixed: number;
   numParentTransactionsWithCategoryFixed: number;
   mismatchedSplits: TransactionEntity[];
@@ -114,7 +115,7 @@ async function fixSplitTransactions(): Promise<{
     await batchUpdateTransactions({ updated });
   });
 
-  // 6. Remove transaction errors from non-parent transactions
+  // 7. Remove transaction errors from non-parent transactions
   const errorRows = await db.all<Pick<db.DbViewTransactionInternal, 'id'>>(`
     SELECT id FROM v_transactions_internal WHERE error IS NOT NULL AND is_parent = 0
   `);
@@ -124,7 +125,7 @@ async function fixSplitTransactions(): Promise<{
     await batchUpdateTransactions({ updated });
   });
 
-  // 7. Clear categories of parent transactions
+  // 8. Clear categories of parent transactions
   const parentTransactionsWithCategory = await db.all<
     Pick<db.DbViewTransactionInternal, 'id'>
   >(`
@@ -139,11 +140,26 @@ async function fixSplitTransactions(): Promise<{
     await batchUpdateTransactions({ updated });
   });
 
+  // 9. Report transfer legs that are categorized as income. This has to run
+  // after every mutating repair above, so that no reported row is changed by
+  // this same execution. Note that the mutators cascade: `batchUpdateTransactions`
+  // runs `transfer.onUpdate` on each updated row, which can clear the category
+  // of a leg (step 7) or remove/delete the counterpart of a parent (step 8).
+  const transfersInIncomeCategories = await db.first<{ count: number }>(`
+    SELECT COUNT(*) AS count
+    FROM v_transactions_internal_alive t
+    JOIN categories c ON c.id = t.category AND IFNULL(c.tombstone, 0) = 0
+    JOIN category_groups g ON g.id = c.cat_group AND IFNULL(g.tombstone, 0) = 0
+    WHERE t.transfer_id IS NOT NULL
+      AND g.is_income = 1
+  `);
+
   return {
     numBlankPayees: blankPayeeRows.length,
     numCleared: clearedRows.length,
     numDeleted: deletedRows.length,
     numTransfersFixed: brokenTransfers.length,
+    numTransfersInIncomeCategories: transfersInIncomeCategories?.count ?? 0,
     numNonParentErrorsFixed: errorRows.length,
     numParentTransactionsWithCategoryFixed:
       parentTransactionsWithCategory.length,

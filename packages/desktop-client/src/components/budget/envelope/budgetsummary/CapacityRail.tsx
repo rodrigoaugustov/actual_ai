@@ -2,7 +2,9 @@ import { useTranslation } from 'react-i18next';
 
 import { CapacityRail as CapacityRailFrame } from '#components/budget/CapacityRail';
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
+import { getSpendingBreakdown } from '#components/budget/util';
 import { useFormat } from '#hooks/useFormat';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
 import { ToBudget } from './ToBudget';
@@ -20,6 +22,7 @@ export function CapacityRail({
 }: CapacityRailProps) {
   const { t } = useTranslation();
   const format = useFormat();
+  const [separateTransfers] = useSyncedPref('separateTransfersFromSpending');
   const budgeted =
     Math.abs(
       useEnvelopeSheetValue({
@@ -27,13 +30,20 @@ export function CapacityRail({
         value: 0,
       }) ?? 0,
     ) || 0;
-  const used =
-    Math.abs(
-      useEnvelopeSheetValue({
-        name: envelopeBudget.totalSpent,
-        value: 0,
-      }) ?? 0,
-    ) || 0;
+  const totalSpent =
+    useEnvelopeSheetValue({
+      name: envelopeBudget.totalSpent,
+      value: 0,
+    }) ?? 0;
+  const totalTransfers =
+    useEnvelopeSheetValue({
+      name: envelopeBudget.totalTransfers,
+      value: 0,
+    }) ?? 0;
+  const breakdown = getSpendingBreakdown(totalSpent, totalTransfers);
+  const used = Math.abs(
+    separateTransfers === 'true' ? breakdown.spending : totalSpent,
+  );
   const remainingInPlan = budgeted - used;
   const isOverPlan = budgeted > 0 && used > budgeted;
   const usedRatio =
@@ -48,10 +58,27 @@ export function CapacityRail({
           tone: 'partnership',
         },
         {
-          label: t('Used'),
-          value: format(used, 'financial'),
+          label: t(separateTransfers === 'true' ? 'Spent' : 'Used'),
+          value: format(
+            separateTransfers === 'true' ? breakdown.spending : used,
+            'financial',
+          ),
           tone: isOverPlan ? 'limit' : 'commitment',
         },
+        ...(separateTransfers === 'true'
+          ? [
+              {
+                label: t('Transfers'),
+                value: format(breakdown.transfers, 'financial'),
+                tone: 'partnership' as const,
+              },
+              {
+                label: t('Net spending'),
+                value: format(breakdown.net, 'financial'),
+                tone: 'commitment' as const,
+              },
+            ]
+          : []),
         {
           label: t('Remaining in plan'),
           value: format(remainingInPlan, 'financial'),

@@ -1,5 +1,6 @@
 import * as db from '#server/db';
 import * as sheet from '#server/sheet';
+import { resolveName } from '#server/spreadsheet/util';
 // @ts-strict-ignore
 import * as monthUtils from '#shared/months';
 
@@ -509,5 +510,172 @@ describe('Base budget', () => {
 
     const jan = monthUtils.sheetForMonth('2017-01');
     expect(sheet.getCellValue(jan, `sum-amount-${foodId}`)).toBe(-1000);
+  });
+
+  it.each([
+    {
+      budgetType: 'envelope',
+      expectedTransfers: -1500,
+      expectedTotalSpent: -2200,
+    },
+    {
+      budgetType: 'tracking',
+      expectedTransfers: -500,
+      expectedTotalSpent: -1200,
+    },
+  ] as const)(
+    'cold-seeds total-transfers with $budgetType scope and leaves gross invariants unchanged',
+    async ({ budgetType, expectedTransfers, expectedTotalSpent }) => {
+      await sheet.loadSpreadsheet(db);
+      sheet.get().meta().budgetType = budgetType;
+
+      await db.insertCategoryGroup({ id: 'visible-group', name: 'Visible' });
+      await db.insertCategoryGroup({
+        id: 'hidden-group',
+        name: 'Hidden',
+        hidden: 1,
+      });
+      await db.insertCategoryGroup({
+        id: 'income-group',
+        name: 'Income',
+        is_income: 1,
+      });
+      const visible = await db.insertCategory({
+        name: 'Visible',
+        cat_group: 'visible-group',
+      });
+      const hidden = await db.insertCategory({
+        name: 'Hidden',
+        cat_group: 'visible-group',
+        hidden: 1,
+      });
+      const hiddenGroupCategory = await db.insertCategory({
+        name: 'Hidden group category',
+        cat_group: 'hidden-group',
+      });
+      const mappedToVisible = await db.insertCategory({
+        name: 'Mapped to visible',
+        cat_group: 'visible-group',
+      });
+      const mappedToHidden = await db.insertCategory({
+        name: 'Mapped to hidden',
+        cat_group: 'visible-group',
+      });
+      await db.update('category_mapping', {
+        id: mappedToVisible,
+        transferId: visible,
+      });
+      await db.update('category_mapping', {
+        id: mappedToHidden,
+        transferId: hidden,
+      });
+
+      await db.insertAccount({ id: 'onbudget', name: 'On budget' });
+      await db.insertAccount({
+        id: 'offbudget',
+        name: 'Off budget',
+        offbudget: 1,
+      });
+      for (const transaction of [
+        { id: 'visible', amount: -100, category: visible },
+        { id: 'hidden', amount: -200, category: hidden },
+        {
+          id: 'hidden-group',
+          amount: -300,
+          category: hiddenGroupCategory,
+        },
+        { id: 'mapped-visible', amount: -400, category: mappedToVisible },
+        { id: 'mapped-hidden', amount: -500, category: mappedToHidden },
+      ]) {
+        await db.insertTransaction({
+          ...transaction,
+          date: '2017-01-15',
+          account: 'onbudget',
+          transfer_id: `linked-${transaction.id}`,
+        });
+      }
+      await db.insertTransaction({
+        id: 'offbudget-transfer',
+        date: '2017-01-15',
+        amount: -600,
+        account: 'offbudget',
+        category: visible,
+        transfer_id: 'linked-offbudget',
+      });
+      await db.insertTransaction({
+        id: 'ordinary-spending',
+        date: '2017-01-15',
+        amount: -700,
+        account: 'onbudget',
+        category: visible,
+      });
+
+      await createAllBudgets();
+      await sheet.waitOnSpreadsheet();
+
+      const january = monthUtils.sheetForMonth('2017-01');
+      const february = monthUtils.sheetForMonth('2017-02');
+      expect(sheet.getCellValue(january, 'total-transfers')).toBe(
+        expectedTransfers,
+      );
+      expect(sheet.getCellValue(february, 'total-transfers')).toBe(0);
+      expect(sheet.getCellValue(january, 'total-spent')).toBe(
+        expectedTotalSpent,
+      );
+      expect(sheet.getCellValue(january, `sum-amount-${visible}`)).toBe(-1200);
+      expect(sheet.getCellValue(january, `leftover-${visible}`)).toBe(-1200);
+      if (budgetType === 'envelope') {
+        expect(sheet.getCellValue(january, 'to-budget')).toBe(0);
+      } else {
+        expect(sheet.getCellValue(january, 'real-saved')).toBe(-1200);
+      }
+
+      const transferNodes = [...sheet.get().getNodes().values()].filter(node =>
+        node.name.endsWith('!total-transfers'),
+      );
+      expect(transferNodes).toHaveLength(sheet.get().meta().createdMonths.size);
+      for (const node of transferNodes) {
+        expect(node._dependencies).toEqual([]);
+        expect(sheet.get().graph.adjacent(node.name)).toHaveLength(0);
+        expect(sheet.get().graph.adjacentIncoming(node.name)).toHaveLength(0);
+      }
+    },
+  );
+
+  it('seeds and caches explicit zeroes when loading a legacy cache without total-transfers', async () => {
+    await sheet.loadSpreadsheet(db);
+    sheet.get().meta().budgetType = 'envelope';
+
+    await db.insertCategoryGroup({ id: 'expense-group', name: 'Expenses' });
+    await db.insertCategoryGroup({
+      id: 'income-group',
+      name: 'Income',
+      is_income: 1,
+    });
+    const category = await db.insertCategory({
+      name: 'Expense',
+      cat_group: 'expense-group',
+    });
+    await db.insertAccount({ id: 'onbudget', name: 'On budget' });
+    await db.insertTransaction({
+      id: 'ordinary-spending',
+      date: '2017-01-15',
+      amount: -100,
+      account: 'onbudget',
+      category,
+    });
+
+    const january = monthUtils.sheetForMonth('2017-01');
+    sheet.get().load(resolveName(january, `sum-amount-${category}`), -100);
+    const saveCachedCells = vi.spyOn(sheet.get(), 'saveCachedCells');
+
+    await createAllBudgets();
+    await sheet.waitOnSpreadsheet();
+
+    const totalTransfersName = resolveName(january, 'total-transfers');
+    expect(sheet.getCellValue(january, 'total-transfers')).toBe(0);
+    expect(saveCachedCells).toHaveBeenCalledWith(
+      expect.arrayContaining([totalTransfersName]),
+    );
   });
 });

@@ -121,6 +121,9 @@ export function listenForSyncEvent(store: AppStore, queryClient: QueryClient) {
 
       const tables = event.tables;
 
+      // Legacy metadata prefs still emit the `prefs` dataset. Synced
+      // preferences use `preferences` and reload through the authoritative
+      // global `prefs-updated` event instead.
       if (tables.includes('prefs')) {
         void store.dispatch(loadPrefs());
       }

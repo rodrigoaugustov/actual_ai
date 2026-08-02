@@ -133,7 +133,7 @@ export function CalendarGraph({
                           marginRight: 4,
                         }}
                       >
-                        <Trans>Income:</Trans>
+                        <Trans i18nKey="Calendar inflow label">Inflow:</Trans>
                       </View>
                       <View
                         style={{
@@ -164,7 +164,7 @@ export function CalendarGraph({
                           marginRight: 4,
                         }}
                       >
-                        <Trans>Expenses:</Trans>
+                        <Trans i18nKey="Calendar outflow label">Outflow:</Trans>
                       </View>
                       <View
                         style={{

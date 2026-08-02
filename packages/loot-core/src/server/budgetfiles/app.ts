@@ -147,6 +147,7 @@ async function getRemoteFiles() {
 
 async function resetBudgetCache() {
   // Recomputing everything will update the cache
+  budget.resetPrecomputedTotalTransfers();
   await sheet.loadUserBudgets(db);
   sheet.get().recomputeAll();
   await sheet.waitOnSpreadsheet();
@@ -636,6 +637,7 @@ async function _loadBudget(id: Budget['id']): Promise<{
     )) ?? {};
   sheet.get().meta().budgetType = budgetType as prefs.BudgetType;
   resetBudgetRegimeCache();
+  budget.resetPrecomputedTotalTransfers();
   await budget.createAllBudgets();
 
   // Load all the in-memory state

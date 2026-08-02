@@ -214,3 +214,19 @@ export async function prewarmAllMonths(
     months.map(month => prewarmMonth(budgetType, spreadsheet, month)),
   );
 }
+export type SpendingBreakdown = {
+  spending: number;
+  transfers: number;
+  net: number;
+};
+
+export function getSpendingBreakdown(
+  totalSpent: number,
+  totalTransfers: number,
+): SpendingBreakdown {
+  return {
+    spending: totalSpent - totalTransfers,
+    transfers: totalTransfers,
+    net: totalSpent,
+  };
+}

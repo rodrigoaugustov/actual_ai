@@ -53,7 +53,7 @@ import type { SavedStatus } from '#components/reports/SaveReportMenu';
 import { setSessionReport } from '#components/reports/setSessionReport';
 import { createCustomSpreadsheet } from '#components/reports/spreadsheets/custom-spreadsheet';
 import { createGroupedSpreadsheet } from '#components/reports/spreadsheets/grouped-spreadsheet';
-import { useReport } from '#components/reports/useReport';
+import { useReportPair } from '#components/reports/useReport';
 import { calculateHasWarning, fromDateRepr } from '#components/reports/util';
 import { useAccounts } from '#hooks/useAccounts';
 import { useCategories } from '#hooks/useCategories';
@@ -120,6 +120,9 @@ export function CustomReport() {
   const params = useParams();
   const { data: report, isPending } = useCustomReport(params.id);
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
+  const [separateTransfersFromSpending] = useSyncedPref(
+    'separateTransfersFromSpending',
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -130,18 +133,29 @@ export function CustomReport() {
       key={report?.id}
       report={report}
       budgetType={budgetType}
+      separateTransfersFromSpending={separateTransfersFromSpending}
     />
+  );
+}
+
+export function CustomReportLoadError() {
+  return (
+    <Text style={{ ...styles.mediumText, color: theme.errorText }}>
+      <Trans>There was a problem loading your report</Trans>
+    </Text>
   );
 }
 
 type CustomReportInnerProps = {
   report?: CustomReportEntity;
   budgetType: SyncedPrefs['budgetType'];
+  separateTransfersFromSpending: SyncedPrefs['separateTransfersFromSpending'];
 };
 
 function CustomReportInner({
   report: initialReport,
   budgetType,
+  separateTransfersFromSpending,
 }: CustomReportInnerProps) {
   const locale = useLocale();
   const { t } = useTranslation();
@@ -539,6 +553,7 @@ function CustomReportInner({
       balanceTypeOp,
       sortByOp,
       firstDayOfWeekIdx,
+      separateTransfersFromSpending,
     });
   }, [
     startDate,
@@ -556,6 +571,7 @@ function CustomReportInner({
     trimIntervals,
     sortByOp,
     firstDayOfWeekIdx,
+    separateTransfersFromSpending,
   ]);
 
   const getGraphData = useMemo(() => {
@@ -579,6 +595,7 @@ function CustomReportInner({
       accounts,
       graphType,
       firstDayOfWeekIdx,
+      separateTransfersFromSpending,
     });
   }, [
     startDate,
@@ -600,13 +617,17 @@ function CustomReportInner({
     sortByOp,
     graphType,
     firstDayOfWeekIdx,
+    separateTransfersFromSpending,
   ]);
-  const graphData = useReport('default', getGraphData);
-  const groupedData = useReport('grouped', getGroupData);
+  const reportPair = useReportPair(getGraphData, getGroupData);
 
-  const data: DataEntity | null = graphData
-    ? { ...graphData, groupedData }
-    : null;
+  const data: DataEntity | null =
+    reportPair.status === 'ready'
+      ? {
+          ...reportPair.data.first,
+          groupedData: reportPair.data.second,
+        }
+      : null;
 
   const customReportItems: CustomReportEntity = {
     id: '',
@@ -1047,7 +1068,9 @@ function CustomReportInner({
                 </View>
               )}
               <View style={{ flex: 1, overflow: 'auto' }}>
-                {data ? (
+                {reportPair.status === 'error' ? (
+                  <CustomReportLoadError />
+                ) : data ? (
                   <ChooseGraph
                     data={data}
                     filters={conditions}

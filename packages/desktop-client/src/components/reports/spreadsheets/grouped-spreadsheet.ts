@@ -35,6 +35,7 @@ export function createGroupedSpreadsheet({
   balanceTypeOp,
   sortByOp,
   firstDayOfWeekIdx,
+  separateTransfersFromSpending,
 }: createCustomSpreadsheetProps) {
   const [categoryList, categoryGroup] = categoryLists(categories);
 
@@ -67,6 +68,7 @@ export function createGroupedSpreadsheet({
       conditionsOpKey,
       filters,
       budgetType,
+      excludeTransfers: separateTransfersFromSpending === 'true',
     }));
 
     if (interval === 'Weekly' && balanceTypeOp !== 'totalBudgeted') {

@@ -1,87 +1,103 @@
 <p align="center">
-  <img src="/demo.png" alt="Actualbudget" />
+  <img src="/packages/desktop-client/public/screenshot_wide.png" alt="Nosso Caderninho" />
 </p>
 
-## Getting Started
+<h1 align="center">Nosso Caderninho</h1>
 
-Actual is a local-first personal finance tool. It is 100% free and open-source, written in NodeJS, it has a synchronization element so that all your changes can move between devices without any heavy lifting.
+<p align="center"><strong>As finanças da casa, cuidadas em conjunto.</strong></p>
 
-If you are interested in contributing, or want to know how development works, see our [contributing](https://actualbudget.org/docs/contributing/) document we would love to have you.
+Nosso Caderninho é um gestor financeiro familiar feito para casais
+administrarem, entenderem e planejarem juntos a vida financeira — com
+continuidade entre o computador e o celular, e sem depender de conexão
+permanente.
 
-Want to say thanks? Click the ⭐ at the top of the page.
+A ideia é a de um caderninho compartilhado: uma memória financeira da casa, em
+que os dois enxergam a mesma realidade, com um assistente de IA ajudando a
+classificar e a planejar. As decisões continuam sendo da família.
 
-## Key Links
+## Para quem é
 
-- Actual [discord](https://discord.gg/pRYNYr4W5A) community.
-- Actual [Community Documentation](https://actualbudget.org/docs)
-- [Frequently asked questions](https://actualbudget.org/docs/faq)
+Para um casal que cuida das mesmas finanças em telas diferentes — um usa mais a
+Web, a outra usa só o celular. Ambas as superfícies precisam permitir concluir o
+trabalho de verdade, mesmo que a composição visual não seja idêntica.
 
-## Installation
+Hoje uma única família usa e valida o produto. Ele é deliberadamente específico
+em vez de genérico.
 
-There are four ways to deploy Actual:
+## O que ele faz
 
-1. One-click deployment [via PikaPods](https://www.pikapods.com/pods?run=actual) (~1.40 $/month) - recommended for non-technical users
-1. Managed hosting [via Fly.io](https://actualbudget.org/docs/install/fly) (~1.50 $/month)
-1. Self-hosted by using [a Docker image](https://actualbudget.org/docs/install/docker)
-1. Local-only apps - [downloadable Windows, Mac and Linux apps](https://actualbudget.org/download/) you can run on your device
+- **Orçamento e controle cotidiano** — contas, transações, categorias e
+  orçamento por envelopes.
+- **Assistência de IA** — classificação de despesas, revisão de sugestões,
+  mineração de regras, auditoria de uso e um consultor financeiro para
+  planejamento. A arquitetura e as decisões estão em [`docs/ai/`](docs/ai/).
+- **Local-first de verdade** — o orçamento vive num SQLite dentro do navegador.
+  Continua funcionando offline e sincroniza quando a conexão volta.
+- **Web e mobile** — um produto React responsivo, empacotado também para desktop
+  (Electron) e mobile (Capacitor).
 
-Learn more in the [installation instructions docs](https://actualbudget.org/docs/install/).
+<p align="center">
+  <img src="/packages/desktop-client/public/screenshot_narrow.png" alt="Nosso Caderninho no celular" width="320" />
+</p>
 
-## Ready to Start Budgeting?
+## Rodando em produção
 
-Read about [Envelope budgeting](https://actualbudget.org/docs/getting-started/envelope-budgeting) to know more about the idea behind Actual Budget.
+O deploy é pessoal — acesso do celular e de outros computadores, não aberto ao
+público. A imagem multi-arquitetura é publicada no GHCR a cada push em `master`:
 
-### Are you new to budgeting or want to start fresh?
+```
+ghcr.io/rodrigoaugustov/actual-ai:master
+```
 
-Check out the community's [Starting Fresh](https://actualbudget.org/docs/getting-started/starting-fresh) guide so you can quickly get up and running!
+O runbook completo — provisionamento, atualização, backup, restauração e
+rollback — está em **[`deploy/README.md`](deploy/README.md)**.
 
-### Are you migrating from other budgeting apps?
+Para subir uma instância local equivalente à de produção:
 
-Check out the community's [Migration](https://actualbudget.org/docs/migration/) guide to start jumping on the Actual Budget train!
+```bash
+docker compose -f packages/sync-server/docker-compose.yml up --detach --build
+```
 
-## Documentation
+A aplicação fica em `http://localhost:5006`.
 
-We have a wide range of documentation on how to use Actual, this is all available in our [Community Documentation](https://actualbudget.org/docs), this includes topics on Budgeting, Account Management, Tips & Tricks and some documentation for developers.
+## Desenvolvimento
 
-## Contributing
+Requer Node.js >= 22 e Yarn 4.
 
-Actual is a community driven product. Learn more about [contributing to Actual](https://actualbudget.org/docs/contributing/).
+```bash
+corepack yarn install
+corepack yarn start        # dev server em http://localhost:3001
+corepack yarn typecheck
+corepack yarn test
+corepack yarn lint:fix
+```
 
-### Code structure
+No Windows o `yarn start` padrão não funciona e o loop de iteração rápida é
+outro. Isso, junto das convenções de código, testes e commits, está em
+**[`AGENTS.md`](AGENTS.md)** — leia antes de contribuir ou de apontar um agente
+para este repositório.
 
-The Actual app is split up into a few packages:
+### Estrutura
 
-- loot-core - The core application that runs on any platform
-- desktop-client - The desktop UI
-- desktop-electron - The desktop app
+| Pacote              | Papel                                                                 |
+| ------------------- | --------------------------------------------------------------------- |
+| `loot-core`         | lógica central, roda em qualquer plataforma (inclusive no web worker) |
+| `desktop-client`    | a interface React (Web e mobile)                                      |
+| `desktop-electron`  | empacotamento desktop                                                 |
+| `sync-server`       | servidor de sincronização e proxy das chaves de IA                    |
+| `component-library` | componentes e tokens de design compartilhados                         |
+| `crdt`              | sincronização sem conflito entre dispositivos                         |
 
-More information on the project structure is available in our [community documentation](https://actualbudget.org/docs/contributing/project-details).
+A intenção de produto e de design está em
+[`packages/desktop-client/PRODUCT.md`](packages/desktop-client/PRODUCT.md) e
+[`DESIGN.md`](packages/desktop-client/DESIGN.md).
 
-### Feature Requests
+## Origem e licença
 
-Current feature requests can be seen [here](https://github.com/actualbudget/actual/issues?q=is%3Aissue+label%3A%22needs+votes%22+sort%3Areactions-%2B1-desc).
-Vote for your favorite requests by reacting :+1: to the top comment of the request.
+Este projeto começou como um fork do
+[Actual Budget](https://github.com/actualbudget/actual) e desde então seguiu
+caminho próprio — produto, design, identidade e ciclo de release são deste
+repositório, não do projeto original.
 
-To add new feature requests, open a new Issue of the "Feature Request" type.
-
-### Translation
-
-Make Actual Budget accessible to more people by helping with the [Internationalization](https://actualbudget.org/docs/contributing/i18n/) of Actual. We are using a crowd sourcing tool to manage the translations, see our [Weblate Project](https://hosted.weblate.org/projects/actualbudget/). Weblate proudly supports open-source software projects through their [Libre plan](https://weblate.org/en/hosting/#libre).
-
-<a href="https://hosted.weblate.org/engage/actualbudget/">
-<img src="https://hosted.weblate.org/widget/actualbudget/actual/287x66-grey.png" alt="Translation status" />
-</a>
-
-## Repo Activity
-
-![Alt](https://repobeats.axiom.co/api/embed/e20537dd8b74956f86736726ccfbc6f0565bec22.svg 'Repobeats analytics image')
-
-## Sponsors
-
-Thanks to our wonderful sponsors who make Actual Budget possible!
-
-<a href="https://www.netlify.com"><img src="https://www.netlify.com/v3/img/components/netlify-color-accent.svg" alt="Deploys by Netlify" /></a>
-<a href="https://depot.dev"><img src="https://depot.dev/badges/built-with-depot.svg" alt="Built with Depot" /></a>
-<a href="https://www.docker.com"><img src="https://www.docker.com/app/uploads/2023/05/symbol_blue-docker-logo.png" alt="Docker" height="48" /></a>
-<a href="https://github.com"><img src="https://avatars.githubusercontent.com/u/9919?s=200&v=4" alt="GitHub" height="48" /></a>
-<a href="https://www.anthropic.com"><img src="https://avatars.githubusercontent.com/u/76263028?s=200&v=4" alt="Anthropic" height="48" /></a>
+Licenciado sob MIT, preservando o copyright original conforme
+[`LICENSE.txt`](LICENSE.txt).

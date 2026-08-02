@@ -229,6 +229,26 @@ export function handleCategoryChange(months, oldValue, newValue) {
 }
 
 export function handleCategoryGroupChange(months, oldValue, newValue) {
+  function replaceDeps(sheetName, cellName, deps) {
+    const node = sheet.get().getNode(resolveName(sheetName, cellName));
+    const currentDeps = node._dependencies || [];
+    const resolvedDeps = deps.map(dep => resolveName(sheetName, dep));
+
+    if (
+      currentDeps.length === resolvedDeps.length &&
+      currentDeps.every((dep, index) => dep === resolvedDeps[index])
+    ) {
+      return;
+    }
+
+    if (currentDeps.length > 0) {
+      sheet.get().removeDependencies(sheetName, cellName, [...currentDeps]);
+    }
+    if (deps.length > 0) {
+      sheet.get().addDependencies(sheetName, cellName, deps);
+    }
+  }
+
   function addDeps(sheetName, groupId) {
     sheet
       .get()
@@ -292,6 +312,55 @@ export function handleCategoryGroupChange(months, oldValue, newValue) {
       createCategoryGroup({ ...group, categories }, sheetName);
 
       addDeps(sheetName, group.id);
+    });
+  } else if (
+    oldValue &&
+    oldValue.tombstone === 0 &&
+    newValue.tombstone === 0 &&
+    oldValue.is_income !== newValue.is_income
+  ) {
+    const groups = db.runQuery<{
+      id: string;
+      is_income: 0 | 1;
+      hidden: 0 | 1;
+    }>(
+      `SELECT id, is_income, hidden
+       FROM category_groups
+       WHERE tombstone = 0
+       ORDER BY is_income, sort_order, id`,
+      [],
+      true,
+    );
+    const expenseGroups = groups.filter(
+      candidate => !candidate.is_income && !candidate.hidden,
+    );
+    const incomeGroup = groups.find(candidate => candidate.is_income);
+
+    months.forEach(month => {
+      const sheetName = monthUtils.sheetForMonth(month);
+      replaceDeps(
+        sheetName,
+        'total-budgeted',
+        expenseGroups.map(candidate => `group-budget-${candidate.id}`),
+      );
+      replaceDeps(
+        sheetName,
+        'total-spent',
+        expenseGroups.map(candidate => `group-sum-amount-${candidate.id}`),
+      );
+      replaceDeps(
+        sheetName,
+        'total-leftover',
+        expenseGroups.map(candidate => `group-leftover-${candidate.id}`),
+      );
+      if (incomeGroup) {
+        replaceDeps(sheetName, 'total-income', [
+          `group-sum-amount-${incomeGroup.id}`,
+        ]);
+        replaceDeps(sheetName, 'total-budget-income', [
+          `group-budget-${incomeGroup.id}`,
+        ]);
+      }
     });
   } else if (oldValue && oldValue.hidden !== newValue.hidden) {
     const group = newValue;
